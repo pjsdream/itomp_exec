@@ -1,0 +1,7 @@
+<launch>
+
+  <node name="test_fetch" pkg="itomp_exec" type="test_fetch" output="screen">
+    <rosparam command="load" file="$(find itomp_exec)/config/itomp_test_fetch.yaml"/>
+  </node>
+  
+</launch>

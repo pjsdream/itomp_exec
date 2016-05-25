@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(itomp_exec)
+project(itomp_fetch)
 
 ## show all files (http://wiki.ros.org/IDEs#QtCreator)
 #Add all files in subdirectories of the project in
@@ -16,22 +16,10 @@ add_custom_target(dummy_${PROJECT_NAME} SOURCES ${extra_files})
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  moveit_core
-  moveit_ros_planning
-)
+find_package(catkin REQUIRED)
 
 ## System dependencies are found with CMake's conventions
-find_package(Boost REQUIRED COMPONENTS
-  system
-)
-
-# cmake_modules
-find_package(cmake_modules REQUIRED)
-
-# eigen
-find_package(Eigen REQUIRED)
+# find_package(Boost REQUIRED COMPONENTS system)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -120,10 +108,10 @@ find_package(Eigen REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES itomp_exec
-  CATKIN_DEPENDS roscpp moveit_core
-  DEPENDS system_lib
+#  INCLUDE_DIRS include
+#  LIBRARIES itomp_fetch
+#  CATKIN_DEPENDS other_catkin_pkg
+#  DEPENDS system_lib
 )
 
 ###########
@@ -132,48 +120,29 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(include)
-include_directories(
-  ${Eigen_INCLUDE_DIRS}
-  ${Boost_INCLUDE_DIRS}
-  ${catkin_INCLUDE_DIRS}
-)
-
-link_directories(
-  ${Boost_LIBRARY_DIRS}
-)
+# include_directories(include)
 
 ## Declare a C++ library
-# add_library(itomp_exec
-#   src/${PROJECT_NAME}/itomp_exec.cpp
+# add_library(itomp_fetch
+#   src/${PROJECT_NAME}/itomp_fetch.cpp
 # )
-add_library(itomp_exec
-  src/planner/itomp_planner_node.cpp
-)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(itomp_exec ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(itomp_fetch ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-# add_executable(itomp_exec_node src/itomp_exec_node.cpp)
-add_executable(test_fetch src/test_fetch.cpp)
+# add_executable(itomp_fetch_node src/itomp_fetch_node.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(itomp_exec_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(itomp_fetch_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(itomp_exec_node
+# target_link_libraries(itomp_fetch_node
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(itomp_exec
-  ${catkin_LIBRARIES}
-)
-target_link_libraries(test_fetch
-  itomp_exec
-)
 
 #############
 ## Install ##
@@ -190,7 +159,7 @@ target_link_libraries(test_fetch
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS itomp_exec itomp_exec_node
+# install(TARGETS itomp_fetch itomp_fetch_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -215,7 +184,7 @@ target_link_libraries(test_fetch
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_itomp_exec.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_itomp_fetch.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

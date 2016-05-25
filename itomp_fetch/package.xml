@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>itomp_exec</name>
+  <name>itomp_fetch</name>
   <version>0.0.0</version>
-  <description>The itomp_exec package</description>
+  <description>The itomp_fetch package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <!-- Example:  -->
@@ -19,7 +19,7 @@
   <!-- Url tags are optional, but mutiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <!-- <url type="website">http://wiki.ros.org/itomp_exec</url> -->
+  <!-- <url type="website">http://wiki.ros.org/itomp_fetch</url> -->
 
 
   <!-- Author tags are optional, mutiple are allowed, one per tag -->
@@ -40,19 +40,11 @@
   <!-- Use test_depend for packages you need only for testing: -->
   <!--   <test_depend>gtest</test_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
-  
-  <build_depend>roscpp</build_depend>
-  <build_depend>moveit_core</build_depend>
-  <build_depend>moveit_ros_planning</build_depend>
-  <build_depend>cmake_modules</build_depend>
-  
-  <run_depend>roscpp</run_depend>
-  <run_depend>moveit_core</run_depend>
-  <run_depend>moveit_ros_planning</run_depend>
-  <run_depend>cmake_modules</run_depend>
 
+
+  <!-- The export tag contains other, unspecified, tags -->
   <export>
-    <moveit_core plugin="${prefix}/itomp_exec_plugin_description.xml"/>
+    <!-- Other tools can request additional information be placed here -->
+
   </export>
-  
 </package>
