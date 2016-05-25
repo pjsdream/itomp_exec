@@ -1,3 +1,6 @@
 trajectory_duration: 3.0
 num_milestones: 5
 num_interpolation_samples: 5
+
+static_obstacles:
+  - {file: "package://itomp_exec/env/table.dae", position: [1.0, 0.0, 0.0]}

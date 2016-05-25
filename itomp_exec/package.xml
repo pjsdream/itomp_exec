@@ -52,7 +52,6 @@
   <run_depend>cmake_modules</run_depend>
 
   <export>
-    <moveit_core plugin="${prefix}/itomp_exec_plugin_description.xml"/>
   </export>
   
 </package>

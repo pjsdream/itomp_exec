@@ -20,10 +20,10 @@
   <arg name="max_safe_path_cost" default="1"/>
   <arg name="jiggle_fraction" default="0.05" />
   <arg name="publish_monitored_planning_scene" default="true"/>
-  <arg name="pipeline" default="$(optenv PLANNING_PIPELINE itomp)" />
+  <arg name="pipeline" default="$(optenv PLANNING_PIPELINE ompl)" />
 
   <!-- Planning Functionality -->
-  <include ns="move_group" file="$(find itomp_fetch)/launch/itomp_planning_pipeline.launch">
+  <include ns="move_group" file="$(find fetch_moveit_config)/launch/$(arg pipeline)_planning_pipeline.launch">
   </include>
 
   <!-- Trajectory Execution Functionality -->

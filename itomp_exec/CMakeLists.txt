@@ -149,6 +149,12 @@ link_directories(
 # )
 add_library(itomp_exec
   src/planner/itomp_planner_node.cpp
+  src/optimization/itomp_optimizer.cpp
+  src/trajectory/trajectory.cpp
+  src/cost/cost.cpp
+  src/cost/goal_cost.cpp
+  src/cost/smoothness_cost.cpp
+  src/cost/collision_cost.cpp
 )
 
 ## Add cmake target dependencies of the library
