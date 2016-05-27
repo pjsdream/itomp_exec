@@ -176,6 +176,21 @@ void ITOMPPlannerNode::printParams()
     ROS_INFO(" * planning_timestep: %lf", options_.planning_timestep);
 }
 
+void ITOMPPlannerNode::printControllers()
+{
+    ROS_INFO("ITOMP-exec controllers:");
+    
+    std::vector<std::string> controllers;
+    trajectory_execution_manager_->getControllerManager()->getControllersList(controllers);
+    for (int i=0; i<controllers.size(); i++)
+        ROS_INFO(" * %s", controllers[i].c_str());
+    
+    std::vector<std::string> active_controllers;
+    trajectory_execution_manager_->getControllerManager()->getActiveControllers(active_controllers);
+    for (int i=0; i<active_controllers.size(); i++)
+        ROS_INFO(" * %s", active_controllers[i].c_str());
+}
+
 void ITOMPPlannerNode::addStaticObstacle(const std::string& mesh_filename, const Eigen::Affine3d& transformation)
 {
     std::vector<std::string> mesh_filenames;
@@ -257,7 +272,7 @@ bool ITOMPPlannerNode::planAndExecute()
     const double optimization_time_fraction = 0.90;
     const double optimization_time = options_.planning_timestep * optimization_time_fraction;
     
-    double trajectory_duration = options_.trajectory_duration; // 
+    double trajectory_duration = options_.trajectory_duration;
     
     ros::WallDuration optimization_sleep_time(optimization_time);
     ros::WallRate rate( 1. / options_.planning_timestep );
@@ -299,6 +314,7 @@ bool ITOMPPlannerNode::planAndExecute()
         
         // TODO: execute and update trajectories
         
+        // step forward one planning step
         if (trajectory_duration <= options_.planning_timestep)
             break;
         

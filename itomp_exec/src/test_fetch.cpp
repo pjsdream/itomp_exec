@@ -12,6 +12,7 @@ int main(int argc, char** argv)
     itomp_exec::ITOMPPlannerNode planner(nh);
     
     planner.printParams();
+    planner.printControllers();
     
     planning_interface::MotionPlanResponse res;
     planner.planAndExecute(res);
