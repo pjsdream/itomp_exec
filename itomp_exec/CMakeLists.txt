@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(itomp_exec)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
 ## show all files (http://wiki.ros.org/IDEs#QtCreator)
 #Add all files in subdirectories of the project in
 # a dummy_target so qtcreator have access to all files
@@ -32,7 +34,6 @@ find_package(cmake_modules REQUIRED)
 
 # eigen
 find_package(Eigen REQUIRED)
-
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -152,6 +153,7 @@ add_library(itomp_exec
   src/optimization/itomp_optimizer.cpp
   src/trajectory/trajectory.cpp
   src/cost/cost.cpp
+  src/cost/cost_factory.cpp
   src/cost/goal_cost.cpp
   src/cost/smoothness_cost.cpp
   src/cost/collision_cost.cpp

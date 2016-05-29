@@ -4,22 +4,17 @@
 namespace itomp_exec
 {
 
-// TrajectoryDerivative
-TrajectoryDerivative::TrajectoryDerivative()
+Cost::Cost(double weight)
+    : weight_(weight)
 {
 }
 
-// Cost
-Cost::Cost()
-{
-}
-
-double Cost::cost()
+double Cost::cost(TrajectoryConstPtr trajectory)
 {
     return 0.0;
 }
 
-TrajectoryDerivative Cost::derivative()
+TrajectoryDerivative Cost::derivative(TrajectoryConstPtr trajectory)
 {
     TrajectoryDerivative derivative;
     return derivative;

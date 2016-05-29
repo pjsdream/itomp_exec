@@ -7,6 +7,7 @@
 #include <moveit/trajectory_execution_manager/trajectory_execution_manager.h>
 
 #include <itomp_exec/optimization/itomp_optimizer.h>
+#include <itomp_exec/cost/cost.h>
 #include <pthread.h>
 
 #include <ros/ros.h>
@@ -28,6 +29,8 @@ public:
         int num_interpolation_samples;
         int num_trajectories;
         double planning_timestep;
+        
+        std::vector<std::pair<std::string, double> > cost_weights;
     };
     
 public:
@@ -45,6 +48,7 @@ public:
     // DEBUG
     void printParams();
     void printControllers();
+    void printCostWeights();
 
 private:
     
@@ -57,8 +61,10 @@ private:
     
     // plan
     bool planAndExecute();
+    static void* optimizerThreadStartRoutine(void* arg);
     
     // optimizer
+    std::vector<Cost*> cost_types_;
     std::vector<TrajectoryPtr> trajectories_;
     std::vector<ITOMPOptimizer*> optimizers_;
     std::vector<pthread_t> threads_;

@@ -9,6 +9,10 @@
 #include <iostream>
 
 
+// DEBUG
+#include <itomp_exec/cost/collision_cost.h>
+
+
 namespace itomp_exec
 {
 
@@ -123,7 +127,7 @@ void ITOMPPlannerNode::loadParams()
         
         for (int i=0; i<static_obstacles.size(); i++)
         {
-            XmlRpc::XmlRpcValue static_obstacle = static_obstacles[i];
+            XmlRpc::XmlRpcValue& static_obstacle = static_obstacles[i];
             
             if (static_obstacle.hasMember("file"))
             {
@@ -134,7 +138,7 @@ void ITOMPPlannerNode::loadParams()
                 if (static_obstacle.hasMember("position"))
                 {
                     Eigen::Vector3d p;
-                    XmlRpc::XmlRpcValue position = static_obstacle["position"];
+                    XmlRpc::XmlRpcValue& position = static_obstacle["position"];
                     for (int i=0; i<3; i++)
                         p(i) = static_cast<double>(position[i]);
                     
@@ -163,6 +167,23 @@ void ITOMPPlannerNode::loadParams()
         
         addStaticObstacles(filenames, transformations);
     }
+    
+    // load cost weights
+    options_.cost_weights.clear();
+    XmlRpc::XmlRpcValue cost_weights;
+    if (node_handle_.getParam("cost_weights", cost_weights))
+    {
+        for (int i=0; i<cost_weights.size(); i++)
+        {
+            XmlRpc::XmlRpcValue& cost_weight = cost_weights[i];
+            
+            for (XmlRpc::XmlRpcValue::iterator it=cost_weight.begin(); it != cost_weight.end(); it++)
+            {
+                const double weight = static_cast<double>(it->second);
+                options_.cost_weights.push_back(std::make_pair(it->first, weight));
+            }
+        }
+    }
 }
 
 void ITOMPPlannerNode::printParams()
@@ -179,16 +200,24 @@ void ITOMPPlannerNode::printParams()
 void ITOMPPlannerNode::printControllers()
 {
     ROS_INFO("ITOMP-exec controllers:");
-    
     std::vector<std::string> controllers;
     trajectory_execution_manager_->getControllerManager()->getControllersList(controllers);
     for (int i=0; i<controllers.size(); i++)
         ROS_INFO(" * %s", controllers[i].c_str());
     
+    ROS_INFO("ITOMP-exec active controllers:");   
     std::vector<std::string> active_controllers;
     trajectory_execution_manager_->getControllerManager()->getActiveControllers(active_controllers);
     for (int i=0; i<active_controllers.size(); i++)
         ROS_INFO(" * %s", active_controllers[i].c_str());
+}
+
+void ITOMPPlannerNode::printCostWeights()
+{
+    ROS_INFO("ITOMP-exec cost weights:");
+    
+    for (int i=0; i<options_.cost_weights.size(); i++)
+        ROS_INFO(" * %s: %lf", options_.cost_weights[i].first.c_str(), options_.cost_weights[i].second);
 }
 
 void ITOMPPlannerNode::addStaticObstacle(const std::string& mesh_filename, const Eigen::Affine3d& transformation)
@@ -259,12 +288,14 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
     return planAndExecute();
 }
 
-static void* optimizer_thread_start_routine(void* arg)
+void* ITOMPPlannerNode::optimizerThreadStartRoutine(void* arg)
 {
     ROS_INFO("Optimization thread created");
     
     ITOMPOptimizer* optimizer = (ITOMPOptimizer*)arg;
     optimizer->optimize();
+    
+    return 0;
 }
 
 bool ITOMPPlannerNode::planAndExecute()
@@ -284,7 +315,11 @@ bool ITOMPPlannerNode::planAndExecute()
     
     optimizers_.resize(trajectories_.size());
     for (int i=0; i<optimizers_.size(); i++)
+    {
         optimizers_[i] = new ITOMPOptimizer(trajectories_[i]);
+        optimizers_[i]->setOptimizationTimeLimit(optimization_time);
+        optimizers_[i]->generateCostFunctions(options_.cost_weights);
+    }
     
     threads_.resize(optimizers_.size());
     
@@ -298,7 +333,7 @@ bool ITOMPPlannerNode::planAndExecute()
         // threading optimizations
         for (int i=0; i<optimizers_.size(); i++)
         {
-            if (pthread_create(&threads_[i], NULL, &optimizer_thread_start_routine, optimizers_[i]) != 0)
+            if (pthread_create(&threads_[i], NULL, &optimizerThreadStartRoutine, optimizers_[i]) != 0)
                 ROS_ERROR("Error occurred creating optimizer thread %d");
         }
         

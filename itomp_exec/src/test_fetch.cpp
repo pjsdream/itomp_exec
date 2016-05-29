@@ -13,6 +13,7 @@ int main(int argc, char** argv)
     
     planner.printParams();
     planner.printControllers();
+    planner.printCostWeights();
     
     planning_interface::MotionPlanResponse res;
     planner.planAndExecute(res);
