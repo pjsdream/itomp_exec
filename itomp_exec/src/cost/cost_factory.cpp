@@ -8,17 +8,13 @@
 
 // include cost class
 #include <itomp_exec/cost/collision_cost.h>
-#include <itomp_exec/cost/goal_cost.h>
+#include <itomp_exec/cost/goal_pose_cost.h>
 #include <itomp_exec/cost/smoothness_cost.h>
 
 
 #define ITOMP_COST_DERIVED_CLASS_FACTORY(type) \
     { \
-        std::string class_name = type##Cost::getDescription_(); \
-        std::transform(class_name.begin(), class_name.end(), class_name.begin(), ::tolower); \
-        std::string requested_name = name; \
-        std::transform(requested_name.begin(), requested_name.end(), requested_name.begin(), ::tolower); \
-        if (class_name == name + "cost") return new type##Cost(weight); \
+        if (camelCasedToUnderscored( type##Cost::getDescription_() ) == name + "_cost") return new type##Cost(weight); \
     }
 
 
@@ -29,12 +25,27 @@ Cost* CostFactory::newCost(const std::string& name, double weight)
 {
     // add lines for object generation
     ITOMP_COST_DERIVED_CLASS_FACTORY(Collision);
-    ITOMP_COST_DERIVED_CLASS_FACTORY(Goal);
+    ITOMP_COST_DERIVED_CLASS_FACTORY(GoalPose);
     ITOMP_COST_DERIVED_CLASS_FACTORY(Smoothness);
     
     ROS_ERROR("Unknown cost function type [%s]", name.c_str());
     
     return 0;
+}
+
+std::string CostFactory::camelCasedToUnderscored(const std::string& name)
+{
+    std::string result;
+    
+    for (int i=0; i<name.size(); i++)
+    {
+        if (i && isUpper(name[i]))
+            result += std::string("_") + toLower(name[i]);
+        else
+            result += toLower(name[i]);
+    }
+    
+    return result;
 }
 
 }

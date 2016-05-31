@@ -13,6 +13,18 @@ class CostFactory
 public:
     
     static Cost* newCost(const std::string& name, double weight);
+    
+    static std::string camelCasedToUnderscored(const std::string& name);
+    
+    static inline bool isUpper(char x)
+    {
+        return 'A' <= x && x <= 'Z';
+    }
+    
+    static inline char toLower(char x)
+    {
+        return isUpper(x) ? x-'A'+'a' : x;
+    }
 };
 
 }

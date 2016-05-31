@@ -42,6 +42,10 @@ public:
     
     void setMotionPlanRequest(const planning_interface::MotionPlanRequest& req);
     
+    std::vector<std::pair<std::string, Eigen::Vector3d> > getGoalLinkPositions() const;
+    std::vector<std::pair<std::string, Eigen::Quaterniond> > getGoalLinkOrientations() const;
+    const Trajectory& getTrajectoryTemplate() const;
+    
     bool plan(planning_interface::MotionPlanResponse& res);
     bool planAndExecute(planning_interface::MotionPlanResponse& res);
     
@@ -77,6 +81,12 @@ private:
     robot_model::RobotModelConstPtr robot_model_;
     planning_scene::PlanningScenePtr planning_scene_;
     trajectory_execution_manager::TrajectoryExecutionManagerPtr trajectory_execution_manager_;
+    
+    // planning requests
+    std::string planning_group_name_;
+    robot_state::RobotState* start_state_;
+    std::vector<std::pair<std::string, Eigen::Vector3d> > goal_link_positions_;
+    std::vector<std::pair<std::string, Eigen::Quaterniond> > goal_link_orientations_;
     
     // ITOMP options
     ITOMPPlannerOptions options_;

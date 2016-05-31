@@ -29,16 +29,24 @@
 namespace itomp_exec
 {
 
+class ITOMPPlannerNode;
+
 class Cost
 {
+private:
+    
+    static const double derivative_eps;
+    
 public:
     
     Cost(double weight = 1.0);
     
     virtual std::string getDescription() { return "Cost"; }
     
-    virtual double cost(TrajectoryConstPtr trajectory);
-    virtual TrajectoryDerivative derivative(const TrajectoryConstPtr trajectory);
+    virtual void initialize(const ITOMPPlannerNode& planner_node);
+    
+    virtual double cost(const Trajectory& trajectory);
+    virtual TrajectoryDerivative derivative(const Trajectory& trajectory);
     
 protected:
     

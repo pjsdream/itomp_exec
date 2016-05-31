@@ -4,20 +4,26 @@
 namespace itomp_exec
 {
 
+const double Cost::derivative_eps = 1e-7;
+
+
 Cost::Cost(double weight)
     : weight_(weight)
 {
 }
 
-double Cost::cost(TrajectoryConstPtr trajectory)
+void Cost::initialize(const ITOMPPlannerNode& planner_node)
+{
+}
+
+double Cost::cost(const Trajectory& trajectory)
 {
     return 0.0;
 }
 
-TrajectoryDerivative Cost::derivative(TrajectoryConstPtr trajectory)
+TrajectoryDerivative Cost::derivative(const Trajectory& trajectory)
 {
-    TrajectoryDerivative derivative;
-    return derivative;
+    return TrajectoryDerivative(trajectory);
 }
 
 }

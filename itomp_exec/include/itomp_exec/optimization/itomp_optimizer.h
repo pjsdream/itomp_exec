@@ -27,15 +27,18 @@ public:
         optimization_time_limit_ = time;
     }
     
+    double cost();
+    
     void generateCostFunctions(const std::vector<std::pair<std::string, double> > cost_weights);
+    void initializeCostFunctions(const ITOMPPlannerNode& planner_node);
     
     void optimize();
     
 private:
     
     // dlib function value/derivative evaluation
-    double cost(const column_vector& variables);
-    const column_vector cost_derivative(const column_vector& variables);
+    double optimizationCost(const column_vector& variables);
+    const column_vector optimizationCostDerivative(const column_vector& variables);
     static const Eigen::VectorXd convertDlibToEigenVector(const column_vector& v);
     static const column_vector convertEigenToDlibVector(const Eigen::VectorXd& v);
     

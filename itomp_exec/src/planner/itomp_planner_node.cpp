@@ -1,6 +1,7 @@
 #include <itomp_exec/planner/itomp_planner_node.h>
 #include <moveit/robot_model_loader/robot_model_loader.h>
 #include <moveit_msgs/PlanningScene.h>
+#include <moveit/robot_state/conversions.h>
 #include <geometric_shapes/mesh_operations.h>
 #include <geometric_shapes/shape_operations.h>
 #include <geometric_shapes/shapes.h>
@@ -18,6 +19,8 @@ namespace itomp_exec
 
 ITOMPPlannerNode::ITOMPPlannerNode(const ros::NodeHandle& node_handle)
     : node_handle_(node_handle)
+    , start_state_(0)
+    , res_(0)
 {
     initialize();
 }
@@ -173,15 +176,10 @@ void ITOMPPlannerNode::loadParams()
     XmlRpc::XmlRpcValue cost_weights;
     if (node_handle_.getParam("cost_weights", cost_weights))
     {
-        for (int i=0; i<cost_weights.size(); i++)
+        for (XmlRpc::XmlRpcValue::iterator it=cost_weights.begin(); it != cost_weights.end(); it++)
         {
-            XmlRpc::XmlRpcValue& cost_weight = cost_weights[i];
-            
-            for (XmlRpc::XmlRpcValue::iterator it=cost_weight.begin(); it != cost_weight.end(); it++)
-            {
-                const double weight = static_cast<double>(it->second);
-                options_.cost_weights.push_back(std::make_pair(it->first, weight));
-            }
+            const double weight = static_cast<double>(it->second);
+            options_.cost_weights.push_back(std::make_pair(it->first, weight));
         }
     }
 }
@@ -272,6 +270,53 @@ void ITOMPPlannerNode::addStaticObstacles(const std::vector<std::string>& mesh_f
 
 void ITOMPPlannerNode::setMotionPlanRequest(const planning_interface::MotionPlanRequest& req)
 {
+    planning_group_name_ = req.group_name;
+    
+    // start state
+    if (start_state_)
+        delete start_state_;
+    start_state_ = new robot_state::RobotState(robot_model_);
+    start_state_->setToDefaultValues();
+    
+    std::vector<double> values( robot_model_->getVariableCount() );
+    robot_model_->getVariableDefaultPositions(values);
+    start_state_->setVariablePositions(&values[0]);
+    
+    moveit::core::robotStateMsgToRobotState(req.start_state, *start_state_, false);
+    
+    // goal poses. Only take the first constraint
+    goal_link_positions_.clear();
+    for (int i=0; i<req.goal_constraints[0].position_constraints.size(); i++)
+    {
+        const std::string& name = req.goal_constraints[0].position_constraints[i].link_name;
+        Eigen::Vector3d position;
+        tf::vectorMsgToEigen(req.goal_constraints[0].position_constraints[i].target_point_offset, position);
+        goal_link_positions_.push_back(std::make_pair(name, position));
+    }
+    
+    goal_link_orientations_.clear();
+    for (int i=0; i<req.goal_constraints[0].position_constraints.size(); i++)
+    {
+        const std::string& name = req.goal_constraints[0].position_constraints[i].link_name;
+        Eigen::Quaterniond orientation;
+        tf::quaternionMsgToEigen(req.goal_constraints[0].orientation_constraints[i].orientation, orientation);
+        goal_link_orientations_.push_back(std::make_pair(name, orientation));
+    }
+}
+
+std::vector<std::pair<std::string, Eigen::Vector3d> > ITOMPPlannerNode::getGoalLinkPositions() const
+{
+    return goal_link_positions_;
+}
+
+std::vector<std::pair<std::string, Eigen::Quaterniond> > ITOMPPlannerNode::getGoalLinkOrientations() const
+{
+    return goal_link_orientations_;
+}
+
+const Trajectory& ITOMPPlannerNode::getTrajectoryTemplate() const
+{
+    return *trajectories_[0];
 }
 
 bool ITOMPPlannerNode::plan(planning_interface::MotionPlanResponse& res)
@@ -311,7 +356,18 @@ bool ITOMPPlannerNode::planAndExecute()
     // initialize optimizers and threads    
     trajectories_.resize(options_.num_trajectories);
     for (int i=0; i<trajectories_.size(); i++)
+    {
         trajectories_[i].reset(new Trajectory());
+        trajectories_[i]->setRobot(robot_model_);
+        trajectories_[i]->setRobotPlanningGroup(planning_group_name_);
+        trajectories_[i]->setNumMilestones(options_.num_milestones);
+        trajectories_[i]->setNumInterpolationSamples(options_.num_interpolation_samples);
+        trajectories_[i]->setTrajectoryDuration(options_.trajectory_duration);
+        trajectories_[i]->initializeWithStartState(*start_state_);
+        
+        ROS_INFO("Trajectory %d:", i);
+        trajectories_[i]->printInfo();
+    }
     
     optimizers_.resize(trajectories_.size());
     for (int i=0; i<optimizers_.size(); i++)
@@ -319,6 +375,7 @@ bool ITOMPPlannerNode::planAndExecute()
         optimizers_[i] = new ITOMPOptimizer(trajectories_[i]);
         optimizers_[i]->setOptimizationTimeLimit(optimization_time);
         optimizers_[i]->generateCostFunctions(options_.cost_weights);
+        optimizers_[i]->initializeCostFunctions(*this);
     }
     
     threads_.resize(optimizers_.size());
@@ -347,7 +404,34 @@ bool ITOMPPlannerNode::planAndExecute()
             }
         }
         
-        // TODO: execute and update trajectories
+        // find the best trajectory with smallest cost
+        double best_cost;
+        int best_trajectory_index = -1;
+        for (int i=0; i<optimizers_.size(); i++)
+        {
+            const double cost = optimizers_[i]->cost();
+            if (best_trajectory_index == -1 || best_cost > cost)
+            {
+                best_cost = cost;
+                best_trajectory_index = i;
+            }
+        }
+        
+        ROS_INFO("Best trajectory cost: %lf", best_cost);
+        
+        // TODO: execute
+        if (execution_while_planning_)
+        {
+        }
+        
+        // TODO: update trajectories
+        for (int i=0; i<trajectories_.size(); i++)
+        {
+            if (i != best_trajectory_index)
+            {
+                *trajectories_[i] = *trajectories_[best_trajectory_index];
+            }
+        }
         
         // step forward one planning step
         if (trajectory_duration <= options_.planning_timestep)
