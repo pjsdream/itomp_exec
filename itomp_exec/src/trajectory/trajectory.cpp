@@ -2,12 +2,68 @@
 #include <ros/console.h>
 #include <ecl/geometry.hpp>
 
+#include <visualization_msgs/MarkerArray.h>
+
 namespace itomp_exec
 {
 
 // Trajectory
-Trajectory::Trajectory()
+Trajectory::Trajectory(const ros::NodeHandle& node_handle)
+    : node_handle_(node_handle)
 {
+}
+
+void Trajectory::setTrajectoryVisualizationTopic(const std::string& topic)
+{
+    trajectory_publisher_.shutdown();
+    trajectory_publisher_ = node_handle_.advertise<visualization_msgs::MarkerArray>(topic, 1);
+}
+
+void Trajectory::visualizeMilestones()
+{
+    visualization_msgs::MarkerArray marker_array;
+    std_msgs::ColorRGBA color;
+    color.r = color.g = color.b = 1.;
+    color.a = 1.;
+    
+    for (int i=0; i<num_milestones_; i++)
+    {
+        setMilestoneVariablesPositionsToRobotState(*robot_state_for_visualization_, i);
+        robot_state_for_visualization_->update();
+        robot_state_for_visualization_->getRobotMarkers(marker_array, robot_model_->getLinkModelNames(), color, "milestone_" + std::to_string(i), ros::Duration(0.));
+    }
+    
+    for (int i=0; i<marker_array.markers.size(); i++)
+    {
+        marker_array.markers[i].mesh_use_embedded_materials = true;
+    }
+    
+    trajectory_publisher_.publish(marker_array);
+}
+
+void Trajectory::visualizeInterpolationSamples()
+{
+    visualization_msgs::MarkerArray marker_array;
+    std_msgs::ColorRGBA color;
+    color.r = color.g = color.b = 1.;
+    color.a = 1.;
+    
+    for (int i=0; i<num_milestones_; i++)
+    {
+        for (int j=0; j<num_interpolation_samples_; j++)
+        {
+            setMilestoneVariablesPositionsToRobotState(*robot_state_for_visualization_, i, j);
+            robot_state_for_visualization_->update();
+            robot_state_for_visualization_->getRobotMarkers(marker_array, robot_model_->getLinkModelNames(), color, "milestone_" + std::to_string(i), ros::Duration(0.));
+        }
+    }
+    
+    for (int i=0; i<marker_array.markers.size(); i++)
+    {
+        marker_array.markers[i].mesh_use_embedded_materials = true;
+    }
+    
+    trajectory_publisher_.publish(marker_array);
 }
 
 void Trajectory::printInfo()
@@ -44,11 +100,16 @@ void Trajectory::setRobotPlanningGroup(const std::string& group_name)
     for (int i=0; i<whole_body_joints.size(); i++)
         whole_body_joint_names[i] = whole_body_joints[i]->getName();
     
-    const std::vector<std::string> group_joint_names = joint_group->getActiveJointModelNames();
+    planning_group_joint_names_ = joint_group->getActiveJointModelNames();
+    planning_group_joint_models_ = joint_group->getActiveJointModels();
     
-    planning_group_joint_indices_.resize(group_joint_names.size());
-    for (int i=0; i<group_joint_names.size(); i++)
-        planning_group_joint_indices_[i] = std::find(whole_body_joint_names.begin(), whole_body_joint_names.end(), group_joint_names[i]) - whole_body_joint_names.begin();
+    planning_group_joint_indices_.resize(planning_group_joint_names_.size());
+    planning_group_joint_name_to_index_map_.clear();
+    for (int i=0; i<planning_group_joint_names_.size(); i++)
+    {
+        planning_group_joint_indices_[i] = std::find(whole_body_joint_names.begin(), whole_body_joint_names.end(), planning_group_joint_names_[i]) - whole_body_joint_names.begin();
+        planning_group_joint_name_to_index_map_[ planning_group_joint_names_[i] ] = i;
+    }
     
     // joint limits
     const robot_model::JointBoundsVector group_joint_bounds = joint_group->getActiveJointModelsBounds();
@@ -63,14 +124,15 @@ void Trajectory::setRobotPlanningGroup(const std::string& group_name)
     
     // optimization variable names
     optimization_variable_names_at_point_.clear();
-    for (int i=0; i<group_joint_names.size(); i++)
+    for (int i=0; i<planning_group_joint_names_.size(); i++)
     {
-        optimization_variable_names_at_point_.push_back( group_joint_names[i] + "_pos" );
-        optimization_variable_names_at_point_.push_back( group_joint_names[i] + "_vel" );
+        optimization_variable_names_at_point_.push_back( planning_group_joint_names_[i] + "_pos" );
+        optimization_variable_names_at_point_.push_back( planning_group_joint_names_[i] + "_vel" );
     }
     
     // optimization variables
-    num_optimization_variables_at_point_ = planning_group_joint_limits_.size() * 2;
+    num_planning_group_joints_ = planning_group_joint_limits_.size();
+    num_optimization_variables_at_point_ = num_planning_group_joints_ * 2;
 }
 
 void Trajectory::initializeWithStartState(const robot_state::RobotState& start_state)
@@ -110,6 +172,9 @@ void Trajectory::initializeWithStartState(const robot_state::RobotState& start_s
             milestone_variables_(2*i+1, j) = cubic.derivative(t);
         }
     }
+    
+    // visualization
+    robot_state_for_visualization_.reset(new robot_state::RobotState(start_state));
 }
 
 void Trajectory::setOptimizationVariables(const Eigen::VectorXd& variables)
@@ -148,6 +213,52 @@ Eigen::VectorXd Trajectory::getOptimizationVariableUpperLimits()
     }
     
     return upper_limits.replicate(num_milestones_, 1);
+}
+
+void Trajectory::setMilestoneVariablesPositionsToRobotState(robot_state::RobotState& robot_state, int milestone_index) const
+{
+    for (int i=0; i<planning_group_joint_indices_.size(); i++)
+    {
+        robot_state.setVariablePosition(planning_group_joint_indices_[i], milestone_variables_(2*i, milestone_index));
+        robot_state.setVariableVelocity(planning_group_joint_indices_[i], milestone_variables_(2*i+1, milestone_index));
+    }
+}
+
+void Trajectory::setMilestoneVariablesPositionsToRobotState(robot_state::RobotState& robot_state, int milestone_index, int interpolation_index) const
+{
+    const double t = (double)interpolation_index / num_interpolation_samples_;
+    setMilestoneVariablesPositionsToRobotState(robot_state, milestone_index, t);
+}
+
+void Trajectory::setMilestoneVariablesPositionsToRobotState(robot_state::RobotState& robot_state, int milestone_index, double t) const
+{
+    const double t0 = getMilestoneTimeFromIndex(milestone_index);
+    const double t1 = getMilestoneTimeFromIndex(milestone_index+1);
+    t = (1.-t) * t0 + t * t1;
+    
+    const Eigen::VectorXd variables0 = milestone_index == 0 ? getMilestoneStartVariables() : milestone_variables_.col(milestone_index - 1);
+    const Eigen::VectorXd variables1 = milestone_variables_.col(milestone_index);
+    
+    for (int i=0; i<planning_group_joint_indices_.size(); i++)
+    {
+        const double p0 = variables0(2*i);
+        const double v0 = variables0(2*i+1);
+        const double p1 = variables1(2*i);
+        const double v1 = variables1(2*i+1);
+        
+        ecl::CubicPolynomial cubic = ecl::CubicDerivativeInterpolation(t0, p0, v0, t1, p1, v1);
+        const double p = cubic(t);
+        const double v = cubic.derivative(t);
+        
+        robot_state.setVariablePosition(planning_group_joint_indices_[i], p);
+        robot_state.setVariableVelocity(planning_group_joint_indices_[i], v);
+    }
+}
+
+void Trajectory::setRobotStateWithStartState(robot_state::RobotState& robot_state) const
+{
+    robot_state.setVariablePositions(default_whold_body_joint_positions_.data());
+    robot_state.setVariableVelocities(default_whold_body_joint_velocities_.data());
 }
 
 double Trajectory::getMilestoneTimeFromIndex(int index) const

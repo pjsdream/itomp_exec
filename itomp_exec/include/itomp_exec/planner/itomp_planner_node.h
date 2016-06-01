@@ -46,6 +46,11 @@ public:
     std::vector<std::pair<std::string, Eigen::Quaterniond> > getGoalLinkOrientations() const;
     const Trajectory& getTrajectoryTemplate() const;
     
+    inline robot_model::RobotModelConstPtr getRobotModel() const
+    {
+        return robot_model_;
+    }
+    
     bool plan(planning_interface::MotionPlanResponse& res);
     bool planAndExecute(planning_interface::MotionPlanResponse& res);
     

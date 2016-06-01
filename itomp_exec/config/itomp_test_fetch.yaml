@@ -8,5 +8,5 @@ static_obstacles:
 
 cost_weights:
   goal_pose: 1.0
-  smoothness: 1.0
+  smoothness: 0.003
   collision: 1.0

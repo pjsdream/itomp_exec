@@ -69,7 +69,7 @@ double SmoothnessCost::cost(const Trajectory& trajectory)
         }
     }
     
-    return cost;
+    return cost * weight_;
 }
 
 TrajectoryDerivative SmoothnessCost::derivative(const Trajectory& trajectory)
@@ -107,7 +107,7 @@ TrajectoryDerivative SmoothnessCost::derivative(const Trajectory& trajectory)
         }
     }
     
-    return TrajectoryDerivative(derivative);
+    return TrajectoryDerivative(derivative * weight_);
 }
 
 double SmoothnessCost::gaussianQuadratureQuadraticPolynomial(double t0, double t1, const ecl::QuadraticPolynomial& poly)

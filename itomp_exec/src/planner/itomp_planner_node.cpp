@@ -295,9 +295,9 @@ void ITOMPPlannerNode::setMotionPlanRequest(const planning_interface::MotionPlan
     }
     
     goal_link_orientations_.clear();
-    for (int i=0; i<req.goal_constraints[0].position_constraints.size(); i++)
+    for (int i=0; i<req.goal_constraints[0].orientation_constraints.size(); i++)
     {
-        const std::string& name = req.goal_constraints[0].position_constraints[i].link_name;
+        const std::string& name = req.goal_constraints[0].orientation_constraints[i].link_name;
         Eigen::Quaterniond orientation;
         tf::quaternionMsgToEigen(req.goal_constraints[0].orientation_constraints[i].orientation, orientation);
         goal_link_orientations_.push_back(std::make_pair(name, orientation));
@@ -364,6 +364,8 @@ bool ITOMPPlannerNode::planAndExecute()
         trajectories_[i]->setNumInterpolationSamples(options_.num_interpolation_samples);
         trajectories_[i]->setTrajectoryDuration(options_.trajectory_duration);
         trajectories_[i]->initializeWithStartState(*start_state_);
+        
+        trajectories_[i]->setTrajectoryVisualizationTopic("itomp_trajectory" + std::to_string(i));
         
         ROS_INFO("Trajectory %d:", i);
         trajectories_[i]->printInfo();

@@ -60,6 +60,10 @@ void ITOMPOptimizer::optimize()
                     lower,
                     upper
                     );
+        
+        // visualize trajectory
+        trajectory_->visualizeMilestones();
+        trajectory_->visualizeInterpolationSamples();
     }
 }
 
@@ -98,7 +102,6 @@ const ITOMPOptimizer::column_vector ITOMPOptimizer::optimizationCostDerivative(c
     for (int i=0; i<n; i++)
         trajectory_derivative += cost_functions_[i]->derivative(*trajectory_);
     
-    // TODO: convert from trajectory derivative to optimization variables
     return convertEigenToDlibVector( trajectory_derivative.getOptimizationVariables() );
 }
 
