@@ -28,52 +28,40 @@
     </include>
 
     <!-- Oh, you wanted a robot? -->
-    <include file="$(find fetch_gazebo)/launch/include/$(arg robot).launch.xml" />
+    <include file="$(find itomp_exec)/launch/include/$(arg robot).launch.xml" />
   </group>
 
   <group unless="$(arg use_gazebo)">
-    <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
-    <include file="$(find fetch_moveit_config)/launch/planning_context.launch">
-      <arg name="load_robot_description" value="true"/>
-    </include>
-
     <!-- We do not have a robot connected, so publish fake joint states -->
     <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
-      <param name="/use_gui" value="true"/>
+      <param name="/use_gui" value="false"/>
       <rosparam param="/source_list">[/move_group/fake_controller_joint_states]</rosparam>
     </node>
   
     <!-- Given the published joint states, publish tf for the robot links -->
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />
-  </group>
-  
-
-  <!-- Not using MoveGroup, but need trajectory execution and sensor functionality -->
-  <group ns="move_group">
-    <!-- Trajectory Execution Functionality -->
-    <include file="$(find fetch_moveit_config)/launch/trajectory_execution.launch.xml" if="$(arg allow_trajectory_execution)">
-      <arg name="moveit_manage_controllers" value="true" />
-      <arg name="moveit_controller_manager" value="fetch" unless="$(arg fake_execution)"/>
-      <arg name="moveit_controller_manager" value="fake" if="$(arg fake_execution)"/>
-    </include>
-  
-    <!-- Sensors Functionality -->
-    <rosparam command="delete" param="move_group/sensors" />
-    <include file="$(find fetch_moveit_config)/launch/sensor_manager.launch.xml" if="$(arg allow_active_sensing)">
-      <arg name="moveit_sensor_manager" value="fetch" />
-    </include>
-  </group>
     
-  <!-- Broadcast static tf for robot root -->
-  <node name="odom_tf_broadcaster" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 map odom 100" />
-  <node name="base_link_tf_broadcaster" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 odom base_link 100" />
-
-  <!-- ITOMP parameters -->
-  <rosparam ns="move_itomp" command="load" file="$(find itomp_exec)/config/itomp_test_fetch.yaml"/>
+    <!-- Broadcast static tf for robot root -->
+    <node name="base_link_tf_broadcaster" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 odom base_link 100" />
+  </group>
   
+  
+  <!-- Move group -->
+  <arg name="pipeline" default="$(optenv PLANNING_PIPELINE ompl)" />
+  <include file="$(find fetch_moveit_config)/launch/move_group.launch">
+    <arg name="fake_execution" value="$(arg fake_execution)"/>
+    <arg name="pipeline" value="$(arg pipeline)" />
+  </include>
+
   <!-- Run Rviz and load the default config to see the state of the move_group node -->
   <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" args="-d $(find itomp_exec)/launch/test_fetch.rviz" output="screen">
     <rosparam command="load" file="$(find fetch_moveit_config)/config/kinematics.yaml"/>
   </node>
+  
+  <!-- table demo parameters-->
+  <rosparam ns="move_itomp" command="load" file="$(find itomp_exec)/config/table_poses.yaml"/>
+  
+  <!-- ITOMP parameters -->
+  <rosparam ns="move_itomp" command="load" file="$(find itomp_exec)/config/itomp_test_fetch.yaml"/>
   
 </launch>
