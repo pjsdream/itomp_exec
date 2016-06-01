@@ -61,6 +61,22 @@ void ITOMPOptimizer::optimize()
                     upper
                     );
         
+        // derivative test
+        /*
+        const int cost_index = 1;
+        trajectory_->setOptimizationVariables( convertDlibToEigenVector(initial_variables) );
+        const double eps = 1e-6;
+        const double c = cost_functions_[cost_index]->cost(*trajectory_);
+        column_vector d = convertEigenToDlibVector( cost_functions_[cost_index]->derivative(*trajectory_).getOptimizationVariables() );
+        trajectory_->setOptimizationVariables( convertDlibToEigenVector(initial_variables + d * eps) );
+        const double cd = cost_functions_[cost_index]->cost(*trajectory_);
+        trajectory_->setOptimizationVariables( convertDlibToEigenVector(initial_variables) );
+        
+        printf("%lf -> %lf, (diff: %lf)\n", c, cd, (cd - c) / eps);
+        if (cd - c < 0)
+            cost_functions_[cost_index]->derivative(*trajectory_);
+        */
+        
         // visualize trajectory
         trajectory_->visualizeMilestones();
         trajectory_->visualizeInterpolationSamples();

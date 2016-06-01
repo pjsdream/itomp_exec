@@ -54,7 +54,7 @@ void Trajectory::visualizeInterpolationSamples()
         {
             setMilestoneVariablesPositionsToRobotState(*robot_state_for_visualization_, i, j);
             robot_state_for_visualization_->update();
-            robot_state_for_visualization_->getRobotMarkers(marker_array, robot_model_->getLinkModelNames(), color, "milestone_" + std::to_string(i), ros::Duration(0.));
+            robot_state_for_visualization_->getRobotMarkers(marker_array, robot_model_->getLinkModelNames(), color, "interpolation_" + std::to_string(i) + "_" + std::to_string(j), ros::Duration(0.));
         }
     }
     
@@ -143,9 +143,6 @@ void Trajectory::initializeWithStartState(const robot_state::RobotState& start_s
     default_whold_body_joint_velocities_.resize(joint_models.size());
     for (int i=0; i<joint_models.size(); i++)
     {
-        const std::vector< std::string > & 	vnames = joint_models[i]->getVariableNames () ;
-        for (int i=0; i<vnames.size(); i++) printf("(%d) %s\n", i, vnames[i].c_str());
-        
         default_whold_body_joint_positions_[i] = start_state.getJointPositions(joint_models[i])[0];
         default_whold_body_joint_velocities_[i] = start_state.getJointVelocities(joint_models[i])[0];
     }
@@ -226,14 +223,31 @@ void Trajectory::setMilestoneVariablesPositionsToRobotState(robot_state::RobotSt
 
 void Trajectory::setMilestoneVariablesPositionsToRobotState(robot_state::RobotState& robot_state, int milestone_index, int interpolation_index) const
 {
-    const double t = (double)interpolation_index / num_interpolation_samples_;
+    const double t = (double)(interpolation_index+1) / (num_interpolation_samples_+1);
     setMilestoneVariablesPositionsToRobotState(robot_state, milestone_index, t);
 }
 
 void Trajectory::setMilestoneVariablesPositionsToRobotState(robot_state::RobotState& robot_state, int milestone_index, double t) const
 {
-    const double t0 = getMilestoneTimeFromIndex(milestone_index);
-    const double t1 = getMilestoneTimeFromIndex(milestone_index+1);
+    Eigen::VectorXd positions;
+    Eigen::VectorXd velocities;
+    
+    getVariables(milestone_index, t, positions, velocities);
+    
+    for (int i=0; i<planning_group_joint_indices_.size(); i++)
+    {
+        robot_state.setVariablePosition(planning_group_joint_indices_[i], positions(i));
+        robot_state.setVariableVelocity(planning_group_joint_indices_[i], velocities(i));
+    }
+}
+
+void Trajectory::getVariables(int milestone_index, double t, Eigen::VectorXd& positions, Eigen::VectorXd& velocities) const
+{
+    positions.resize(planning_group_joint_indices_.size());
+    velocities.resize(planning_group_joint_indices_.size());
+    
+    const double t0 = getMilestoneTimeFromIndex(milestone_index - 1);
+    const double t1 = getMilestoneTimeFromIndex(milestone_index);
     t = (1.-t) * t0 + t * t1;
     
     const Eigen::VectorXd variables0 = milestone_index == 0 ? getMilestoneStartVariables() : milestone_variables_.col(milestone_index - 1);
@@ -247,11 +261,8 @@ void Trajectory::setMilestoneVariablesPositionsToRobotState(robot_state::RobotSt
         const double v1 = variables1(2*i+1);
         
         ecl::CubicPolynomial cubic = ecl::CubicDerivativeInterpolation(t0, p0, v0, t1, p1, v1);
-        const double p = cubic(t);
-        const double v = cubic.derivative(t);
-        
-        robot_state.setVariablePosition(planning_group_joint_indices_[i], p);
-        robot_state.setVariableVelocity(planning_group_joint_indices_[i], v);
+        positions(i) = cubic(t);
+        velocities(i) = cubic.derivative(t);
     }
 }
 
@@ -264,6 +275,52 @@ void Trajectory::setRobotStateWithStartState(robot_state::RobotState& robot_stat
 double Trajectory::getMilestoneTimeFromIndex(int index) const
 {
     return (double)(index+1) / num_milestones_ * trajectory_duration_;
+}
+
+moveit_msgs::RobotTrajectory Trajectory::getPartialTrajectoryMsg(double t0, double t1, int num_states)
+{
+    moveit_msgs::RobotTrajectory msg;
+    msg.joint_trajectory.header.frame_id = robot_model_->getModelFrame();
+    msg.joint_trajectory.header.stamp = ros::Time::now();
+    msg.joint_trajectory.joint_names = planning_group_joint_names_;
+    msg.joint_trajectory.points.resize(num_states);
+            
+    Eigen::VectorXd positions;
+    Eigen::VectorXd velocities;
+    
+    int milestone_index = 0;
+    
+    for (int i=0; i<num_states; i++)
+    {
+        const double u = (double)i / (num_states - 1);
+        const double t = (1.-u) * t0 + u * t1;
+        
+        while (getMilestoneTimeFromIndex( milestone_index ) < t)
+            milestone_index++;
+        
+        const double s0 = getMilestoneTimeFromIndex(milestone_index - 1);
+        const double s1 = getMilestoneTimeFromIndex(milestone_index);
+        const double s = (t - s0) / (s1 - s0);
+        
+        getVariables(milestone_index, s, positions, velocities);
+        
+        msg.joint_trajectory.points[i].time_from_start = ros::Duration(t);
+        
+        for (int j=0; j<positions.rows(); j++)
+        {
+            msg.joint_trajectory.points[i].positions.push_back(positions(j));
+            msg.joint_trajectory.points[i].velocities.push_back(velocities(j));
+        }
+    }
+    
+    return msg;
+}
+
+void Trajectory::stepForward(double t)
+{
+    trajectory_duration_ -= t;
+    
+    // TODO: adjust milestone variables
 }
 
 // TrajectoryDerivative

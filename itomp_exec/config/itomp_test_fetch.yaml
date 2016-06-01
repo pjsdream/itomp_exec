@@ -1,6 +1,7 @@
 trajectory_duration: 3.0
+planning_timestep: 3.0
 num_milestones: 5
-num_interpolation_samples: 5
+num_interpolation_samples: 3
 num_trajectories: 1
 
 static_obstacles:
@@ -10,3 +11,4 @@ cost_weights:
   goal_pose: 1.0
   smoothness: 0.003
   collision: 1.0
+ 

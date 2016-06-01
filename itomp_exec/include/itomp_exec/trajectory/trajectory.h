@@ -5,6 +5,7 @@
 #include <boost/shared_ptr.hpp>
 #include <moveit/robot_model/robot_model.h>
 #include <moveit/robot_state/robot_state.h>
+#include <moveit_msgs/RobotTrajectory.h>
 #include <Eigen/Dense>
 #include <ros/ros.h>
 
@@ -77,6 +78,7 @@ public:
     void setMilestoneVariablesPositionsToRobotState(robot_state::RobotState& robot_state, int milestone_index) const;
     void setMilestoneVariablesPositionsToRobotState(robot_state::RobotState& robot_state, int milestone_index, int interpolation_index) const;
     void setMilestoneVariablesPositionsToRobotState(robot_state::RobotState& robot_state, int milestone_index, double t) const; //!< t \in [0, 1]
+    void getVariables(int milestone_index, double t, Eigen::VectorXd& positions, Eigen::VectorXd& velocities) const; //!< t \in [0, 1]
     
     /// set robot states with default whole body joint positions/velocities
     void setRobotStateWithStartState(robot_state::RobotState& robot_state) const;
@@ -142,6 +144,10 @@ public:
         const std::map<std::string, int>::const_iterator it = planning_group_joint_name_to_index_map_.find(joint_name);
         return it != planning_group_joint_name_to_index_map_.end() ? it->second : -1;
     }
+    
+    // trajectory execution
+    moveit_msgs::RobotTrajectory getPartialTrajectoryMsg(double t0, double t1, int num_states);
+    void stepForward(double t);
     
     // DEBUG
     void printInfo();

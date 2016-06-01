@@ -347,6 +347,8 @@ bool ITOMPPlannerNode::planAndExecute()
 {
     const double optimization_time_fraction = 0.90;
     const double optimization_time = options_.planning_timestep * optimization_time_fraction;
+    const int states_per_second = 15;
+    const int num_states_per_planning_timestep = (int)(options_.planning_timestep * states_per_second) + 1;
     
     double trajectory_duration = options_.trajectory_duration;
     
@@ -367,8 +369,11 @@ bool ITOMPPlannerNode::planAndExecute()
         
         trajectories_[i]->setTrajectoryVisualizationTopic("itomp_trajectory" + std::to_string(i));
         
+        // print trajectory information
+        /*
         ROS_INFO("Trajectory %d:", i);
         trajectories_[i]->printInfo();
+        */
     }
     
     optimizers_.resize(trajectories_.size());
@@ -422,9 +427,16 @@ bool ITOMPPlannerNode::planAndExecute()
         ROS_INFO("Best trajectory cost: %lf", best_cost);
         
         // TODO: execute
+        moveit_msgs::RobotTrajectory robot_trajectory_msg = trajectories_[best_trajectory_index]->getPartialTrajectoryMsg(0., options_.planning_timestep, num_states_per_planning_timestep);
         if (execution_while_planning_)
-        {
-        }
+            trajectory_execution_manager_->pushAndExecute(robot_trajectory_msg);
+        
+        // step forward one planning step
+        if (trajectory_duration <= options_.planning_timestep)
+            break;
+        trajectory_duration -= options_.planning_timestep;
+        
+        trajectories_[best_trajectory_index]->stepForward(options_.planning_timestep);
         
         // TODO: update trajectories
         for (int i=0; i<trajectories_.size(); i++)
@@ -435,15 +447,11 @@ bool ITOMPPlannerNode::planAndExecute()
             }
         }
         
-        // step forward one planning step
-        if (trajectory_duration <= options_.planning_timestep)
-            break;
-        
-        trajectory_duration -= options_.planning_timestep;
-        
         // sleep until next optimization
         rate.sleep();
     }
+    
+    ros::Duration(options_.planning_timestep).sleep();
     
     clearTrajectories();
     clearOptimizers();

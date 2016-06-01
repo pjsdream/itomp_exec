@@ -80,6 +80,7 @@ TrajectoryDerivative SmoothnessCost::derivative(const Trajectory& trajectory)
     const int num_rows = milestone_variables.rows();
     
     Eigen::MatrixXd derivative(milestone_variables.rows(), milestone_variables.cols());
+    derivative.setZero();
     
     for (int i=0; i<num_milestones; i++)
     {
@@ -93,7 +94,7 @@ TrajectoryDerivative SmoothnessCost::derivative(const Trajectory& trajectory)
             const Eigen::Vector4d v(v0(j), v0(j+1), v1(j), v1(j+1));
             
             const double dinv = 1. / (t1-t0);
-            const Eigen::Vector4d diag(1., dinv, 1., dinv);
+            const Eigen::Vector4d diag(1., t1-t0, 1., t1-t0);
             const Eigen::DiagonalMatrix<double, 4> D(diag);
             const Eigen::Vector4d term_derivative = (dinv * dinv * dinv) * D * H2_ * D * v;
             
@@ -102,8 +103,8 @@ TrajectoryDerivative SmoothnessCost::derivative(const Trajectory& trajectory)
                 derivative(j  , i-1) += term_derivative(0);
                 derivative(j+1, i-1) += term_derivative(1);
             }
-            derivative(j  , i  ) += term_derivative(2);
-            derivative(j+1, i  ) += term_derivative(3);
+            derivative(j  , i) += term_derivative(2);
+            derivative(j+1, i) += term_derivative(3);
         }
     }
     

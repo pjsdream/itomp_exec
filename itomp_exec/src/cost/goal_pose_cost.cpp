@@ -85,9 +85,16 @@ double GoalPoseCost::cost(const Trajectory& trajectory)
     for (int i=0; i<goal_link_orientations_.size(); i++)
     {
         const Eigen::Quaterniond link_orientation( robot_state_->getGlobalLinkTransform(goal_link_orientations_[i].first).linear() );
-        const Eigen::Quaterniond& target_orientation = goal_link_orientations_[i].second;
+        Eigen::Quaterniond target_orientation = goal_link_orientations_[i].second;
+        if (target_orientation.dot(link_orientation) < 0)
+            target_orientation = Eigen::Quaterniond(
+                        -target_orientation.w(),
+                        -target_orientation.x(),
+                        -target_orientation.y(),
+                        -target_orientation.z()
+                        );
         
-        cost += ratio_cosine_to_meter_ * (1 - link_orientation.dot(target_orientation));
+        cost += ratio_cosine_to_meter_ * (1 - std::abs(link_orientation.dot(target_orientation)));
     }
     
     // penalize velocities at last state
@@ -156,8 +163,16 @@ TrajectoryDerivative GoalPoseCost::derivative(const Trajectory& trajectory)
             {
                 const Eigen::Matrix3d& rotation_joint = robot_state_->getGlobalLinkTransform(planning_group_joint_models_[j]->getChildLinkModel()).linear();
                 const Eigen::Quaterniond relative_link_orientation( rotation_joint.inverse() * link_orientation.toRotationMatrix() );
-                const Eigen::Quaterniond relative_target_orientation( rotation_joint.inverse() * target_orientation.toRotationMatrix() );
+                Eigen::Quaterniond relative_target_orientation( rotation_joint.inverse() * target_orientation.toRotationMatrix() );
                 const robot_model::JointModel* joint_model = planning_group_joint_models_[j];
+                
+                if (relative_link_orientation.dot(relative_target_orientation) < 0)
+                    relative_target_orientation = Eigen::Quaterniond(
+                                -relative_target_orientation.w(),
+                                -relative_target_orientation.x(),
+                                -relative_target_orientation.y(),
+                                -relative_target_orientation.z()
+                                );
                 
                 switch (joint_model->getType())
                 {
