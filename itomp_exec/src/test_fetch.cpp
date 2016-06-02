@@ -5,6 +5,7 @@
 #include <moveit_msgs/RobotState.h>
 #include <eigen_conversions/eigen_msg.h>
 #include <moveit_msgs/DisplayRobotState.h>
+#include <moveit_msgs/DisplayTrajectory.h>
 #include <control_msgs/GripperCommandGoal.h>
 #include <actionlib/client/simple_action_client.h>
 #include <control_msgs/GripperCommandAction.h>
@@ -44,6 +45,7 @@ private:
     
     ros::NodeHandle nh_;
     ros::Publisher start_state_publisher_;
+    ros::Publisher display_trajectory_publisher_;
     itomp_exec::ITOMPPlannerNode planner_;
     
     // gripper actionlib client
@@ -72,6 +74,7 @@ TestFetch::TestFetch(const ros::NodeHandle& nh)
     
     // publisher initialization
     start_state_publisher_ = nh_.advertise<moveit_msgs::DisplayRobotState>("start_state", 1);
+    display_trajectory_publisher_ = nh_.advertise<moveit_msgs::DisplayTrajectory>("display_planned_path", 1);
     ros::Duration(0.5).sleep();
 }
 
@@ -269,6 +272,16 @@ void TestFetch::runScenario()
         planning_interface::MotionPlanResponse res;
         planner_.planAndExecute(res);
         //planner_.plan(res);
+
+        // visualize robot trajectory
+        moveit_msgs::MotionPlanResponse response_msg;
+        res.getMessage(response_msg);
+
+        moveit_msgs::DisplayTrajectory display_trajectory_msg;
+        display_trajectory_msg.trajectory_start = response_msg.trajectory_start;
+        display_trajectory_msg.trajectory.push_back( response_msg.trajectory );
+        display_trajectory_msg.model_id = "model";
+        display_trajectory_publisher_.publish(display_trajectory_msg);
         
         // setup the next goal
         if (goal_type == 0)

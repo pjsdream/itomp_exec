@@ -345,6 +345,8 @@ void* ITOMPPlannerNode::optimizerThreadStartRoutine(void* arg)
 
 bool ITOMPPlannerNode::planAndExecute()
 {
+    res_->trajectory_.reset(new robot_trajectory::RobotTrajectory(robot_model_, planning_group_name_));
+
     const double optimization_time_fraction = 0.90;
     const double optimization_time = options_.planning_timestep * optimization_time_fraction;
     const int states_per_second = 15;
@@ -430,7 +432,13 @@ bool ITOMPPlannerNode::planAndExecute()
         moveit_msgs::RobotTrajectory robot_trajectory_msg = trajectories_[best_trajectory_index]->getPartialTrajectoryMsg(0., options_.planning_timestep, num_states_per_planning_timestep);
         if (execution_while_planning_)
             trajectory_execution_manager_->pushAndExecute(robot_trajectory_msg);
-        
+
+        // record to response
+        robot_trajectory::RobotTrajectory robot_trajectory(robot_model_, planning_group_name_);
+        robot_trajectory.setRobotTrajectoryMsg(*start_state_, robot_trajectory_msg);
+        res_->trajectory_->append(robot_trajectory, options_.planning_timestep);
+        res_->error_code_.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
+
         // step forward one planning step
         if (trajectory_duration <= options_.planning_timestep)
             break;
@@ -446,7 +454,7 @@ bool ITOMPPlannerNode::planAndExecute()
                 *trajectories_[i] = *trajectories_[best_trajectory_index];
             }
         }
-        
+
         // sleep until next optimization
         rate.sleep();
     }
