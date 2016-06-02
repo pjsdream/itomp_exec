@@ -79,6 +79,8 @@ public:
     void setMilestoneVariablesPositionsToRobotState(robot_state::RobotState& robot_state, int milestone_index, int interpolation_index) const;
     void setMilestoneVariablesPositionsToRobotState(robot_state::RobotState& robot_state, int milestone_index, double t) const; //!< t \in [0, 1]
     void getVariables(int milestone_index, double t, Eigen::VectorXd& positions, Eigen::VectorXd& velocities) const; //!< t \in [0, 1]
+    void getVariables(int milestone_index, int interpolation_index, Eigen::VectorXd& variables) const;
+    void getVariables(int milestone_index, double t, Eigen::VectorXd& variables) const; //!< t \in [0, 1]
     
     /// set robot states with default whole body joint positions/velocities
     void setRobotStateWithStartState(robot_state::RobotState& robot_state) const;
@@ -117,6 +119,9 @@ public:
     {
         return Eigen::Map<Eigen::VectorXd, 0, Eigen::InnerStride<2> >(milestone_variables_.col(index).data(), num_optimization_variables_at_point_);
     }
+
+    /// returns interpolated variables including start variables
+    Eigen::MatrixXd getInterpolatedVariables();
     
     /// returns time corresponding to milestone column index (exception: index==-1 <=> time=0)
     double getMilestoneTimeFromIndex(int index) const;

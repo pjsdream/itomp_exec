@@ -245,7 +245,27 @@ void Trajectory::getVariables(int milestone_index, double t, Eigen::VectorXd& po
 {
     positions.resize(planning_group_joint_indices_.size());
     velocities.resize(planning_group_joint_indices_.size());
-    
+
+    Eigen::VectorXd variables;
+    getVariables(milestone_index, t, variables);
+
+    for (int i=0; i<planning_group_joint_indices_.size(); i++)
+    {
+        positions(i) = variables(2*i);
+        velocities(i) = variables(2*i+1);
+    }
+}
+
+void Trajectory::getVariables(int milestone_index, int interpolation_index, Eigen::VectorXd& variables) const
+{
+    const double t = (double)(interpolation_index+1) / (num_interpolation_samples_+1);
+    getVariables(milestone_index, t, variables);
+}
+
+void Trajectory::getVariables(int milestone_index, double t, Eigen::VectorXd& variables) const
+{
+    variables.resize(num_optimization_variables_at_point_);
+
     const double t0 = getMilestoneTimeFromIndex(milestone_index - 1);
     const double t1 = getMilestoneTimeFromIndex(milestone_index);
     t = (1.-t) * t0 + t * t1;
@@ -261,8 +281,8 @@ void Trajectory::getVariables(int milestone_index, double t, Eigen::VectorXd& po
         const double v1 = variables1(2*i+1);
         
         ecl::CubicPolynomial cubic = ecl::CubicDerivativeInterpolation(t0, p0, v0, t1, p1, v1);
-        positions(i) = cubic(t);
-        velocities(i) = cubic.derivative(t);
+        variables(2*i) = cubic(t);
+        variables(2*i+1) = cubic.derivative(t);
     }
 }
 
@@ -270,6 +290,30 @@ void Trajectory::setRobotStateWithStartState(robot_state::RobotState& robot_stat
 {
     robot_state.setVariablePositions(default_whold_body_joint_positions_.data());
     robot_state.setVariableVelocities(default_whold_body_joint_velocities_.data());
+}
+
+Eigen::MatrixXd Trajectory::getInterpolatedVariables()
+{
+    Eigen::MatrixXd interpolated_milestone_variables(num_optimization_variables_at_point_, num_milestones_ * (num_interpolation_samples_ + 1) + 1);
+    Eigen::VectorXd variables;
+
+    interpolated_milestone_variables.col(0) = milestone_start_variables_;
+
+    int c = 1;
+    for (int i=0; i<num_milestones_; i++)
+    {
+        for (int j=0; j<num_interpolation_samples_; j++)
+        {
+            getVariables(i, j, variables);
+            interpolated_milestone_variables.col(c) = variables;
+            c++;
+        }
+
+        interpolated_milestone_variables.col(c) = getMilestoneVariables(i);
+        c++;
+    }
+
+    return interpolated_milestone_variables;
 }
 
 double Trajectory::getMilestoneTimeFromIndex(int index) const
@@ -318,9 +362,11 @@ moveit_msgs::RobotTrajectory Trajectory::getPartialTrajectoryMsg(double t0, doub
 
 void Trajectory::stepForward(double t)
 {
-    trajectory_duration_ -= t;
-    
+    const Eigen::MatrixXd interpolated_variables = getInterpolatedVariables();
+
     // TODO: adjust milestone variables
+
+    trajectory_duration_ -= t;
 }
 
 // TrajectoryDerivative

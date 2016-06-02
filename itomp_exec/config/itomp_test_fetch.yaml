@@ -1,5 +1,5 @@
 trajectory_duration: 3.0
-planning_timestep: 3.0
+planning_timestep: 0.5
 num_milestones: 5
 num_interpolation_samples: 3
 num_trajectories: 1
