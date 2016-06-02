@@ -1,13 +1,22 @@
 <launch>
 
-  <!-- By default, gazebo is not used. -->
-  <arg name="use_gazebo" default="false"/>
+  <!-- By default, real robot is not used. -->
+  <arg name="use_real_robot" default="false"/>
+
+  <arg name="use_gazebo" unless="$(arg use_real_robot)" default="false"/>
+  <arg name="use_gazebo"     if="$(arg use_real_robot)" value="false"/>
   
   <arg name="allow_trajectory_execution" default="true"/>
   <arg name="allow_active_sensing" default="true"/>
   
-  <arg name="fake_execution"     if="$(arg use_gazebo)" value="false"/>
-  <arg name="fake_execution" unless="$(arg use_gazebo)" value="true"/>
+  <arg name="fake_execution"     if="$(arg use_real_robot)" value="false"/>
+  <group unless="$(arg use_real_robot)">
+    <arg name="fake_execution"     if="$(arg use_gazebo)" value="false"/>
+    <arg name="fake_execution" unless="$(arg use_gazebo)" value="true"/>
+  </group>
+
+  <arg name="use_rviz" unless="$(arg use_real_robot)" defualt="true"/>
+  <arg name="use_rviz"     if="$(arg use_real_robot)" value="false"/>
     
   <group if="$(arg use_gazebo)">
     <env name="GAZEBO_MODEL_PATH" value="$(find fetch_gazebo)/models:$(optenv GAZEBO_MODEL_PATH)" />
@@ -33,16 +42,18 @@
 
   <group unless="$(arg use_gazebo)">
     <!-- We do not have a robot connected, so publish fake joint states -->
-    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
-      <param name="/use_gui" value="false"/>
-      <rosparam param="/source_list">[/move_group/fake_controller_joint_states]</rosparam>
-    </node>
+    <group unless="$(arg use_real_robot)">
+      <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+        <param name="/use_gui" value="false"/>
+        <rosparam param="/source_list">[/move_group/fake_controller_joint_states]</rosparam>
+      </node>
+    </group>
   
     <!-- Given the published joint states, publish tf for the robot links -->
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />
     
     <!-- Broadcast static tf for robot root -->
-    <node name="base_link_tf_broadcaster" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 odom base_link 100" />
+    <node unless="$(arg use_real_robot)" name="base_link_tf_broadcaster" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 odom base_link 100" />
   </group>
   
   
@@ -54,7 +65,7 @@
   </include>
 
   <!-- Run Rviz and load the default config to see the state of the move_group node -->
-  <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" args="-d $(find itomp_exec)/launch/test_fetch.rviz" output="screen">
+  <node if="$(arg use_rviz)" name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" args="-d $(find itomp_exec)/launch/test_fetch.rviz" output="screen">
     <rosparam command="load" file="$(find fetch_moveit_config)/config/kinematics.yaml"/>
   </node>
   
