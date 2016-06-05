@@ -11,10 +11,28 @@
 
   <arg name="use_rviz" unless="$(arg use_real_robot)" value="true"/>
   <arg name="use_rviz"     if="$(arg use_real_robot)" value="false"/>
+  
+  <!-- static tf publishers for camera -->
+  <node name="camera_link_publisher" pkg="tf" type="static_transform_publisher" args="0 -1 1 0.2 0 0 map camera_link 100" />
+  <node name="openni_depth_frame_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 camera_depth_frame openni_depth_frame 100" />
+  
+  <!-- future obstacle prediction -->
+  <node name="future_obstacle_publisher" pkg="pcml" type="future_obstacle_publisher" output="screen">
+    <param name="input_stream_type" value="realtime"/>
+    <param name="joints_type" value="upper_body"/>
+    <param name="render" value="true"/>
+
+    <!-- CAD120 parameters-->
+    <!-- <param name="cad120_directory" value="/playpen/jaesungp/dataset/CAD120"/> -->
+  </node>
+  
+  <!-- future obstacle visualizer -->
+  <node name="future_obstacle_visualizer" pkg="pcml" type="future_obstacle_visualizer" output="screen"/>
+  
+  <!-- Broadcast static tf from map to odom -->
+  <node name="odom_tf_broadcaster" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 map odom 100" />
     
   <group if="$(arg use_gazebo)">
-    <env name="GAZEBO_MODEL_PATH" value="$(find fetch_gazebo)/models:$(optenv GAZEBO_MODEL_PATH)" />
-
     <arg name="robot" default="fetch"/>
     <arg name="debug" default="false"/>
     <arg name="gui" default="true"/>
@@ -27,7 +45,6 @@
       <arg name="paused" value="false"/>
       <arg name="use_sim_time" value="true"/>
       <arg name="headless" value="$(arg headless)"/>
-      <!-- <arg name="world_name" value="$(find fetch_gazebo)/worlds/test_zone.sdf"/> -->
     </include>
 
     <!-- Oh, you wanted a robot? -->
@@ -44,14 +61,14 @@
   <group unless="$(arg use_gazebo)">
     <!-- We do not have a robot connected, so publish fake joint states -->
     <group unless="$(arg use_real_robot)">
-      <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+      <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher"> <!-- output="screen" -->
         <param name="/use_gui" value="false"/>
         <rosparam param="/source_list">[/move_group/fake_controller_joint_states]</rosparam>
       </node>
     </group>
   
     <!-- Given the published joint states, publish tf for the robot links -->
-    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true"/>
     
     <!-- Broadcast static tf for robot root -->
     <node unless="$(arg use_real_robot)" name="base_link_tf_broadcaster" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 odom base_link 100" />
@@ -66,7 +83,7 @@
   </group>
 
   <!-- Run Rviz and load the default config to see the state of the move_group node -->
-  <node if="$(arg use_rviz)" name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" args="-d $(find itomp_exec)/launch/test_fetch.rviz" output="screen">
+  <node if="$(arg use_rviz)" name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" args="-d $(find itomp_exec)/launch/test_fetch.rviz"> <!-- output="screen" -->
     <rosparam command="load" file="$(find fetch_moveit_config)/config/kinematics.yaml"/>
   </node>
   

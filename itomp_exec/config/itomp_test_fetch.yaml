@@ -1,11 +1,11 @@
 trajectory_duration: 3.0
-planning_timestep: 0.5
+planning_timestep: 3.0
 num_milestones: 5
 num_interpolation_samples: 3
 num_trajectories: 1
 
 static_obstacles:
-  - {file: "package://itomp_exec/env/table.dae", position: [1.0, 0.0, 0.0]}
+  - {file: "package://itomp_exec/env/table_collision.dae", position: [1.0, 0.0, 0.0]}
 
 cost_weights:
   goal_pose: 1.0
