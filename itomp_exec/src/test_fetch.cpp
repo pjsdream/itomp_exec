@@ -9,6 +9,7 @@
 #include <control_msgs/GripperCommandGoal.h>
 #include <actionlib/client/simple_action_client.h>
 #include <control_msgs/GripperCommandAction.h>
+#include <control_msgs/FollowJointTrajectoryAction.h>
 #include <Eigen/Dense>
 #include <ros/ros.h>
 
@@ -34,6 +35,8 @@ public:
     void openGripper(bool wait_for_execution = true);
     void closeGripper(bool wait_for_execution = true);
     
+    void moveTorso(double position, bool wait_for_execution = true);
+    
     void runScenario();
     
 private:
@@ -51,6 +54,10 @@ private:
     // gripper actionlib client
     actionlib::SimpleActionClient<control_msgs::GripperCommandAction> gripper_client_;
     
+    // torso actionlib client
+    // rostopic pub -1 /torso_controller/follow_joint_trajectory/goal control_msgs/FollowJointTrajectoryActionGoal '{header:{}, goal_id:{}, goal:{trajectory : {joint_names: [torso_lift_joint], points: [{positions : [0.35], time_from_start: [5.0, 0.0]}]}}}'
+    actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> torso_client_;
+    
     std::vector<Pose> start_poses_;
     std::vector<Pose> target_poses_;
     
@@ -61,6 +68,7 @@ TestFetch::TestFetch(const ros::NodeHandle& nh)
     : nh_(nh)
     , planner_(nh)
     , gripper_client_("gripper_controller/gripper_action")
+    , torso_client_("torso_controller/follow_joint_trajectory")
 {
     planner_.printParams();
     planner_.printControllers();
@@ -97,6 +105,24 @@ void TestFetch::closeGripper(bool wait_for_execution)
 void TestFetch::openGripper(bool wait_for_execution)
 {
     moveGripper(0.10, wait_for_execution);
+}
+
+void TestFetch::moveTorso(double position, bool wait_for_execution)
+{
+    const double time = 1.0;
+    
+    trajectory_msgs::JointTrajectoryPoint point;
+    point.positions.push_back(position);
+    point.time_from_start = ros::Duration(time);
+    
+    control_msgs::FollowJointTrajectoryGoal goal;
+    goal.trajectory.joint_names.push_back("torso_lift_joint");
+    goal.trajectory.points.push_back(point);
+    
+    torso_client_.sendGoal(goal);
+    
+    if (wait_for_execution)
+        torso_client_.waitForResult();
 }
 
 void TestFetch::initializeTuckState(moveit_msgs::RobotState& start_state)
@@ -206,9 +232,7 @@ void TestFetch::runScenario()
     
     while (true)
     {
-        if (goal_type == 0)
-            openGripper();
-        else
+        if (goal_type == 1)
             closeGripper();
         
         req.goal_constraints.clear();
@@ -283,6 +307,9 @@ void TestFetch::runScenario()
         display_trajectory_msg.model_id = "model";
         display_trajectory_publisher_.publish(display_trajectory_msg);
         
+        if (goal_type == 1)
+            openGripper();
+        
         // setup the next goal
         if (goal_type == 0)
         {
@@ -324,6 +351,11 @@ int main(int argc, char** argv)
     test_fetch.closeGripper();
     test_fetch.openGripper();
     */
+    
+    test_fetch.moveTorso(0.1);
+    test_fetch.moveTorso(0.35);
+    test_fetch.moveTorso(0.1);
+    test_fetch.moveTorso(0.35);
     
     test_fetch.runScenario();
     
