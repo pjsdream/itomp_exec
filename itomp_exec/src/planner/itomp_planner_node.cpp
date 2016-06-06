@@ -347,12 +347,15 @@ bool ITOMPPlannerNode::planAndExecute()
 
     const double optimization_time_fraction = 0.90;
     const double optimization_time = options_.planning_timestep * optimization_time_fraction;
+    const double first_optimization_time_fraction = 0.70;
+    const double first_optimization_time = options_.planning_timestep * first_optimization_time_fraction;
     const int states_per_second = 15;
     const int num_states_per_planning_timestep = (int)(options_.planning_timestep * states_per_second) + 1;
     
     double trajectory_duration = options_.trajectory_duration;
     
     ros::WallDuration optimization_sleep_time(optimization_time);
+    ros::WallDuration first_optimization_sleep_time(first_optimization_time);
     ros::WallRate rate( 1. / options_.planning_timestep );
     
     // initialize optimizers and threads    
@@ -387,7 +390,7 @@ bool ITOMPPlannerNode::planAndExecute()
     
     threads_.resize(optimizers_.size());
     
-    rate.reset();
+    bool first = true;
     while (true)
     {
         ROS_INFO("Planning trajectory of %lf sec", trajectory_duration);
@@ -401,7 +404,10 @@ bool ITOMPPlannerNode::planAndExecute()
                 ROS_ERROR("Error occurred creating optimizer thread %d");
         }
         
-        optimization_sleep_time.sleep();
+        if (first)
+            first_optimization_sleep_time.sleep();
+        else
+            optimization_sleep_time.sleep();
         
         for (int i=0; i<optimizers_.size(); i++)
         {
@@ -450,7 +456,14 @@ bool ITOMPPlannerNode::planAndExecute()
         }
 
         // sleep until next optimization
-        rate.sleep();
+        if (first)
+        {
+            // already sleeped 90% of planning step
+            first = false;
+            rate.reset();
+        }
+        else
+            rate.sleep();
     }
     
     ros::Duration(options_.planning_timestep).sleep();
