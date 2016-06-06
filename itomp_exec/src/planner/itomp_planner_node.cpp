@@ -335,8 +335,6 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
 
 void* ITOMPPlannerNode::optimizerThreadStartRoutine(void* arg)
 {
-    ROS_INFO("Optimization thread created");
-    
     ITOMPOptimizer* optimizer = (ITOMPOptimizer*)arg;
     optimizer->optimize();
     
@@ -408,9 +406,7 @@ bool ITOMPPlannerNode::planAndExecute()
         for (int i=0; i<optimizers_.size(); i++)
         {
             if (pthread_join(threads_[i], NULL) != 0)
-            {
                 ROS_ERROR("Error occurred joining optimizer thread %d");
-            }
         }
         
         // find the best trajectory with smallest cost
@@ -428,13 +424,11 @@ bool ITOMPPlannerNode::planAndExecute()
         
         ROS_INFO("Best trajectory cost: %lf", best_cost);
         
-        // TODO: execute
+        // execute
         moveit_msgs::RobotTrajectory robot_trajectory_msg = trajectories_[best_trajectory_index]->getPartialTrajectoryMsg(0., options_.planning_timestep, num_states_per_planning_timestep);
         if (execution_while_planning_)
             trajectory_execution_manager_->pushAndExecute(robot_trajectory_msg);
         
-        ROS_INFO("execute");
-
         // record to response
         robot_trajectory::RobotTrajectory robot_trajectory(robot_model_, planning_group_name_);
         robot_trajectory.setRobotTrajectoryMsg(*start_state_, robot_trajectory_msg);
@@ -448,13 +442,11 @@ bool ITOMPPlannerNode::planAndExecute()
         
         trajectories_[best_trajectory_index]->stepForward(options_.planning_timestep);
         
-        // TODO: update trajectories
+        // update trajectories
         for (int i=0; i<trajectories_.size(); i++)
         {
             if (i != best_trajectory_index)
-            {
                 *trajectories_[i] = *trajectories_[best_trajectory_index];
-            }
         }
 
         // sleep until next optimization
