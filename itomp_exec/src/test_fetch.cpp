@@ -416,7 +416,7 @@ void TestFetch::runScenario()
 void TestFetch::moveEndeffectorVertically(double distance)
 {
     const double trajectory_duration = 1.0;
-    const double planning_timestep = 1.0;
+    const double planning_timestep = 0.1;
     
     planning_interface::MotionPlanRequest req;
     req.group_name = planning_group_;

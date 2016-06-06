@@ -362,10 +362,32 @@ moveit_msgs::RobotTrajectory Trajectory::getPartialTrajectoryMsg(double t0, doub
 
 void Trajectory::stepForward(double t)
 {
-    const Eigen::MatrixXd interpolated_variables = getInterpolatedVariables();
-
-    // TODO: adjust milestone variables
-
+    Eigen::VectorXd variables;
+    
+    const double t0 = t;
+    
+    int milestone_index = 0;
+    
+    for (int i=-1; i<num_milestones_; i++)
+    {
+        const double milestone_time = getMilestoneTimeFromIndex(i);
+        const double t = t0 + milestone_time / trajectory_duration_ * (trajectory_duration_ - t);
+        
+        while (getMilestoneTimeFromIndex( milestone_index ) < t)
+            milestone_index++;
+        
+        const double s0 = getMilestoneTimeFromIndex(milestone_index - 1);
+        const double s1 = getMilestoneTimeFromIndex(milestone_index);
+        const double s = (t - s0) / (s1 - s0);
+        
+        getVariables(milestone_index, s, variables);
+        
+        if (i==-1)
+            milestone_start_variables_ = variables;
+        else
+            milestone_variables_.col(i) = variables;
+    }
+    
     trajectory_duration_ -= t;
 }
 
