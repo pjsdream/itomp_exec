@@ -66,6 +66,11 @@ public:
         return num_milestones_;
     }
     
+    inline int getNumInterpolationSamples() const
+    {
+        return num_interpolation_samples_;
+    }
+    
     void initializeWithStartState(const robot_state::RobotState& start_state);
     
     void setOptimizationVariables(const Eigen::VectorXd& variables);

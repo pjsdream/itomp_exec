@@ -395,7 +395,9 @@ bool ITOMPPlannerNode::planAndExecute()
     {
         ROS_INFO("Planning trajectory of %lf sec", trajectory_duration);
         
-        // TODO: update dynamic environments
+        // update dynamic environments
+        // TODO: timeout, topic name
+        future_obstacle_distributions_ = ros::topic::waitForMessage<pcml::FutureObstacleDistributions>("/future_obstacle_publisher/future_obstacles", ros::Duration(0.05));
         
         // threading optimizations
         for (int i=0; i<optimizers_.size(); i++)

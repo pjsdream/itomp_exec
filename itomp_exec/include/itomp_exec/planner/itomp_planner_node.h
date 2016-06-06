@@ -10,6 +10,8 @@
 #include <itomp_exec/cost/cost.h>
 #include <pthread.h>
 
+#include <pcml/FutureObstacleDistributions.h>
+
 #include <ros/ros.h>
 
 
@@ -56,7 +58,12 @@ public:
     {
         options_.planning_timestep = planning_timestep;
     }
-
+    
+    inline const pcml::FutureObstacleDistributions& getRecentFutureObstacleDistributions() const
+    {
+        return *future_obstacle_distributions_;
+    }
+    
     void addStaticObstacle(const std::string& mesh_filename, const Eigen::Affine3d& transformation = Eigen::Affine3d::Identity());
     void addStaticObstacles(const std::vector<std::string>& mesh_filename, const std::vector<Eigen::Affine3d>& transformation);
     
@@ -106,6 +113,9 @@ private:
     robot_model::RobotModelConstPtr robot_model_;
     planning_scene::PlanningScenePtr planning_scene_;
     trajectory_execution_manager::TrajectoryExecutionManagerPtr trajectory_execution_manager_;
+    
+    // planning environment
+    pcml::FutureObstacleDistributionsConstPtr future_obstacle_distributions_;
     
     // planning requests
     std::string planning_group_name_;

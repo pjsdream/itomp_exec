@@ -7,9 +7,10 @@
 #include <ros/console.h>
 
 // include cost class
-#include <itomp_exec/cost/collision_cost.h>
 #include <itomp_exec/cost/goal_pose_cost.h>
 #include <itomp_exec/cost/smoothness_cost.h>
+#include <itomp_exec/cost/collision_cost.h>
+#include <itomp_exec/cost/future_obstacle_cost.h>
 
 
 #define ITOMP_COST_DERIVED_CLASS_FACTORY(type) \
@@ -24,9 +25,10 @@ namespace itomp_exec
 Cost* CostFactory::newCost(const std::string& name, double weight)
 {
     // add lines for object generation
-    ITOMP_COST_DERIVED_CLASS_FACTORY(Collision);
     ITOMP_COST_DERIVED_CLASS_FACTORY(GoalPose);
     ITOMP_COST_DERIVED_CLASS_FACTORY(Smoothness);
+    ITOMP_COST_DERIVED_CLASS_FACTORY(Collision);
+    ITOMP_COST_DERIVED_CLASS_FACTORY(FutureObstacle);
     
     ROS_ERROR("Unknown cost function type [%s]", name.c_str());
     
