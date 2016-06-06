@@ -432,6 +432,8 @@ bool ITOMPPlannerNode::planAndExecute()
         moveit_msgs::RobotTrajectory robot_trajectory_msg = trajectories_[best_trajectory_index]->getPartialTrajectoryMsg(0., options_.planning_timestep, num_states_per_planning_timestep);
         if (execution_while_planning_)
             trajectory_execution_manager_->pushAndExecute(robot_trajectory_msg);
+        
+        ROS_INFO("execute");
 
         // record to response
         robot_trajectory::RobotTrajectory robot_trajectory(robot_model_, planning_group_name_);
@@ -440,7 +442,7 @@ bool ITOMPPlannerNode::planAndExecute()
         res_->error_code_.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
 
         // step forward one planning step
-        if (trajectory_duration <= options_.planning_timestep)
+        if (trajectory_duration <= options_.planning_timestep + 1e-6)
             break;
         trajectory_duration -= options_.planning_timestep;
         

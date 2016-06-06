@@ -37,6 +37,26 @@ public:
     
     ITOMPPlannerNode(const ros::NodeHandle& node_handle = ros::NodeHandle("~"));
     
+    inline double getTrajectoryDuration() const
+    {
+        return options_.trajectory_duration;
+    }
+    
+    inline double getPlanningTimestep() const
+    {
+        return options_.planning_timestep;
+    }
+    
+    inline void setTrajectoryDuration(double trajectory_duration)
+    {
+        options_.trajectory_duration = trajectory_duration;
+    }
+    
+    inline void setPlanningTimestep(double planning_timestep)
+    {
+        options_.planning_timestep = planning_timestep;
+    }
+
     void addStaticObstacle(const std::string& mesh_filename, const Eigen::Affine3d& transformation = Eigen::Affine3d::Identity());
     void addStaticObstacles(const std::vector<std::string>& mesh_filename, const std::vector<Eigen::Affine3d>& transformation);
     
