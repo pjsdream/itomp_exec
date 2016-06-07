@@ -18,6 +18,12 @@ collision_sphere_links:
   - r_gripper_finger_link
   - l_gripper_finger_link
 
+attatchable_objects:
+  - {file: "package://itomp_exec/env/cylinder.dae"}
+  - {file: "package://itomp_exec/env/cylinder.dae"}
+  - {file: "package://itomp_exec/env/cylinder.dae"}
+  - {file: "package://itomp_exec/env/cylinder.dae"}
+  
 cost_weights:
   goal_pose: 1.0
   smoothness: 0.003

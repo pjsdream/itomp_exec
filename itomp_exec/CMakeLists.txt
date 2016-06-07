@@ -23,6 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_core
   moveit_ros_planning
   ecl_geometry
+  fcl
   actionlib
   pcml
 )
@@ -142,6 +143,7 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
 )
+message(${catkin_INCLUDE_DIRS})
 
 link_directories(
   ${Boost_LIBRARY_DIRS}
@@ -171,6 +173,7 @@ add_library(itomp_exec
 ## Declare a C++ executable
 # add_executable(itomp_exec_node src/itomp_exec_node.cpp)
 add_executable(test_fetch src/test_fetch.cpp)
+add_executable(test_fcl src/test_fcl.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -185,6 +188,9 @@ target_link_libraries(itomp_exec
 )
 target_link_libraries(test_fetch
   itomp_exec
+)
+target_link_libraries(test_fcl
+  ${catkin_LIBRARIES}
 )
 
 #############
