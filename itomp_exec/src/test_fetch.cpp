@@ -94,17 +94,18 @@ TestFetch::TestFetch(const ros::NodeHandle& nh)
 {
     ROS_INFO("waiting for arm controller server");
     arm_client_.waitForServer();
-    
+
+    loadTablePoses();
+
+    // initialize planner
     planner_.printParams();
     planner_.printControllers();
     planner_.printCostWeights();
     
-    loadTablePoses();
-    
     // load robot model
     robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
-    robot_model_ = robot_model_loader.getModel();
-    
+    robot_model_ = planner_.getRobotModel();
+
     // publisher initialization
     start_state_publisher_ = nh_.advertise<moveit_msgs::DisplayRobotState>("start_state", 1);
     goal_state_publisher_ = nh_.advertise<moveit_msgs::DisplayRobotState>("goal_state", 1);

@@ -24,6 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_ros_planning
   ecl_geometry
   actionlib
+  pcml
 )
 
 ## System dependencies are found with CMake's conventions
@@ -152,14 +153,14 @@ link_directories(
 # )
 add_library(itomp_exec
   src/planner/itomp_planner_node.cpp
-  src/optimization/itomp_optimizer.cpp
-  src/trajectory/trajectory.cpp
-  src/cost/cost.cpp
-  src/cost/cost_factory.cpp
-  src/cost/goal_pose_cost.cpp
-  src/cost/smoothness_cost.cpp
-  src/cost/collision_cost.cpp
-  src/cost/future_obstacle_cost.cpp
+  #src/optimization/itomp_optimizer.cpp
+  #src/trajectory/trajectory.cpp
+  #src/cost/cost.cpp
+  #src/cost/cost_factory.cpp
+  #src/cost/goal_pose_cost.cpp
+  #src/cost/smoothness_cost.cpp
+  #src/cost/collision_cost.cpp
+  #src/cost/future_obstacle_cost.cpp
 )
 
 ## Add cmake target dependencies of the library

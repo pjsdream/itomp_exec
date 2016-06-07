@@ -17,30 +17,25 @@
 namespace itomp_exec
 {
 
+ITOMPPlannerNode::ITOMPPlannerNode(robot_model::RobotModelConstPtr robot_model, const ros::NodeHandle& node_handle)
+    : robot_model_(robot_model)
+    , node_handle_(node_handle)
+{
+    initialize();
+}
+
 ITOMPPlannerNode::ITOMPPlannerNode(const ros::NodeHandle& node_handle)
     : node_handle_(node_handle)
-    , start_state_(0)
-    , res_(0)
 {
+    // load robot model from robot_description
+    robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
+    robot_model_ = robot_model_loader.getModel();
+
     initialize();
 }
 
 void ITOMPPlannerNode::initialize()
 {
-    // publishers
-    planning_scene_diff_publisher_ = node_handle_.advertise<moveit_msgs::PlanningScene>("/planning_scene", 1);
-    
-    ros::Duration sleep_time(1.0);
-    ROS_INFO("Waiting %.2lf sec due to publisher advertising delay", sleep_time.toSec());
-    sleep_time.sleep();
-    
-    // load robot model from robot_description
-    robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
-    robot_model_ = robot_model_loader.getModel();
-    
-    // initialize planning scene
-    planning_scene_.reset(new planning_scene::PlanningScene(robot_model_));
-    
     // initialize trajectory_execution_manager with robot model
     // see how it is initialized with ros params at http://docs.ros.org/indigo/api/moveit_ros_planning/html/trajectory__execution__manager_8cpp_source.html#l00074
     std::string controller;
@@ -118,7 +113,6 @@ void ITOMPPlannerNode::loadParams()
     node_handle_.param("trajectory_duration", options_.trajectory_duration, 5.0);
     node_handle_.param("num_milestones", options_.num_milestones, 10);
     node_handle_.param("num_interpolation_samples", options_.num_interpolation_samples, 10);
-    node_handle_.param("num_trajectories", options_.num_trajectories, 8);
     node_handle_.param("planning_timestep", options_.planning_timestep, 0.5);
     
     // load static obstacles
@@ -189,10 +183,9 @@ void ITOMPPlannerNode::printParams()
     ROS_INFO("ITOMP-exec parameters:");
     
     ROS_INFO(" * trajectory_duration: %lf", options_.trajectory_duration);
+    ROS_INFO(" * planning_timestep: %lf", options_.planning_timestep);
     ROS_INFO(" * num_milestones: %d", options_.num_milestones);
     ROS_INFO(" * num_interpolation_samples: %d", options_.num_interpolation_samples);
-    ROS_INFO(" * num_trajectories: %d", options_.num_trajectories);
-    ROS_INFO(" * planning_timestep: %lf", options_.planning_timestep);
 }
 
 void ITOMPPlannerNode::printControllers()
@@ -230,61 +223,15 @@ void ITOMPPlannerNode::addStaticObstacle(const std::string& mesh_filename, const
 }
 
 void ITOMPPlannerNode::addStaticObstacles(const std::vector<std::string>& mesh_filenames, const std::vector<Eigen::Affine3d>& transformations)
-{    
-    // collision object
-    moveit_msgs::CollisionObject collision_object;
-    collision_object.header.frame_id = robot_model_->getModelFrame();
-    collision_object.header.stamp = ros::Time::now();
-    collision_object.id = "environment";
-    collision_object.operation = moveit_msgs::CollisionObject::ADD;
-    
-    const Eigen::Vector3d scale(1., 1., 1.);
-    
-    for (int i=0; i<mesh_filenames.size(); i++)
-    {
-        // mesh generation
-        shapes::Mesh* shape = shapes::createMeshFromResource(mesh_filenames[i], scale);
-        shapes::ShapeMsg mesh_msg;
-        shapes::constructMsgFromShape(shape, mesh_msg);
-        shape_msgs::Mesh mesh = boost::get<shape_msgs::Mesh>(mesh_msg);
-        delete shape;
-        
-        // pose computation
-        geometry_msgs::Pose pose;
-        tf::poseEigenToMsg(transformations[i], pose);
-        
-        // collision object
-        collision_object.meshes.push_back(mesh);
-        collision_object.mesh_poses.push_back(pose);
-    }
-    
-    // planning scene msg
-    moveit_msgs::PlanningScene planning_scene_msg;
-    planning_scene_msg.world.collision_objects.push_back(collision_object);
-    planning_scene_msg.is_diff = true;
-    planning_scene_->setPlanningSceneDiffMsg(planning_scene_msg);
-    
-    // publish planning scene msg to see in RViz
-    planning_scene_diff_publisher_.publish(planning_scene_msg);
+{
 }
 
 void ITOMPPlannerNode::setMotionPlanRequest(const planning_interface::MotionPlanRequest& req)
 {
     planning_group_name_ = req.group_name;
-    
-    // start state
-    if (start_state_)
-        delete start_state_;
-    start_state_ = new robot_state::RobotState(robot_model_);
-    start_state_->setToDefaultValues();
-    
-    std::vector<double> values( robot_model_->getVariableCount() );
-    robot_model_->getVariableDefaultPositions(values);
-    start_state_->setVariablePositions(&values[0]);
-    
-    moveit::core::robotStateMsgToRobotState(req.start_state, *start_state_, false);
-    
+
     // goal poses. Only take the first constraint
+    /*
     goal_link_positions_.clear();
     for (int i=0; i<req.goal_constraints[0].position_constraints.size(); i++)
     {
@@ -302,48 +249,12 @@ void ITOMPPlannerNode::setMotionPlanRequest(const planning_interface::MotionPlan
         tf::quaternionMsgToEigen(req.goal_constraints[0].orientation_constraints[i].orientation, orientation);
         goal_link_orientations_.push_back(std::make_pair(name, orientation));
     }
-}
-
-std::vector<std::pair<std::string, Eigen::Vector3d> > ITOMPPlannerNode::getGoalLinkPositions() const
-{
-    return goal_link_positions_;
-}
-
-std::vector<std::pair<std::string, Eigen::Quaterniond> > ITOMPPlannerNode::getGoalLinkOrientations() const
-{
-    return goal_link_orientations_;
-}
-
-const Trajectory& ITOMPPlannerNode::getTrajectoryTemplate() const
-{
-    return *trajectories_[0];
-}
-
-bool ITOMPPlannerNode::plan(planning_interface::MotionPlanResponse& res)
-{
-    res_ = &res;
-    execution_while_planning_ = false;
-    return planAndExecute();
+    */
 }
 
 bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& res)
 {
-    res_ = &res;
-    execution_while_planning_ = true;
-    return planAndExecute();
-}
-
-void* ITOMPPlannerNode::optimizerThreadStartRoutine(void* arg)
-{
-    ITOMPOptimizer* optimizer = (ITOMPOptimizer*)arg;
-    optimizer->optimize();
-    
-    return 0;
-}
-
-bool ITOMPPlannerNode::planAndExecute()
-{
-    res_->trajectory_.reset(new robot_trajectory::RobotTrajectory(robot_model_, planning_group_name_));
+    res.trajectory_.reset(new robot_trajectory::RobotTrajectory(robot_model_, planning_group_name_));
 
     const double optimization_time_fraction = 0.90;
     const double optimization_time = options_.planning_timestep * optimization_time_fraction;
@@ -357,39 +268,7 @@ bool ITOMPPlannerNode::planAndExecute()
     ros::WallDuration optimization_sleep_time(optimization_time);
     ros::WallDuration first_optimization_sleep_time(first_optimization_time);
     ros::WallRate rate( 1. / options_.planning_timestep );
-    
-    // initialize optimizers and threads    
-    trajectories_.resize(options_.num_trajectories);
-    for (int i=0; i<trajectories_.size(); i++)
-    {
-        trajectories_[i].reset(new Trajectory());
-        trajectories_[i]->setRobot(robot_model_);
-        trajectories_[i]->setRobotPlanningGroup(planning_group_name_);
-        trajectories_[i]->setNumMilestones(options_.num_milestones);
-        trajectories_[i]->setNumInterpolationSamples(options_.num_interpolation_samples);
-        trajectories_[i]->setTrajectoryDuration(options_.trajectory_duration);
-        trajectories_[i]->initializeWithStartState(*start_state_);
-        
-        trajectories_[i]->setTrajectoryVisualizationTopic("itomp_trajectory" + std::to_string(i));
-        
-        // print trajectory information
-        /*
-        ROS_INFO("Trajectory %d:", i);
-        trajectories_[i]->printInfo();
-        */
-    }
-    
-    optimizers_.resize(trajectories_.size());
-    for (int i=0; i<optimizers_.size(); i++)
-    {
-        optimizers_[i] = new ITOMPOptimizer(trajectories_[i]);
-        optimizers_[i]->setOptimizationTimeLimit(optimization_time);
-        optimizers_[i]->generateCostFunctions(options_.cost_weights);
-        optimizers_[i]->initializeCostFunctions(*this);
-    }
-    
-    threads_.resize(optimizers_.size());
-    
+
     bool first = true;
     while (true)
     {
@@ -397,65 +276,30 @@ bool ITOMPPlannerNode::planAndExecute()
         
         // update dynamic environments
         // TODO: timeout, topic name
-        future_obstacle_distributions_ = ros::topic::waitForMessage<pcml::FutureObstacleDistributions>("/future_obstacle_publisher/future_obstacles", ros::Duration(0.05));
-        
-        // threading optimizations
-        for (int i=0; i<optimizers_.size(); i++)
-        {
-            if (pthread_create(&threads_[i], NULL, &optimizerThreadStartRoutine, optimizers_[i]) != 0)
-                ROS_ERROR("Error occurred creating optimizer thread %d");
-        }
-        
-        if (first)
-            first_optimization_sleep_time.sleep();
-        else
-            optimization_sleep_time.sleep();
-        
-        for (int i=0; i<optimizers_.size(); i++)
-        {
-            if (pthread_join(threads_[i], NULL) != 0)
-                ROS_ERROR("Error occurred joining optimizer thread %d");
-        }
-        
-        // find the best trajectory with smallest cost
-        double best_cost;
-        int best_trajectory_index = -1;
-        for (int i=0; i<optimizers_.size(); i++)
-        {
-            const double cost = optimizers_[i]->cost();
-            if (best_trajectory_index == -1 || best_cost > cost)
-            {
-                best_cost = cost;
-                best_trajectory_index = i;
-            }
-        }
-        
-        ROS_INFO("Best trajectory cost: %lf", best_cost);
-        
-        // execute
-        moveit_msgs::RobotTrajectory robot_trajectory_msg = trajectories_[best_trajectory_index]->getPartialTrajectoryMsg(0., options_.planning_timestep, num_states_per_planning_timestep);
-        if (execution_while_planning_)
-            trajectory_execution_manager_->pushAndExecute(robot_trajectory_msg);
+
+        // TODO: optimize during optimization_time
+
+        // TODO: find the best trajectory with smallest cost
+
+        // TODO: execute
+        /*
+        moveit_msgs::RobotTrajectory robot_trajectory_msg;
+        trajectory_execution_manager_->pushAndExecute(robot_trajectory_msg);
+        */
         
         // record to response
+        /*
         robot_trajectory::RobotTrajectory robot_trajectory(robot_model_, planning_group_name_);
         robot_trajectory.setRobotTrajectoryMsg(*start_state_, robot_trajectory_msg);
         res_->trajectory_->append(robot_trajectory, options_.planning_timestep);
         res_->error_code_.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
+        */
 
         // step forward one planning step
         if (trajectory_duration <= options_.planning_timestep + 1e-6)
             break;
         trajectory_duration -= options_.planning_timestep;
-        
-        trajectories_[best_trajectory_index]->stepForward(options_.planning_timestep);
-        
-        // update trajectories
-        for (int i=0; i<trajectories_.size(); i++)
-        {
-            if (i != best_trajectory_index)
-                *trajectories_[i] = *trajectories_[best_trajectory_index];
-        }
+        //trajectories_[best_trajectory_index]->stepForward(options_.planning_timestep);
 
         // sleep until next optimization
         if (first)
@@ -469,25 +313,8 @@ bool ITOMPPlannerNode::planAndExecute()
     }
     
     ros::Duration(options_.planning_timestep).sleep();
-    
-    clearTrajectories();
-    clearOptimizers();
-    
+
     return true;
-}
-
-void ITOMPPlannerNode::clearOptimizers()
-{
-    for (int i=0; i<optimizers_.size(); i++)
-        delete optimizers_[i];
-    optimizers_.clear();
-}
-
-void ITOMPPlannerNode::clearTrajectories()
-{
-    for (int i=0; i<trajectories_.size(); i++)
-        trajectories_[i].reset();
-    trajectories_.clear();
 }
 
 }
