@@ -6,9 +6,10 @@
 #include <moveit/planning_scene/planning_scene.h>
 #include <moveit/trajectory_execution_manager/trajectory_execution_manager.h>
 
+#include <itomp_exec/scene/planning_scene.h>
 #include <itomp_exec/optimization/itomp_optimizer.h>
-#include <itomp_exec/cost/cost.h>
-#include <pthread.h>
+#include <itomp_exec/robot/robot_model.h>
+#include <itomp_exec/robot/robot_state.h>
 
 #include <pcml/FutureObstacleDistributions.h>
 
@@ -39,10 +40,15 @@ public:
 
     ITOMPPlannerNode(robot_model::RobotModelConstPtr robot_model, const ros::NodeHandle& node_handle = ros::NodeHandle("~"));
     ITOMPPlannerNode(const ros::NodeHandle& node_handle = ros::NodeHandle("~"));
-    
+
+    inline const PlanningScene& getPlaningScene() const
+    {
+        return planning_scene_;
+    }
+
     inline robot_model::RobotModelConstPtr getRobotModel() const
     {
-        return robot_model_;
+        return moveit_robot_model_;
     }
 
     inline double getTrajectoryDuration() const
@@ -65,6 +71,8 @@ public:
         options_.planning_timestep = planning_timestep;
     }
 
+    void setRobotModel(const robot_model::RobotModelConstPtr& robot_model);
+
     void addStaticObstacle(const std::string& mesh_filename, const Eigen::Affine3d& transformation = Eigen::Affine3d::Identity());
     void addStaticObstacles(const std::vector<std::string>& mesh_filename, const std::vector<Eigen::Affine3d>& transformation);
     
@@ -86,11 +94,16 @@ private:
     
     // ros & moveit stuffs
     ros::NodeHandle node_handle_;
-    robot_model::RobotModelConstPtr robot_model_;
+    robot_model::RobotModelConstPtr moveit_robot_model_;
     trajectory_execution_manager::TrajectoryExecutionManagerPtr trajectory_execution_manager_;
-    
+
+    RobotModel robot_model_;
+    RobotState start_state_;
+    ITOMPOptimizer optimizer_;
+
     // planning environment
     std::string planning_group_name_;
+    PlanningScene planning_scene_;
 
     // ITOMP options
     ITOMPPlannerOptions options_;

@@ -2,8 +2,8 @@
 #define ITOMP_EXEC_ITOMP_OPTIMIZER_H
 
 
-#include <itomp_exec/trajectory/trajectory.h>
-#include <itomp_exec/cost/cost.h>
+#include <itomp_exec/robot/robot_model.h>
+#include <itomp_exec/robot/robot_state.h>
 #include <dlib/optimization.h>
 #include <Eigen/Dense>
 
@@ -19,34 +19,47 @@ private:
     
 public:
     
-    ITOMPOptimizer(const TrajectoryPtr& trajectory);
+    ITOMPOptimizer();
     ~ITOMPOptimizer();
     
     inline void setOptimizationTimeLimit(double time)
     {
         optimization_time_limit_ = time;
     }
-    
-    double cost();
-    
-    void generateCostFunctions(const std::vector<std::pair<std::string, double> > cost_weights);
-    void initializeCostFunctions(const ITOMPPlannerNode& planner_node);
-    
+
+    void setNumMilestones(int num_milestones);
+    void setTrajectoryDuration(double duration);
+    void setPlanningRobotModel(const RobotModel& robot_model, const std::string& planning_group_name, const RobotState& start_state);
+
+    void stepForward(double time);
+
     void optimize();
+
+    Eigen::VectorXd getOptimizationVariables();
+    Eigen::VectorXd getOptimizationVariableLowerLimits();
+    Eigen::VectorXd getOptimizationVariableUpperLimits();
+
+    double cost();
+
+    void visualizeMilestones();
+    void visualizeInterpolationSamples();
     
 private:
-    
+
+    // optimization
+    Eigen::VectorXd start_milestone_;
+    Eigen::MatrixXd milestones_;
+    double trajectory_duration_;
+
+    Eigen::VectorXd optimization_variable_lower_limits_;
+    Eigen::VectorXd optimization_variable_upper_limits_;
+
     // dlib function value/derivative evaluation
     double optimizationCost(const column_vector& variables);
     const column_vector optimizationCostDerivative(const column_vector& variables);
     static const Eigen::VectorXd convertDlibToEigenVector(const column_vector& v);
     static const column_vector convertEigenToDlibVector(const Eigen::VectorXd& v);
-    
-    TrajectoryPtr trajectory_;
-    
-    // Optimizer class owns the pointers to cost evaluators
-    std::vector<Cost*> cost_functions_;
-    
+
     double optimization_time_limit_; //!< if 0, no time limit. optimization ends until it finds a minimum.
 };
 

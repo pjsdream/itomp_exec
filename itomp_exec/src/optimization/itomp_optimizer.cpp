@@ -1,5 +1,4 @@
 #include <itomp_exec/optimization/itomp_optimizer.h>
-#include <itomp_exec/cost/cost_factory.h>
 #include <itomp_exec/planner/itomp_planner_node.h>
 
 #include <functional>
@@ -10,42 +9,50 @@
 namespace itomp_exec
 {
 
-ITOMPOptimizer::ITOMPOptimizer(const TrajectoryPtr& trajectory)
-    : trajectory_(trajectory)
+ITOMPOptimizer::ITOMPOptimizer()
+    : trajectory_duration_(0.)
 {
 }
 
 ITOMPOptimizer::~ITOMPOptimizer()
 {
-    trajectory_.reset();
-    
-    for (int i=0; i<cost_functions_.size(); i++)
-        delete cost_functions_[i];
 }
 
-void ITOMPOptimizer::generateCostFunctions(const std::vector<std::pair<std::string, double> > cost_weights)
+void ITOMPOptimizer::setNumMilestones(int num_milestones)
 {
-    for (int i=0; i<cost_weights.size(); i++)
+    milestones_.resize(Eigen::NoChange, num_milestones);
+}
+
+void ITOMPOptimizer::setTrajectoryDuration(double trajectory_duration)
+{
+    trajectory_duration_ = trajectory_duration;
+}
+
+void ITOMPOptimizer::setPlanningRobotModel(const RobotModel& robot_model, const std::string& planning_group_name, const RobotState& start_state)
+{
+    // TODO
+}
+
+void ITOMPOptimizer::stepForward(double time)
+{
+    if (trajectory_duration_ <= time + 1e-6)
     {
-        Cost* cost = CostFactory::newCost(cost_weights[i].first, cost_weights[i].second);
-        if (cost != 0)
-            cost_functions_.push_back(cost);
+        trajectory_duration_ = 0.;
+        return;
     }
-}
 
-void ITOMPOptimizer::initializeCostFunctions(const ITOMPPlannerNode& planner_node)
-{
-    for (int i=0; i<cost_functions_.size(); i++)
-        cost_functions_[i]->initialize(planner_node);
+    // TODO: milestones
+
+    trajectory_duration_ -= time;
 }
 
 void ITOMPOptimizer::optimize()
 {
     ros::WallTime start_time = ros::WallTime::now();
     
-    column_vector initial_variables = convertEigenToDlibVector( trajectory_->getOptimizationVariables() );
-    column_vector lower = convertEigenToDlibVector( trajectory_->getOptimizationVariableLowerLimits() );
-    column_vector upper = convertEigenToDlibVector( trajectory_->getOptimizationVariableUpperLimits() );
+    column_vector initial_variables = convertEigenToDlibVector( getOptimizationVariables() );
+    column_vector lower = convertEigenToDlibVector( getOptimizationVariableLowerLimits() );
+    column_vector upper = convertEigenToDlibVector( getOptimizationVariableUpperLimits() );
     
     const int optimization_max_iter = 10;
     
@@ -78,47 +85,45 @@ void ITOMPOptimizer::optimize()
         */
         
         // visualize trajectory
-        trajectory_->visualizeMilestones();
-        trajectory_->visualizeInterpolationSamples();
+        visualizeMilestones();
+        visualizeInterpolationSamples();
     }
+}
+
+Eigen::VectorXd ITOMPOptimizer::getOptimizationVariables()
+{
+    return Eigen::Map<Eigen::VectorXd>(milestones_.data(), milestones_.rows() * milestones_.cols());
+}
+
+Eigen::VectorXd ITOMPOptimizer::getOptimizationVariableLowerLimits()
+{
+    return optimization_variable_lower_limits_;
+}
+
+Eigen::VectorXd ITOMPOptimizer::getOptimizationVariableUpperLimits()
+{
+    return optimization_variable_upper_limits_;
 }
 
 double ITOMPOptimizer::cost()
 {
-    const int n = cost_functions_.size();
-    double cost = 0.;
-    
-    for (int i=0; i<n; i++)
-        cost += cost_functions_[i]->cost(*trajectory_);
-    
-    return cost;
+    // TODO
+    return 0.;
 }
 
 // dlib functions
 double ITOMPOptimizer::optimizationCost(const column_vector& variables)
 {
-    trajectory_->setOptimizationVariables( convertDlibToEigenVector(variables) );
-    
-    const int n = cost_functions_.size();
-    double cost = 0.;
-    
-    for (int i=0; i<n; i++)
-        cost += cost_functions_[i]->cost(*trajectory_);
-    
-    return cost;
+    // TODO
+    return 0.;
 }
 
 const ITOMPOptimizer::column_vector ITOMPOptimizer::optimizationCostDerivative(const column_vector& variables)
 {
-    trajectory_->setOptimizationVariables( convertDlibToEigenVector(variables) );
-    
-    const int n = cost_functions_.size();
-    TrajectoryDerivative trajectory_derivative(*trajectory_);
-    
-    for (int i=0; i<n; i++)
-        trajectory_derivative += cost_functions_[i]->derivative(*trajectory_);
-    
-    return convertEigenToDlibVector( trajectory_derivative.getOptimizationVariables() );
+    // TODO
+    Eigen::VectorXd v(variables.size());
+    v.setZero();
+    return convertEigenToDlibVector( v );
 }
 
 const Eigen::VectorXd ITOMPOptimizer::convertDlibToEigenVector(const column_vector& v)
@@ -132,6 +137,14 @@ const ITOMPOptimizer::column_vector ITOMPOptimizer::convertEigenToDlibVector(con
     column_vector r(n);
     memcpy(r.begin(), v.data(), sizeof(double) * n);
     return r;
+}
+
+void ITOMPOptimizer::visualizeMilestones()
+{
+}
+
+void ITOMPOptimizer::visualizeInterpolationSamples()
+{
 }
 
 }

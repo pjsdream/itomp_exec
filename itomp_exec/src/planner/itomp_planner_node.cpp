@@ -18,7 +18,7 @@ namespace itomp_exec
 {
 
 ITOMPPlannerNode::ITOMPPlannerNode(robot_model::RobotModelConstPtr robot_model, const ros::NodeHandle& node_handle)
-    : robot_model_(robot_model)
+    : moveit_robot_model_(robot_model)
     , node_handle_(node_handle)
 {
     initialize();
@@ -29,7 +29,7 @@ ITOMPPlannerNode::ITOMPPlannerNode(const ros::NodeHandle& node_handle)
 {
     // load robot model from robot_description
     robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
-    robot_model_ = robot_model_loader.getModel();
+    moveit_robot_model_ = robot_model_loader.getModel();
 
     initialize();
 }
@@ -41,7 +41,7 @@ void ITOMPPlannerNode::initialize()
     std::string controller;
     if (node_handle_.getParam("moveit_controller_manager", controller))
     {
-        trajectory_execution_manager_.reset(new trajectory_execution_manager::TrajectoryExecutionManager(robot_model_));
+        trajectory_execution_manager_.reset(new trajectory_execution_manager::TrajectoryExecutionManager(moveit_robot_model_));
     }
     else if (node_handle_.getParam("/move_group/moveit_controller_manager", controller))
     {
@@ -79,7 +79,7 @@ void ITOMPPlannerNode::initialize()
             node_handle_.setParam("allowed_goal_duration_margin", value);
         }
         
-        trajectory_execution_manager_.reset(new trajectory_execution_manager::TrajectoryExecutionManager(robot_model_));
+        trajectory_execution_manager_.reset(new trajectory_execution_manager::TrajectoryExecutionManager(moveit_robot_model_));
         
         node_handle_.deleteParam("moveit_controller_manager");
         
@@ -99,7 +99,7 @@ void ITOMPPlannerNode::initialize()
     {
         ROS_WARN("Controller is not defined. MoveItFakeControllerManager is used.");
         node_handle_.setParam("moveit_controller_manager", "moveit_fake_controller_manager/MoveItFakeControllerManager");
-        trajectory_execution_manager_.reset(new trajectory_execution_manager::TrajectoryExecutionManager(robot_model_, true));
+        trajectory_execution_manager_.reset(new trajectory_execution_manager::TrajectoryExecutionManager(moveit_robot_model_, true));
         node_handle_.deleteParam("moveit_controller_manager");
     }
     
@@ -213,17 +213,12 @@ void ITOMPPlannerNode::printCostWeights()
 
 void ITOMPPlannerNode::addStaticObstacle(const std::string& mesh_filename, const Eigen::Affine3d& transformation)
 {
-    std::vector<std::string> mesh_filenames;
-    mesh_filenames.push_back(mesh_filename);
-    
-    std::vector<Eigen::Affine3d> transformations;
-    transformations.push_back(transformation);
-    
-    addStaticObstacles(mesh_filenames, transformations);
+    planning_scene_.addStaticObstacle(mesh_filename, transformation);
 }
 
 void ITOMPPlannerNode::addStaticObstacles(const std::vector<std::string>& mesh_filenames, const std::vector<Eigen::Affine3d>& transformations)
 {
+    planning_scene_.addStaticObstacles(mesh_filenames, transformations);
 }
 
 void ITOMPPlannerNode::setMotionPlanRequest(const planning_interface::MotionPlanRequest& req)
@@ -254,22 +249,23 @@ void ITOMPPlannerNode::setMotionPlanRequest(const planning_interface::MotionPlan
 
 bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& res)
 {
-    res.trajectory_.reset(new robot_trajectory::RobotTrajectory(robot_model_, planning_group_name_));
+    res.trajectory_.reset(new robot_trajectory::RobotTrajectory(moveit_robot_model_, planning_group_name_));
 
     const double optimization_time_fraction = 0.90;
     const double optimization_time = options_.planning_timestep * optimization_time_fraction;
-    const double first_optimization_time_fraction = 0.70;
-    const double first_optimization_time = options_.planning_timestep * first_optimization_time_fraction;
     const int states_per_second = 15;
     const int num_states_per_planning_timestep = (int)(options_.planning_timestep * states_per_second) + 1;
     
     double trajectory_duration = options_.trajectory_duration;
-    
-    ros::WallDuration optimization_sleep_time(optimization_time);
-    ros::WallDuration first_optimization_sleep_time(first_optimization_time);
+
     ros::WallRate rate( 1. / options_.planning_timestep );
 
-    bool first = true;
+    // initialize optimizer
+    optimizer_.setNumMilestones(options_.num_milestones);
+    optimizer_.setTrajectoryDuration(trajectory_duration);
+    optimizer_.setPlanningRobotModel(robot_model_, planning_group_name_, start_state_);
+    optimizer_.setOptimizationTimeLimit(optimization_time);
+
     while (true)
     {
         ROS_INFO("Planning trajectory of %lf sec", trajectory_duration);
@@ -278,8 +274,7 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
         // TODO: timeout, topic name
 
         // TODO: optimize during optimization_time
-
-        // TODO: find the best trajectory with smallest cost
+        optimizer_.optimize();
 
         // TODO: execute
         /*
@@ -299,17 +294,11 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
         if (trajectory_duration <= options_.planning_timestep + 1e-6)
             break;
         trajectory_duration -= options_.planning_timestep;
-        //trajectories_[best_trajectory_index]->stepForward(options_.planning_timestep);
+
+        optimizer_.stepForward(options_.planning_timestep);
 
         // sleep until next optimization
-        if (first)
-        {
-            // already sleeped 90% of planning step
-            first = false;
-            rate.reset();
-        }
-        else
-            rate.sleep();
+        rate.sleep();
     }
     
     ros::Duration(options_.planning_timestep).sleep();
