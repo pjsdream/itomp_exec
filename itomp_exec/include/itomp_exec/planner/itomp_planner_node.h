@@ -97,7 +97,7 @@ private:
     robot_model::RobotModelConstPtr moveit_robot_model_;
     trajectory_execution_manager::TrajectoryExecutionManagerPtr trajectory_execution_manager_;
 
-    RobotModel robot_model_;
+    RobotModelPtr robot_model_;
     RobotState start_state_;
     ITOMPOptimizer optimizer_;
 
@@ -109,8 +109,8 @@ private:
     ITOMPPlannerOptions options_;
 };
 
-typedef boost::shared_ptr<ITOMPPlannerNode> ITOMPPlannerNodePtr;
-typedef boost::shared_ptr<const ITOMPPlannerNode> ITOMPPlannerNodeConstPtr;
+typedef std::shared_ptr<ITOMPPlannerNode> ITOMPPlannerNodePtr;
+typedef std::shared_ptr<const ITOMPPlannerNode> ITOMPPlannerNodeConstPtr;
 
 }
 

@@ -21,6 +21,9 @@ public:
 private:
 };
 
+typedef std::shared_ptr<RobotModel> RobotModelPtr;
+typedef std::shared_ptr<const RobotModel> RobotModelConstPtr;
+
 }
 
 

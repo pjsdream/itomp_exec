@@ -14,17 +14,20 @@ FutureObstacleCost::FutureObstacleCost(double weight)
 void FutureObstacleCost::initialize(const ITOMPPlannerNode &planner_node)
 {
     // copy the future obstacle data
-    const pcml::FutureObstacleDistributions& future_obstacle_distributions = planner_node.getRecentFutureObstacleDistributions();
+    pcml::FutureObstacleDistributionsConstPtr future_obstacle_distributions = planner_node.getRecentFutureObstacleDistributions();
     
-    for (int i=0; i<future_obstacle_distributions.obstacles.size(); i++)
+    if (future_obstacle_distributions != 0)
     {
-        const pcml::FutureObstacleDistribution& distribution = future_obstacle_distributions.obstacles[i];
-        Eigen::Vector3d center;
-        tf::pointMsgToEigen(distribution.obstacle_point, center);
-        const Eigen::Matrix3d covariance = Eigen::Map<Eigen::Matrix3d, Eigen::Unaligned, Eigen::Stride<1, 3> >(const_cast<double*>(&distribution.obstacle_covariance[0]));
-        const double weight = distribution.weight;
-        
-        // SVD decompositions to retrieve axes
+        for (int i=0; i<future_obstacle_distributions->obstacles.size(); i++)
+        {
+            const pcml::FutureObstacleDistribution& distribution = future_obstacle_distributions->obstacles[i];
+            Eigen::Vector3d center;
+            tf::pointMsgToEigen(distribution.obstacle_point, center);
+            const Eigen::Matrix3d covariance = Eigen::Map<Eigen::Matrix3d, Eigen::Unaligned, Eigen::Stride<1, 3> >(const_cast<double*>(&distribution.obstacle_covariance[0]));
+            const double weight = distribution.weight;
+            
+            // SVD decompositions to retrieve axes
+        }
     }
 }
 

@@ -1,5 +1,6 @@
 #include <itomp_exec/optimization/itomp_optimizer.h>
 #include <itomp_exec/planner/itomp_planner_node.h>
+#include <visualization_msgs/MarkerArray.h>
 
 #include <functional>
 
@@ -18,19 +19,18 @@ ITOMPOptimizer::~ITOMPOptimizer()
 {
 }
 
-void ITOMPOptimizer::setNumMilestones(int num_milestones)
-{
-    milestones_.resize(Eigen::NoChange, num_milestones);
-}
-
-void ITOMPOptimizer::setTrajectoryDuration(double trajectory_duration)
+void ITOMPOptimizer::setPlanningRobotStartState(const RobotState& start_state, const std::string& planning_group_name, double trajectory_duration, int num_milestones)
 {
     trajectory_duration_ = trajectory_duration;
-}
-
-void ITOMPOptimizer::setPlanningRobotModel(const RobotModel& robot_model, const std::string& planning_group_name, const RobotState& start_state)
-{
-    // TODO
+    
+    start_state_ = start_state;
+    start_state_.setPlanningGroup(planning_group_name);
+    
+    start_milestone_.resize(planning_group_joint_indices_.size() * 2);
+    milestones_.resize(planning_group_joint_indices_.size() * 2, num_milestones);
+    for (int i=0; i<planning_group_joint_indices_.size(); i++)
+    {
+    }
 }
 
 void ITOMPOptimizer::stepForward(double time)
@@ -139,12 +139,19 @@ const ITOMPOptimizer::column_vector ITOMPOptimizer::convertEigenToDlibVector(con
     return r;
 }
 
+void ITOMPOptimizer::setVisualizationTopic(ros::NodeHandle node_handle, const std::string& topic)
+{
+    milestone_visualization_publisher_ = node_handle.advertise<visualization_msgs::MarkerArray>(topic, 1);
+}
+
 void ITOMPOptimizer::visualizeMilestones()
 {
+    // TODO
 }
 
 void ITOMPOptimizer::visualizeInterpolationSamples()
 {
+    // TODO
 }
 
 }

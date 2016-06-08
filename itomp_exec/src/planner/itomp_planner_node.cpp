@@ -36,6 +36,10 @@ ITOMPPlannerNode::ITOMPPlannerNode(const ros::NodeHandle& node_handle)
 
 void ITOMPPlannerNode::initialize()
 {
+    // initialize robot model from moveit model
+    robot_model_.reset( new RobotModel );
+    robot_model_->initFromMoveitRobotModel(moveit_robot_model_);
+            
     // initialize trajectory_execution_manager with robot model
     // see how it is initialized with ros params at http://docs.ros.org/indigo/api/moveit_ros_planning/html/trajectory__execution__manager_8cpp_source.html#l00074
     std::string controller;
@@ -261,9 +265,7 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
     ros::WallRate rate( 1. / options_.planning_timestep );
 
     // initialize optimizer
-    optimizer_.setNumMilestones(options_.num_milestones);
-    optimizer_.setTrajectoryDuration(trajectory_duration);
-    optimizer_.setPlanningRobotModel(robot_model_, planning_group_name_, start_state_);
+    optimizer_.setPlanningRobotStartState(start_state_, planning_group_name_, trajectory_duration, options_.num_milestones);
     optimizer_.setOptimizationTimeLimit(optimization_time);
 
     while (true)

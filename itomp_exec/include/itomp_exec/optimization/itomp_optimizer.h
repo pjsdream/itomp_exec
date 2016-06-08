@@ -7,6 +7,8 @@
 #include <dlib/optimization.h>
 #include <Eigen/Dense>
 
+#include <ros/ros.h>
+
 
 namespace itomp_exec
 {
@@ -27,9 +29,7 @@ public:
         optimization_time_limit_ = time;
     }
 
-    void setNumMilestones(int num_milestones);
-    void setTrajectoryDuration(double duration);
-    void setPlanningRobotModel(const RobotModel& robot_model, const std::string& planning_group_name, const RobotState& start_state);
+    void setPlanningRobotStartState(const RobotState& start_state, const std::string& planning_group_name, double trajectory_duration, int num_milestones);
 
     void stepForward(double time);
 
@@ -41,6 +41,7 @@ public:
 
     double cost();
 
+    void setVisualizationTopic(ros::NodeHandle node_handle, const std::string& topic);
     void visualizeMilestones();
     void visualizeInterpolationSamples();
     
@@ -50,17 +51,24 @@ private:
     Eigen::VectorXd start_milestone_;
     Eigen::MatrixXd milestones_;
     double trajectory_duration_;
+    double optimization_time_limit_; //!< if 0, no time limit. optimization ends until it finds a minimum.
 
     Eigen::VectorXd optimization_variable_lower_limits_;
     Eigen::VectorXd optimization_variable_upper_limits_;
+    
+    std::vector<int> planning_group_joint_indices_;
+    
+    // robot
+    RobotState start_state_;
 
     // dlib function value/derivative evaluation
     double optimizationCost(const column_vector& variables);
     const column_vector optimizationCostDerivative(const column_vector& variables);
     static const Eigen::VectorXd convertDlibToEigenVector(const column_vector& v);
     static const column_vector convertEigenToDlibVector(const Eigen::VectorXd& v);
-
-    double optimization_time_limit_; //!< if 0, no time limit. optimization ends until it finds a minimum.
+    
+    // ros publisher for visualization
+    ros::Publisher milestone_visualization_publisher_;
 };
 
 }
