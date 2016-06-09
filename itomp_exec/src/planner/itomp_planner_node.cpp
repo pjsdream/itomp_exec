@@ -228,9 +228,13 @@ void ITOMPPlannerNode::addStaticObstacles(const std::vector<std::string>& mesh_f
 void ITOMPPlannerNode::setMotionPlanRequest(const planning_interface::MotionPlanRequest& req)
 {
     planning_group_name_ = req.group_name;
+    
+    // initialize start state
+    start_state_.setRobotModel(robot_model_);
+    start_state_.setPlanningGroup(planning_group_name_);
+    start_state_.initFromMoveitRobotStateMsg(req.start_state);
 
     // goal poses. Only take the first constraint
-    /*
     goal_link_positions_.clear();
     for (int i=0; i<req.goal_constraints[0].position_constraints.size(); i++)
     {
@@ -248,7 +252,6 @@ void ITOMPPlannerNode::setMotionPlanRequest(const planning_interface::MotionPlan
         tf::quaternionMsgToEigen(req.goal_constraints[0].orientation_constraints[i].orientation, orientation);
         goal_link_orientations_.push_back(std::make_pair(name, orientation));
     }
-    */
 }
 
 bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& res)
@@ -265,8 +268,20 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
     ros::WallRate rate( 1. / options_.planning_timestep );
 
     // initialize optimizer
-    optimizer_.setPlanningRobotStartState(start_state_, planning_group_name_, trajectory_duration, options_.num_milestones);
+    optimizer_.setNumInterpolationSamples(options_.num_interpolation_samples);
+    optimizer_.setRobotModel(robot_model_);
+    optimizer_.setPlanningRobotStartState(start_state_, trajectory_duration, options_.num_milestones);
     optimizer_.setOptimizationTimeLimit(optimization_time);
+    
+    // initialize goal poses
+    for (int i=0; i<goal_link_positions_.size(); i++)
+        optimizer_.addGoalLinkPosition(goal_link_positions_[i].first, goal_link_positions_[i].second);
+    for (int i=0; i<goal_link_orientations_.size(); i++)
+        optimizer_.addGoalLinkOrientation(goal_link_orientations_[i].first, goal_link_orientations_[i].second);
+    
+    // initialize cost weights
+    for (int i=0; i<options_.cost_weights.size(); i++)
+        optimizer_.setCostWeight(options_.cost_weights[i].first, options_.cost_weights[i].second);
 
     while (true)
     {
@@ -275,16 +290,15 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
         // update dynamic environments
         // TODO: timeout, topic name
 
-        // TODO: optimize during optimization_time
+        // optimize during optimization_time
         optimizer_.optimize();
 
         // TODO: execute
-        /*
         moveit_msgs::RobotTrajectory robot_trajectory_msg;
+        optimizer_.getRobotTrajectoryIntervalMsg(robot_trajectory_msg, 0, options_.planning_timestep, num_states_per_planning_timestep);
         trajectory_execution_manager_->pushAndExecute(robot_trajectory_msg);
-        */
         
-        // record to response
+        // TODO: record to response
         /*
         robot_trajectory::RobotTrajectory robot_trajectory(robot_model_, planning_group_name_);
         robot_trajectory.setRobotTrajectoryMsg(*start_state_, robot_trajectory_msg);

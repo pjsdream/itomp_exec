@@ -103,7 +103,6 @@ TestFetch::TestFetch(const ros::NodeHandle& nh)
     planner_.printCostWeights();
     
     // load robot model
-    robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
     robot_model_ = planner_.getRobotModel();
 
     // publisher initialization
@@ -136,7 +135,7 @@ void TestFetch::openGripper(bool wait_for_execution)
 
 void TestFetch::moveTorso(double position, bool wait_for_execution)
 {
-    const double time = 1.0;
+    const double time = 0.0;
     
     trajectory_msgs::JointTrajectoryPoint point;
     point.positions.push_back(position);
@@ -540,8 +539,11 @@ int main(int argc, char** argv)
     // initialize with highest torso position
     test_fetch.moveTorso(0.35);
 
+    // open/close gripper at start
+    /*
     test_fetch.moveGripper(0.01);
     test_fetch.openGripper();
+    */
     
     test_fetch.runScenario();
     

@@ -16,6 +16,9 @@ public:
         
     CollisionCost(double weight = 1.0);
     
+    virtual double cost(const Trajectory &trajectory);
+    virtual TrajectoryDerivative derivative(const Trajectory &trajectory);
+    
 private:
 };
 

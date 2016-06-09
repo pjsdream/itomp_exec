@@ -100,7 +100,10 @@ private:
     RobotModelPtr robot_model_;
     RobotState start_state_;
     ITOMPOptimizer optimizer_;
-
+    
+    std::vector<std::pair<std::string, Eigen::Vector3d> > goal_link_positions_;
+    std::vector<std::pair<std::string, Eigen::Quaterniond> > goal_link_orientations_;
+    
     // planning environment
     std::string planning_group_name_;
     PlanningScene planning_scene_;

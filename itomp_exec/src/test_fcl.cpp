@@ -73,7 +73,19 @@ int main(int argc, char** argv)
     }
     */
     
+    printf("test 1\n");
     manager2->collide(manager1, 0, &defaultCollisionFunction);
+    
+    printf("test 2\n");
+    obj4->setTranslation(fcl::Vec3f(25, 25, 0));
+    obj4->computeAABB();
+    manager2->update();
+    manager2->collide(manager1, 0, &defaultCollisionFunction);
+    
+    // to update collision object transformation:
+    // 1. set transformation to a new one
+    // 2. CollisionObject::computeAABB()
+    // 3. DynamicAABBTreeCollisionManager::update()
     
     return 0;
 }

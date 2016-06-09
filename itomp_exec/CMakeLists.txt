@@ -159,6 +159,8 @@ add_library(itomp_exec
   src/optimization/itomp_optimizer.cpp
   src/robot/robot_model.cpp
   src/robot/robot_state.cpp
+  src/util/conversions.cpp
+  src/util/gaussian_quadrature.cpp
   #src/optimization/itomp_optimizer.cpp
   #src/trajectory/trajectory.cpp
   #src/cost/cost.cpp
