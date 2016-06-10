@@ -14,7 +14,7 @@ namespace itomp_exec
 ITOMPOptimizer::ITOMPOptimizer()
     : trajectory_duration_(0.)
     , use_numerical_derivative_(true)
-    , numerical_derivative_eps_(1e-7)
+    , numerical_derivative_eps_(1e-5)
 {
 }
 
@@ -151,7 +151,7 @@ void ITOMPOptimizer::stepForward(double time)
     int poly_index = 0;
     for (int i=-1; i<num_milestones_; i++)
     {
-        const int u = (double)(i+1) / num_milestones_;
+        const double u = (double)(i+1) / num_milestones_;
         const double t = (1.-u) * time + u * trajectory_duration_;
         
         while ((double)(poly_index + 1) / num_milestones_ * trajectory_duration_ < t)
@@ -185,7 +185,7 @@ void ITOMPOptimizer::optimize()
     column_vector lower = convertEigenToDlibVector( getOptimizationVariableLowerLimits() );
     column_vector upper = convertEigenToDlibVector( getOptimizationVariableUpperLimits() );
     
-    const int optimization_max_iter = 1;
+    const int optimization_max_iter = 10;
     
     while ((ros::WallTime::now() - start_time).toSec() < optimization_time_limit_)
     {
@@ -215,10 +215,12 @@ void ITOMPOptimizer::optimize()
         }
         
         // derivative test
+        /*
         const double c = optimizationCost(initial_variables);
         column_vector d = optimizationCostNumericalDerivative(initial_variables);
         const double cd = optimizationCost(initial_variables + d * numerical_derivative_eps_);
         printf("%lf -> %lf, (diff: %lf)\n", c, cd, (cd - c) / numerical_derivative_eps_);
+        */
         
         // visualize trajectory
         visualizeMilestones();
@@ -263,8 +265,8 @@ double ITOMPOptimizer::optimizationCost(const column_vector& variables)
         {
             for (int j=0; j<num_milestones_; j++)
             {
-                const double t0 = (double)j / num_milestones_;
-                const double t1 = (double)(j+1) / num_milestones_;
+                const double t0 = (double)j / num_milestones_ * trajectory_duration_;
+                const double t1 = (double)(j+1) / num_milestones_ * trajectory_duration_;
                 const ecl::CubicPolynomial& poly = cubic_polynomials_[i][j];
                 
                 ecl::LinearFunction acc = poly.derivative().derivative();
@@ -274,7 +276,8 @@ double ITOMPOptimizer::optimizationCost(const column_vector& variables)
                 ecl::QuadraticPolynomial acc_square;
                 acc_square.coefficients() << a0*a0, 2*a0*a1, a1*a1;
                 
-                cost += gaussianQuadratureQuadraticPolynomial(t0, t1, acc_square) * cost_weights_.smoothness_cost_weight;
+                // normalize with trajectory duration
+                cost += gaussianQuadratureQuadraticPolynomial(t0, t1, acc_square) * trajectory_duration_ * cost_weights_.smoothness_cost_weight;
             }
         }
     }
@@ -300,17 +303,17 @@ double ITOMPOptimizer::optimizationCost(const column_vector& variables)
                 Eigen::Quaterniond link_orientation( goal_link_transforms_[i].linear() );
                 Eigen::Quaterniond target_orientation = goal_link_poses_[i].orientation;
                 
-                if (target_orientation.dot(link_orientation) < 0)
-                    target_orientation = Eigen::Quaterniond(
-                                -target_orientation.w(),
-                                -target_orientation.x(),
-                                -target_orientation.y(),
-                                -target_orientation.z()
-                                );
-                
                 const double ratio_cosine_to_meter = 1.0;
                 cost += (1 - std::abs(link_orientation.dot(target_orientation))) * ratio_cosine_to_meter * cost_weights_.goal_pose_cost_weight;
             }
+        }
+        
+        // penalize velocities at last state
+        const double ratio_radian_per_sec_to_meter = 10.0;
+        for (int i=0; i<num_joints_; i++)
+        {
+            const double v = milestones_(num_joints_ + i, num_milestones_ - 1);
+            cost += (v * v) * ratio_radian_per_sec_to_meter * cost_weights_.goal_pose_cost_weight;
         }
     }
     

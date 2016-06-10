@@ -28,7 +28,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: Kinect
+    SyncSource: ""
 Visualization Manager:
   Class: ""
   Displays:
@@ -505,13 +505,7 @@ Visualization Manager:
           Value: true
         camera_depth_frame:
           Value: true
-        camera_depth_optical_frame:
-          Value: true
         camera_link:
-          Value: true
-        camera_rgb_frame:
-          Value: true
-        camera_rgb_optical_frame:
           Value: true
         elbow_flex_link:
           Value: true
@@ -611,14 +605,7 @@ Visualization Manager:
                                 r_gripper_finger_link:
                                   {}
             camera_link:
-              camera_depth_frame:
-                camera_depth_optical_frame:
-                  {}
-                openni_depth_frame:
-                  {}
-              camera_rgb_frame:
-                camera_rgb_optical_frame:
-                  {}
+              {}
       Update Interval: 0
       Value: true
     - Attached Body Color: 150; 50; 150
@@ -985,22 +972,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 7.6737
+      Distance: 3.29649
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 3.7909
-        Y: -0.580853
-        Z: 1.15774
+        X: 0.093058
+        Y: -0.00693678
+        Z: 1.19871
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.219796
+      Pitch: -0.0152047
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.92642
+      Yaw: 6.05962
     Saved: ~
 Window Geometry:
   Displays:
@@ -1018,5 +1005,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1200
-  X: 142
-  Y: 43
+  X: 134
+  Y: 35
