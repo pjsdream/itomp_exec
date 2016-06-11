@@ -223,8 +223,9 @@ void ITOMPOptimizer::optimize()
         */
         
         // visualize trajectory
-        visualizeMilestones();
-        visualizeInterpolationSamples();
+        //visualizeMilestones();
+        //visualizeInterpolationSamples();
+        //visualizeInterpolationSamplesCollisionSpheres();
     }
     
     milestoneInitializeWithDlibVector(initial_variables);
@@ -361,6 +362,7 @@ void ITOMPOptimizer::allocateOptimizationResources()
         cubic_polynomials_[i].resize(num_milestones_);
     
     interpolated_variables_.resize(num_joints_ * 2, num_milestones_ * (num_interpolation_samples_ + 1) + 1);
+    interpolated_variable_link_transforms_.resize(num_milestones_ * (num_interpolation_samples_ + 1) + 1);
 }
 
 void ITOMPOptimizer::precomputeOptimizationResources()
@@ -368,6 +370,7 @@ void ITOMPOptimizer::precomputeOptimizationResources()
     precomputeCubicPolynomials();
     precomputeInterpolation();
     precomputeGoalLinkTransforms();
+    precomputeInterpolatedVariableTransforms();
 }
 
 void ITOMPOptimizer::precomputeCubicPolynomials()
@@ -418,19 +421,36 @@ void ITOMPOptimizer::precomputeGoalLinkTransforms()
 {
     Eigen::VectorXd joint_positions = start_state_.getDefaultJointPositions();
     const std::vector<int>& planning_joint_indices = start_state_.getPlanningJointIndices();
-    
+
     for (int i=0; i<num_joints_; i++)
     {
         const int joint_index = planning_joint_indices[i];
         joint_positions(joint_index) = milestones_(i, num_milestones_ - 1);
     }
-    
+
     robot_model_->getLinkTransforms(joint_positions, goal_link_transforms_);
+}
+
+void ITOMPOptimizer::precomputeInterpolatedVariableTransforms()
+{
+    Eigen::VectorXd joint_positions = start_state_.getDefaultJointPositions();
+    const std::vector<int>& planning_joint_indices = start_state_.getPlanningJointIndices();
+    
+    for (int i=0; i<interpolated_variables_.cols(); i++)
+    {
+        for (int j=0; j<num_joints_; j++)
+        {
+            const int joint_index = planning_joint_indices[j];
+            joint_positions(joint_index) = interpolated_variables_(j, i);
+        }
+
+        robot_model_->getLinkTransforms(joint_positions, interpolated_variable_link_transforms_[i]);
+    }
 }
 
 void ITOMPOptimizer::setVisualizationTopic(ros::NodeHandle node_handle, const std::string& topic)
 {
-    milestone_visualization_publisher_ = node_handle.advertise<visualization_msgs::MarkerArray>(topic, 1);
+    visualization_publisher_ = node_handle.advertise<visualization_msgs::MarkerArray>(topic, 1);
 }
 
 void ITOMPOptimizer::visualizeMilestones()
@@ -440,7 +460,22 @@ void ITOMPOptimizer::visualizeMilestones()
 
 void ITOMPOptimizer::visualizeInterpolationSamples()
 {
-    // TODO
+    visualization_msgs::MarkerArray marker_array;
+
+    for (int i=0; i<interpolated_variable_link_transforms_.size(); i++)
+        robot_model_->pushVisualLinkVisualizationMarkers(interpolated_variable_link_transforms_[i], "interpolated_" + std::to_string(i), marker_array);
+
+    visualization_publisher_.publish(marker_array);
+}
+
+void ITOMPOptimizer::visualizeInterpolationSamplesCollisionSpheres()
+{
+    visualization_msgs::MarkerArray marker_array;
+
+    for (int i=0; i<interpolated_variable_link_transforms_.size(); i++)
+        robot_model_->pushCollisionSpheresVisualizationMarkers(interpolated_variable_link_transforms_[i], "interpolated_collision_" + std::to_string(i), marker_array);
+
+    visualization_publisher_.publish(marker_array);
 }
 
 void ITOMPOptimizer::getRobotTrajectoryIntervalMsg(moveit_msgs::RobotTrajectory& msg, double t0, double t1, int num_states)

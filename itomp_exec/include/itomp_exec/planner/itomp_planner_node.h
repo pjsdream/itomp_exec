@@ -8,7 +8,7 @@
 
 #include <itomp_exec/scene/planning_scene.h>
 #include <itomp_exec/optimization/itomp_optimizer.h>
-#include <itomp_exec/robot/robot_model.h>
+#include <itomp_exec/robot/bounding_sphere_robot_model.h>
 #include <itomp_exec/robot/robot_state.h>
 
 #include <pcml/FutureObstacleDistributions.h>
@@ -97,7 +97,7 @@ private:
     robot_model::RobotModelConstPtr moveit_robot_model_;
     trajectory_execution_manager::TrajectoryExecutionManagerPtr trajectory_execution_manager_;
 
-    RobotModelPtr robot_model_;
+    BoundingSphereRobotModelPtr robot_model_;
     RobotState start_state_;
     ITOMPOptimizer optimizer_;
     

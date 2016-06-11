@@ -3,6 +3,7 @@
 
 
 #include <moveit/robot_model/robot_model.h>
+#include <visualization_msgs/MarkerArray.h>
 #include <Eigen/Dense>
 #include <memory>
 
@@ -34,7 +35,7 @@ public:
     RobotModel();
     ~RobotModel();
 
-    void initFromMoveitRobotModel(robot_model::RobotModelConstPtr robot_model);
+    virtual void initFromMoveitRobotModel(robot_model::RobotModelConstPtr robot_model);
     
     inline const std::vector<std::string>& getJointNames() const
     {
@@ -88,11 +89,18 @@ public:
     /// forward kinematics
     void getLinkTransforms(const Eigen::VectorXd& joint_positions, std::vector<Eigen::Affine3d>& link_transforms) const;
 
-private:
+    // visualization
+    void pushVisualLinkVisualizationMarkers(const std::vector<Eigen::Affine3d>& link_transforms, const std::string& ns, visualization_msgs::MarkerArray& msg) const;
+    void pushCollisionLinkVisualizationMarkers(const std::vector<Eigen::Affine3d>& link_transforms, const std::string& ns, visualization_msgs::MarkerArray& msg) const;
+
+protected:
     
     /// returns the joint index
     int initializeJointsRecursive(const robot_model::JointModel* joint_model);
     
+    // frame id for visualization
+    std::string frame_id_;
+
     // joint
     int num_joints_;
     std::map<std::string, int> joint_index_map_;
@@ -107,6 +115,7 @@ private:
     std::map<std::string, int> link_index_map_;
     std::vector<Eigen::Affine3d> link_origin_transforms_;
     std::vector<shapes::Mesh*> link_visual_meshes_;
+    std::vector<std::string> link_visual_mesh_filenames_;
     std::vector<Eigen::Affine3d> link_visual_transforms_;
     std::vector<std::vector<shapes::ShapeConstPtr> > link_collision_shapes_;
     std::vector<EigenSTL::vector_Affine3d> link_collision_transforms_;

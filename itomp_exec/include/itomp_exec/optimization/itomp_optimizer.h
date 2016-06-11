@@ -2,7 +2,7 @@
 #define ITOMP_EXEC_ITOMP_OPTIMIZER_H
 
 
-#include <itomp_exec/robot/robot_model.h>
+#include <itomp_exec/robot/bounding_sphere_robot_model.h>
 #include <itomp_exec/robot/robot_state.h>
 #include <dlib/optimization.h>
 #include <Eigen/Dense>
@@ -73,7 +73,7 @@ public:
         num_interpolation_samples_ = num_interpolation_samples;
     }
 
-    inline void setRobotModel(const RobotModelPtr& robot_model)
+    inline void setRobotModel(const BoundingSphereRobotModelPtr& robot_model)
     {
         robot_model_ = robot_model;
     }
@@ -98,6 +98,7 @@ public:
     void setVisualizationTopic(ros::NodeHandle node_handle, const std::string& topic);
     void visualizeMilestones();
     void visualizeInterpolationSamples();
+    void visualizeInterpolationSamplesCollisionSpheres();
     
     // robot trajectory conversion
     void getRobotTrajectoryIntervalMsg(moveit_msgs::RobotTrajectory& msg, double t0, double t1, int num_states);
@@ -121,7 +122,7 @@ private:
     std::vector<GoalLinkPose> goal_link_poses_;
     
     // robot
-    RobotModelPtr robot_model_;
+    BoundingSphereRobotModelPtr robot_model_;
     RobotState start_state_;
     
     // numerical derivative
@@ -141,12 +142,14 @@ private:
     void precomputeCubicPolynomials();
     void precomputeInterpolation(); //!< must be called after cubic polynomial precomputation
     void precomputeGoalLinkTransforms();
+    void precomputeInterpolatedVariableTransforms();
     std::vector<std::vector<ecl::CubicPolynomial> > cubic_polynomials_;
     Eigen::MatrixXd interpolated_variables_; //!< all interpolated robot states, including start state
     std::vector<Eigen::Affine3d> goal_link_transforms_;
+    std::vector<std::vector<Eigen::Affine3d> > interpolated_variable_link_transforms_; //!< [interpolation index][joint index]
     
     // ros publisher for visualization
-    ros::Publisher milestone_visualization_publisher_;
+    ros::Publisher visualization_publisher_;
 };
 
 }

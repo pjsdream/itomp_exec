@@ -1,6 +1,7 @@
 #include <itomp_exec/robot/robot_model.h>
 
 #include <geometric_shapes/mesh_operations.h>
+#include <eigen_conversions/eigen_msg.h>
 #include <Eigen/Geometry>
 
 #include <ros/ros.h>
@@ -21,6 +22,8 @@ RobotModel::~RobotModel()
 
 void RobotModel::initFromMoveitRobotModel(robot_model::RobotModelConstPtr robot_model)
 {
+    frame_id_ = robot_model->getModelFrame();
+
     // allocate some arrays
     const std::vector<const robot_model::JointModel*>& joint_models = robot_model->getJointModels();
     num_joints_ = joint_models.size();
@@ -121,6 +124,8 @@ int RobotModel::initializeJointsRecursive(const moveit::core::JointModel *joint_
     
     // link visual mesh
     const std::string& visual_mesh_filename = link_model->getVisualMeshFilename();
+    link_visual_mesh_filenames_.push_back(visual_mesh_filename);
+
     const Eigen::Affine3d& visual_mesh_transform = link_model->getVisualMeshOrigin();
     const Eigen::Vector3d& visual_mesh_scale = link_model->getVisualMeshScale();
     shapes::Mesh* mesh = 0;
@@ -175,6 +180,50 @@ void RobotModel::getLinkTransforms(const Eigen::VectorXd& joint_positions, std::
             link_transforms[i].matrix().noalias() = link_origin_transforms_[i].matrix() * joint_transform.matrix();
         else
             link_transforms[i].matrix().noalias() = link_transforms[parent_joint_index].matrix() * link_origin_transforms_[i].matrix() * joint_transform.matrix();
+    }
+}
+
+void RobotModel::pushVisualLinkVisualizationMarkers(const std::vector<Eigen::Affine3d>& link_transforms, const std::string& ns, visualization_msgs::MarkerArray& msg) const
+{
+    visualization_msgs::Marker marker;
+
+    marker.header.frame_id = frame_id_;
+    marker.header.stamp = ros::Time::now();
+    marker.ns = ns;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.type = visualization_msgs::Marker::MESH_RESOURCE;
+
+    marker.color.r = 0.;
+    marker.color.g = 0.;
+    marker.color.b = 0.;
+    marker.color.a = 0.;
+    marker.scale.x = 1.;
+    marker.scale.y = 1.;
+    marker.scale.z = 1.;
+
+    for (int i=0; i<link_transforms.size(); i++)
+    {
+        if (link_visual_meshes_[i] != 0)
+        {
+            marker.id = i;
+            marker.mesh_resource = link_visual_mesh_filenames_[i];
+            marker.mesh_use_embedded_materials = true;
+
+            Eigen::Affine3d transform = link_transforms[i] * link_visual_transforms_[i];
+            Eigen::Quaterniond q(transform.linear());
+
+            tf::pointEigenToMsg(transform.translation(), marker.pose.position);
+            tf::quaternionEigenToMsg(q, marker.pose.orientation);
+
+            msg.markers.push_back(marker);
+        }
+    }
+}
+
+void RobotModel::pushCollisionLinkVisualizationMarkers(const std::vector<Eigen::Affine3d>& link_transforms, const std::string& ns, visualization_msgs::MarkerArray& msg) const
+{
+    for (int i=0; i<link_transforms.size(); i++)
+    {
     }
 }
 

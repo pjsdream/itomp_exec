@@ -36,8 +36,13 @@ ITOMPPlannerNode::ITOMPPlannerNode(const ros::NodeHandle& node_handle)
 
 void ITOMPPlannerNode::initialize()
 {
+    // initialize publishers
+    optimizer_.setVisualizationTopic(node_handle_, "trajectory");
+    ROS_INFO("Sleep 0.5 sec for initializing publisher");
+    ros::Duration(0.5).sleep();
+
     // initialize robot model from moveit model
-    robot_model_.reset( new RobotModel );
+    robot_model_.reset( new BoundingSphereRobotModel );
     robot_model_->initFromMoveitRobotModel(moveit_robot_model_);
             
     // initialize trajectory_execution_manager with robot model
