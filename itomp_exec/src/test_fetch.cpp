@@ -11,6 +11,7 @@
 #include <actionlib/client/simple_action_client.h>
 #include <control_msgs/GripperCommandAction.h>
 #include <control_msgs/FollowJointTrajectoryAction.h>
+#include <visualization_msgs/MarkerArray.h>
 #include <Eigen/Dense>
 #include <ros/ros.h>
 
@@ -62,6 +63,7 @@ private:
     
     void moveEndeffectorVertically(double distance); // using ITOMP, with short duration
     void moveEndeffectorVerticallyIK(double distance, bool wait_for_execution = true); // setFromIK result is very different from initial state
+    void moveEndeffectorVerticallyTarget(double distance, const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation, bool wait_for_execution = true); // using ITOMP, to target distance
     
     void initializeCurrentState(robot_state::RobotState& state);
     void initializeCurrentState(moveit_msgs::RobotState& start_state);
@@ -72,6 +74,7 @@ private:
     ros::Publisher start_state_publisher_;
     ros::Publisher goal_state_publisher_;
     ros::Publisher display_trajectory_publisher_;
+    ros::Publisher target_positions_publisher_;
     itomp_exec::ITOMPPlannerNode planner_;
     
     // gripper actionlib client
@@ -111,8 +114,6 @@ TestFetch::TestFetch(const ros::NodeHandle& nh)
     ROS_INFO("waiting for arm controller server");
     arm_client_.waitForServer();
 
-    loadTablePoses();
-
     // initialize planner
     planner_.printParams();
     planner_.printControllers();
@@ -126,7 +127,10 @@ TestFetch::TestFetch(const ros::NodeHandle& nh)
     start_state_publisher_ = nh_.advertise<moveit_msgs::DisplayRobotState>("start_state", 1);
     goal_state_publisher_ = nh_.advertise<moveit_msgs::DisplayRobotState>("goal_state", 1);
     display_trajectory_publisher_ = nh_.advertise<moveit_msgs::DisplayTrajectory>("display_planned_path", 1);
+    target_positions_publisher_ = nh_.advertise<visualization_msgs::MarkerArray>("target_positions", 1);
     ros::Duration(0.5).sleep();
+    
+    loadTablePoses();
 }
 
 void TestFetch::moveGripper(double gap, bool wait_for_execution)
@@ -306,6 +310,65 @@ void TestFetch::loadTablePoses()
             }
         }
     }
+    
+    // visualize target poses
+    visualization_msgs::MarkerArray marker_array;
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = "base_link";
+    marker.header.stamp = ros::Time::now();
+    marker.type = visualization_msgs::Marker::CUBE_LIST;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.scale.x = 0.01;
+    marker.scale.y = 0.01;
+    marker.scale.z = 0.01;
+    
+    std_msgs::ColorRGBA red;
+    red.r = 1.;
+    red.g = 0.;
+    red.b = 0.;
+    red.a = 1.;
+    
+    std_msgs::ColorRGBA blue;
+    blue.r = 0.;
+    blue.g = 0.;
+    blue.b = 1.;
+    blue.a = 1.;
+    
+    marker.pose.position.x = 0.;
+    marker.pose.position.y = 0.;
+    marker.pose.position.z = 0.;
+    marker.pose.orientation.w = 1.;
+    marker.pose.orientation.x = 0.;
+    marker.pose.orientation.y = 0.;
+    marker.pose.orientation.z = 0.;
+    
+    marker.ns = "start_poses";
+    for (int i=0; i<start_poses_.size(); i++)
+    {
+        marker.id = i;
+        
+        geometry_msgs::Point point;
+        tf::pointEigenToMsg(start_poses_[i].position, point);
+        marker.points.push_back(point);
+        marker.colors.push_back(red);
+        
+        marker_array.markers.push_back(marker);
+    }
+    
+    marker.ns = "target_poses";
+    for (int i=0; i<target_poses_.size(); i++)
+    {
+        marker.id = i;
+        
+        geometry_msgs::Point point; 
+        tf::pointEigenToMsg(target_poses_[i].position, point);
+        marker.points.push_back(point);
+        marker.colors.push_back(blue);
+        
+        marker_array.markers.push_back(marker);
+    }
+    
+    target_positions_publisher_.publish(marker_array);
 }
 
 void TestFetch::initializeCurrentState(robot_state::RobotState& state)
@@ -364,6 +427,7 @@ void TestFetch::runScenario()
     
     while (true)
     {
+        ROS_INFO("Goal index: [%d, %d]", goal_type, goal_index);
         planning_interface::MotionPlanRequest req;
         req.group_name = planning_group_;
         
@@ -435,7 +499,8 @@ void TestFetch::runScenario()
         // move endeffector vertically using IK to pick or place
         if (goal_type == 0)
         {
-            moveEndeffectorVertically(-endeffector_vertical_moving_distance_);
+            //moveEndeffectorVertically(-endeffector_vertical_moving_distance_);
+            moveEndeffectorVerticallyTarget(-endeffector_vertical_moving_distance_, start_poses_[goal_index].position, start_poses_[goal_index].orientation);
             moveGripper(gripper_picking_distance_, true);
             attachSphere(goal_index);
             //moveEndeffectorVertically(endeffector_vertical_moving_distance_);
@@ -445,7 +510,8 @@ void TestFetch::runScenario()
             //moveEndeffectorVertically(-endeffector_vertical_moving_distance_);
             openGripper(true);
             detachSphere(goal_index);
-            moveEndeffectorVertically(endeffector_vertical_moving_distance_);
+            //moveEndeffectorVertically(endeffector_vertical_moving_distance_);
+            moveEndeffectorVerticallyTarget(endeffector_vertical_moving_distance_, target_poses_[goal_index].position, target_poses_[goal_index].orientation);
         }
         
         // setup the next goal
@@ -455,6 +521,10 @@ void TestFetch::runScenario()
         }
         else
         {
+            goal_type = 0;
+            
+            // goal index random assignment
+            /*
             goal_achieved[goal_index] = true;
             
             std::vector<int> indices;
@@ -467,8 +537,13 @@ void TestFetch::runScenario()
             if (indices.empty())
                 break;
             
-            goal_type = 0;
             goal_index = indices[ rand() % indices.size() ];
+            */
+            
+            // goal index assignment in order
+            if (goal_index == start_poses_.size() - 1)
+                break;
+            goal_index++;
         }
         
         // once
@@ -535,12 +610,54 @@ void TestFetch::moveEndeffectorVertically(double distance)
     // visualize robot trajectory
     moveit_msgs::MotionPlanResponse response_msg;
     res.getMessage(response_msg);
+}
 
-    moveit_msgs::DisplayTrajectory display_trajectory_msg;
-    display_trajectory_msg.trajectory_start = response_msg.trajectory_start;
-    display_trajectory_msg.trajectory.push_back( response_msg.trajectory );
-    display_trajectory_msg.model_id = "model";
-    display_trajectory_publisher_.publish(display_trajectory_msg);
+void TestFetch::moveEndeffectorVerticallyTarget(double distance, const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation, bool wait_for_execution)
+{
+    const double trajectory_duration = 1.0;
+    const double planning_timestep = 0.1;
+    
+    planning_interface::MotionPlanRequest req;
+    req.group_name = planning_group_;
+    
+    // ITOMP parameter change
+    const double original_trajectory_duration = planner_.getTrajectoryDuration();
+    const double original_planning_timestep = planner_.getPlanningTimestep();
+    planner_.setTrajectoryDuration(trajectory_duration);
+    planner_.setPlanningTimestep(planning_timestep);
+
+    // compute endeffector pose
+    robot_state::RobotState current_state( moveit_robot_model_ );
+    initializeCurrentState(current_state);
+    
+    current_state.updateLinkTransforms();
+    
+    // initialize start state with current robot state
+    moveit::core::robotStateToRobotStateMsg(current_state, req.start_state, false);
+    
+    // goal pose setting
+    moveit_msgs::PositionConstraint goal_position_constraint;
+    goal_position_constraint.link_name = endeffector_name_;
+    tf::vectorEigenToMsg(position + Eigen::Vector3d(0., 0., distance), goal_position_constraint.target_point_offset);
+    
+    moveit_msgs::OrientationConstraint goal_orientation_constraint;
+    goal_orientation_constraint.link_name = endeffector_name_;
+    tf::quaternionEigenToMsg(orientation, goal_orientation_constraint.orientation);
+    
+    moveit_msgs::Constraints goal_constraints;
+    goal_constraints.position_constraints.push_back(goal_position_constraint);
+    goal_constraints.orientation_constraints.push_back(goal_orientation_constraint);
+    req.goal_constraints.push_back(goal_constraints);
+    
+    planner_.setMotionPlanRequest(req);
+    
+    // plan and execute
+    planning_interface::MotionPlanResponse res;
+    planner_.planAndExecute(res);
+    
+    // ITOMP parameter restore
+    planner_.setTrajectoryDuration(original_trajectory_duration);
+    planner_.setPlanningTimestep(original_planning_timestep);
 }
 
 void TestFetch::moveEndeffectorVerticallyIK(double distance, bool wait_for_execution)

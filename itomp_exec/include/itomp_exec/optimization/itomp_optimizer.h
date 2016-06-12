@@ -81,6 +81,7 @@ public:
     void setRobotModel(const BoundingSphereRobotModelPtr& robot_model);
 
     void setPlanningRobotStartState(const RobotState& start_state, double trajectory_duration, int num_milestones);
+    void setPlanningRobotStartGoalStates(const RobotState& start_state, const RobotState& goal_state, double trajectory_duration, int num_milestones);
     
     void addGoalLinkPosition(const std::string& link_name, const Eigen::Vector3d& goal_position);
     void addGoalLinkOrientation(const std::string& link_name, const Eigen::Quaterniond& goal_orientation);

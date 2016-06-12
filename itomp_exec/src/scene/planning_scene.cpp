@@ -62,7 +62,7 @@ void PlanningScene::visualizeScene()
 
     visualization_msgs::Marker marker;
     marker.header.stamp = ros::Time::now();
-    marker.header.frame_id = "map";
+    marker.header.frame_id = "base_link";
     marker.ns = "scene";
     marker.action = visualization_msgs::Marker::ADD;
     marker.scale.x = 1.;

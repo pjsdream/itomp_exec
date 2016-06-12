@@ -124,6 +124,26 @@ void ITOMPOptimizer::setPlanningRobotStartState(const RobotState& start_state, d
     allocateOptimizationResources();
 }
 
+void ITOMPOptimizer::setPlanningRobotStartGoalStates(const RobotState& start_state, const RobotState& goal_state, double trajectory_duration, int num_milestones)
+{
+    setPlanningRobotStartState(start_state, trajectory_duration, num_milestones);
+    
+    // overwrite the interpolated milestone variables
+    milestones_.resize(num_joints_ * 2, num_milestones);
+    for (int i=0; i<num_joints_; i++)
+    {
+        const ecl::CubicPolynomial poly = ecl::CubicDerivativeInterpolation(0., start_milestone_(i), start_milestone_(num_joints_ + i),
+                                                                            trajectory_duration, goal_state.getPlanningJointPositions()(i), goal_state.getPlanningJointVelocities()(i));
+        
+        for (int j=0; j<num_milestones_; j++)
+        {
+            const double t = (double)(j+1) / (num_milestones_) * trajectory_duration_;
+            milestones_(i, j) = clampPosition(poly(t), i);
+            milestones_(num_joints_ + i, j) = clampVelocity(poly.derivative(t), i);
+        }
+    }
+}
+
 void ITOMPOptimizer::addGoalLinkPosition(const std::string& link_name, const Eigen::Vector3d& goal_position)
 {
     const int joint_index = robot_model_->getJointIndexByLinkName(link_name);
@@ -361,7 +381,7 @@ double ITOMPOptimizer::optimizationCost(const column_vector& variables)
 
                         if (d_squared < r*r)
                         {
-                            cost += (r*r - d_squared) * cost_weights_.collision_cost_weight / num_interpolation_samples_;
+                            cost += (r*r - d_squared) * trajectory_duration_ * cost_weights_.collision_cost_weight / num_interpolation_samples_;
                         }
                     }
                 }
@@ -555,7 +575,7 @@ const ITOMPOptimizer::column_vector ITOMPOptimizer::optimizationCostDerivative(c
                                         const int milestone_index0 = interpolation_index_position_[i].first - 1;
                                         const int milestone_index1 = interpolation_index_position_[i].first;
                                         const int interpolation_index = interpolation_index_position_[i].second;
-                                        const Eigen::Vector4d variable_derivative = interpolated_curve_bases_.row(interpolation_index) * curve_derivative * cost_weights_.collision_cost_weight / num_interpolation_samples_;
+                                        const Eigen::Vector4d variable_derivative = interpolated_curve_bases_.row(interpolation_index) * curve_derivative * trajectory_duration_ * cost_weights_.collision_cost_weight / num_interpolation_samples_;
 
                                         if (milestone_index0 != -1)
                                         {

@@ -266,7 +266,7 @@ void ITOMPPlannerNode::setMotionPlanRequest(const planning_interface::MotionPlan
     start_state_.setRobotModel(robot_model_);
     start_state_.setPlanningGroup(planning_group_name_);
     start_state_.initFromMoveitRobotStateMsg(req.start_state);
-
+    
     // goal poses. Only take the first constraint
     goal_link_positions_.clear();
     for (int i=0; i<req.goal_constraints[0].position_constraints.size(); i++)
@@ -307,8 +307,10 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
     optimizer_.setUseNumericalDerivative(false);
     optimizer_.setNumInterpolationSamples(options_.num_interpolation_samples);
     optimizer_.setRobotModel(robot_model_);
-    optimizer_.setPlanningRobotStartState(start_state_, trajectory_duration, options_.num_milestones);
     optimizer_.setOptimizationTimeLimit(optimization_time);
+    
+    // initialize trajectory only with start state
+    optimizer_.setPlanningRobotStartState(start_state_, trajectory_duration, options_.num_milestones);
     
     // initialize goal poses
     for (int i=0; i<goal_link_positions_.size(); i++)

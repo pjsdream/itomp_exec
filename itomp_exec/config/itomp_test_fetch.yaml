@@ -1,5 +1,5 @@
 trajectory_duration: 5.0
-planning_timestep: 0.5
+planning_timestep: 0.50
 num_milestones: 3
 num_interpolation_samples: 3
 
@@ -16,11 +16,24 @@ static_obstacles:
   - {type: "sphere", position: [0.70, -0.35, 0.35], radius: 0.35}
   - {type: "sphere", position: [0.70, -0.70, 0.35], radius: 0.35}
   #obstacle test
-  - {type: "sphere", position: [0.70,  0.00, 0.7], radius: 0.1}
-  - {type: "sphere", position: [0.60,  0.00, 0.7], radius: 0.1}
-  - {type: "sphere", position: [0.50,  0.00, 0.7], radius: 0.1}
-  - {type: "sphere", position: [0.40,  0.00, 0.7], radius: 0.1}
-  - {type: "sphere", position: [0.30,  0.00, 0.7], radius: 0.1}
+  - {type: "sphere", position: [0.95,  0.00, 0.75], radius: 0.09}
+  - {type: "sphere", position: [0.90,  0.00, 0.75], radius: 0.09}
+  - {type: "sphere", position: [0.85,  0.00, 0.75], radius: 0.09}
+  - {type: "sphere", position: [0.80,  0.00, 0.75], radius: 0.09}
+  - {type: "sphere", position: [0.75,  0.00, 0.75], radius: 0.09}
+  - {type: "sphere", position: [0.70,  0.00, 0.75], radius: 0.09}
+  - {type: "sphere", position: [0.65,  0.00, 0.75], radius: 0.09}
+  - {type: "sphere", position: [0.60,  0.00, 0.75], radius: 0.09}
+  - {type: "sphere", position: [0.55,  0.00, 0.75], radius: 0.09}
+  - {type: "sphere", position: [0.95,  0.00, 0.80], radius: 0.07}
+  - {type: "sphere", position: [0.90,  0.00, 0.80], radius: 0.07}
+  - {type: "sphere", position: [0.85,  0.00, 0.80], radius: 0.07}
+  - {type: "sphere", position: [0.80,  0.00, 0.80], radius: 0.07}
+  - {type: "sphere", position: [0.75,  0.00, 0.80], radius: 0.07}
+  - {type: "sphere", position: [0.70,  0.00, 0.80], radius: 0.07}
+  - {type: "sphere", position: [0.65,  0.00, 0.80], radius: 0.07}
+  - {type: "sphere", position: [0.60,  0.00, 0.80], radius: 0.07}
+  - {type: "sphere", position: [0.55,  0.00, 0.80], radius: 0.07}
 
 collision_sphere_links:
   - shoulder_pan_link
@@ -36,6 +49,6 @@ collision_sphere_links:
 
 cost_weights:
   goal_pose: 1.0
-  smoothness: 0.01
+  smoothness: 0.003
   collision: 10.0
   future_obstacle: 1.0
