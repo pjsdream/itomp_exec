@@ -150,6 +150,21 @@ int RobotModel::initializeJointsRecursive(const moveit::core::JointModel *joint_
     return joint_index;
 }
 
+std::vector<int> RobotModel::getDescendantJointIndices(int joint_index) const
+{
+    std::vector<int> descendant_joint_indices;
+
+    descendant_joint_indices.push_back(joint_index);
+    for (int i=0; i<descendant_joint_indices.size(); i++)
+    {
+        joint_index = descendant_joint_indices[i];
+        for (int j=0; j<children_joint_indices_[joint_index].size(); j++)
+            descendant_joint_indices.push_back(children_joint_indices_[joint_index][j]);
+    }
+
+    return descendant_joint_indices;
+}
+
 void RobotModel::getLinkTransforms(const Eigen::VectorXd& joint_positions, std::vector<Eigen::Affine3d>& link_transforms) const
 {
     link_transforms.resize(num_joints_);
@@ -222,6 +237,7 @@ void RobotModel::pushVisualLinkVisualizationMarkers(const std::vector<Eigen::Aff
 
 void RobotModel::pushCollisionLinkVisualizationMarkers(const std::vector<Eigen::Affine3d>& link_transforms, const std::string& ns, visualization_msgs::MarkerArray& msg) const
 {
+    // TODO
     for (int i=0; i<link_transforms.size(); i++)
     {
     }

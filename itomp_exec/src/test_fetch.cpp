@@ -1,4 +1,5 @@
 #include <itomp_exec/planner/itomp_planner_node.h>
+#include <itomp_exec/robot/bounding_sphere_robot_model.h>
 #include <moveit/robot_model_loader/robot_model_loader.h>
 #include <moveit/robot_model/robot_model.h>
 #include <moveit/robot_state/conversions.h>
@@ -31,6 +32,14 @@ private:
         Eigen::Vector3d position;
         Eigen::Quaterniond orientation;
     };
+
+    struct AttachingSphere
+    {
+        double radius;
+        Eigen::Vector3d position;
+        std::string attaching_link;
+        Eigen::Vector3d attaching_position;
+    };
     
 public:
     
@@ -41,6 +50,9 @@ public:
     void closeGripper(bool wait_for_execution = true);
     
     void moveTorso(double position, bool wait_for_execution = true);
+
+    void attachSphere(int sphere_index);
+    void detachSphere(int sphere_index);
     
     void runScenario();
     
@@ -72,8 +84,12 @@ private:
     
     std::vector<Pose> start_poses_;
     std::vector<Pose> target_poses_;
+
+    // attaching spheres
+    std::vector<AttachingSphere> attaching_spheres_;
     
-    robot_model::RobotModelConstPtr robot_model_;
+    robot_model::RobotModelConstPtr moveit_robot_model_;
+    itomp_exec::BoundingSphereRobotModelPtr robot_model_;
 };
 
 
@@ -103,6 +119,7 @@ TestFetch::TestFetch(const ros::NodeHandle& nh)
     planner_.printCostWeights();
     
     // load robot model
+    moveit_robot_model_ = planner_.getMoveitRobotModel();
     robot_model_ = planner_.getRobotModel();
 
     // publisher initialization
@@ -135,7 +152,7 @@ void TestFetch::openGripper(bool wait_for_execution)
 
 void TestFetch::moveTorso(double position, bool wait_for_execution)
 {
-    const double time = 0.0;
+    const double time = 1.0;
     
     trajectory_msgs::JointTrajectoryPoint point;
     point.positions.push_back(position);
@@ -148,7 +165,10 @@ void TestFetch::moveTorso(double position, bool wait_for_execution)
     torso_client_.sendGoal(goal);
     
     if (wait_for_execution)
-        torso_client_.waitForResult();
+    {
+        if (!torso_client_.waitForResult())
+            ROS_ERROR("Torso action client failed to finish trajectory execution");
+    }
 }
 
 void TestFetch::initializeTuckState(moveit_msgs::RobotState& start_state)
@@ -245,6 +265,47 @@ void TestFetch::loadTablePoses()
             }
         }
     }
+
+    XmlRpc::XmlRpcValue attaching_objects;
+
+    if (nh_.getParam("attachable_objects", attaching_objects))
+    {
+        for (int i=0; i<attaching_objects.size(); i++)
+        {
+            XmlRpc::XmlRpcValue object = attaching_objects[i];
+
+            std::string type;
+            Eigen::Vector3d position;
+            double radius;
+            std::string attaching_link;
+            Eigen::Vector3d attaching_position;
+
+            type = static_cast<std::string>(object["type"]);
+
+            if (type == "sphere")
+            {
+                XmlRpc::XmlRpcValue xml_position = object["position"];
+                for (int j=0; j<3; j++)
+                    position(j) = static_cast<double>(xml_position[j]);
+
+                radius = static_cast<double>(object["radius"]);
+
+                attaching_link = static_cast<std::string>(object["attaching_link"]);
+
+                XmlRpc::XmlRpcValue xml_attaching_position = object["attaching_position"];
+                for (int j=0; j<3; j++)
+                    attaching_position(j) = static_cast<double>(xml_attaching_position[j]);
+
+                AttachingSphere sphere;
+                sphere.radius = radius;
+                sphere.position = position;
+                sphere.attaching_link = attaching_link;
+                sphere.attaching_position = attaching_position;
+
+                attaching_spheres_.push_back(sphere);
+            }
+        }
+    }
 }
 
 void TestFetch::initializeCurrentState(robot_state::RobotState& state)
@@ -254,7 +315,7 @@ void TestFetch::initializeCurrentState(robot_state::RobotState& state)
     sensor_msgs::JointState start_joint_state;
     std::set<std::string> joint_set;
     
-    const std::vector<const robot_model::JointModel*>& active_joint_models = robot_model_->getActiveJointModels();
+    const std::vector<const robot_model::JointModel*>& active_joint_models = moveit_robot_model_->getActiveJointModels();
     for (int i=0; i<active_joint_models.size(); i++)
         joint_set.insert( active_joint_models[i]->getName() );
     
@@ -290,7 +351,7 @@ void TestFetch::initializeCurrentState(robot_state::RobotState& state)
 
 void TestFetch::initializeCurrentState(moveit_msgs::RobotState& start_state)
 {
-    robot_state::RobotState state( robot_model_ );
+    robot_state::RobotState state( moveit_robot_model_ );
     initializeCurrentState(state);
     moveit::core::robotStateToRobotStateMsg(state, start_state, false);
 }
@@ -375,13 +436,15 @@ void TestFetch::runScenario()
         if (goal_type == 0)
         {
             moveEndeffectorVertically(-endeffector_vertical_moving_distance_);
-            moveGripper(gripper_picking_distance_ );
-            moveEndeffectorVertically(endeffector_vertical_moving_distance_);
+            moveGripper(gripper_picking_distance_, true);
+            attachSphere(goal_index);
+            //moveEndeffectorVertically(endeffector_vertical_moving_distance_);
         }
         else
         {
-            moveEndeffectorVertically(-endeffector_vertical_moving_distance_);
-            openGripper();
+            //moveEndeffectorVertically(-endeffector_vertical_moving_distance_);
+            openGripper(true);
+            detachSphere(goal_index);
             moveEndeffectorVertically(endeffector_vertical_moving_distance_);
         }
         
@@ -428,7 +491,7 @@ void TestFetch::moveEndeffectorVertically(double distance)
     planner_.setPlanningTimestep(planning_timestep);
 
     // compute endeffector pose
-    robot_state::RobotState current_state( robot_model_ );
+    robot_state::RobotState current_state( moveit_robot_model_ );
     initializeCurrentState(current_state);
     
     current_state.updateLinkTransforms();
@@ -482,7 +545,7 @@ void TestFetch::moveEndeffectorVertically(double distance)
 
 void TestFetch::moveEndeffectorVerticallyIK(double distance, bool wait_for_execution)
 {
-    robot_state::RobotState current_state( robot_model_ );
+    robot_state::RobotState current_state( moveit_robot_model_ );
     initializeCurrentState(current_state);
     
     current_state.updateLinkTransforms();
@@ -526,6 +589,24 @@ void TestFetch::moveEndeffectorVerticallyIK(double distance, bool wait_for_execu
         arm_client_.waitForResult();
 }
 
+void TestFetch::attachSphere(int sphere_index)
+{
+    const AttachingSphere& sphere = attaching_spheres_[sphere_index];
+    const std::string attaching_link_name = sphere.attaching_link;
+    const int attaching_link = robot_model_->getJointIndexByLinkName(attaching_link_name);
+
+    robot_model_->attachSphere(attaching_link, sphere.attaching_position, sphere.radius);
+}
+
+void TestFetch::detachSphere(int sphere_index)
+{
+    const AttachingSphere& sphere = attaching_spheres_[sphere_index];
+    const std::string attaching_link_name = sphere.attaching_link;
+    const int attaching_link = robot_model_->getJointIndexByLinkName(attaching_link_name);
+
+    robot_model_->detachSpheres(attaching_link);
+}
+
 int main(int argc, char** argv)
 {
     setbuf(stdout, NULL);
@@ -544,7 +625,8 @@ int main(int argc, char** argv)
     test_fetch.moveGripper(0.01);
     test_fetch.openGripper();
     */
-    
+
+
     test_fetch.runScenario();
     
     return 0;

@@ -85,12 +85,24 @@ public:
             return it->second;
         return -1;
     }
+
+    inline JointType getJointType(int joint_index) const
+    {
+        return joint_types_[joint_index];
+    }
+
+    inline Eigen::Vector3d getJointAxis(int joint_index) const
+    {
+        return joint_axes_.col(joint_index);
+    }
     
+    std::vector<int> getDescendantJointIndices(int joint_index) const; //!< descendant joint indices including itself
+
     /// forward kinematics
     void getLinkTransforms(const Eigen::VectorXd& joint_positions, std::vector<Eigen::Affine3d>& link_transforms) const;
 
     // visualization
-    void pushVisualLinkVisualizationMarkers(const std::vector<Eigen::Affine3d>& link_transforms, const std::string& ns, visualization_msgs::MarkerArray& msg) const;
+    virtual void pushVisualLinkVisualizationMarkers(const std::vector<Eigen::Affine3d>& link_transforms, const std::string& ns, visualization_msgs::MarkerArray& msg) const;
     void pushCollisionLinkVisualizationMarkers(const std::vector<Eigen::Affine3d>& link_transforms, const std::string& ns, visualization_msgs::MarkerArray& msg) const;
 
 protected:

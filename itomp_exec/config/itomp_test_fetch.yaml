@@ -1,10 +1,26 @@
 trajectory_duration: 5.0
-planning_timestep: 5.0
+planning_timestep: 0.5
 num_milestones: 3
 num_interpolation_samples: 3
 
 static_obstacles:
-  - {file: "package://itomp_exec/env/table_collision.dae", position: [0.7, 0.0, 0.0]}
+  #- {type: "mesh", file: "package://itomp_exec/env/table_collision_rotated.dae", position: [0.7, 0.0, 0.0]}
+  - {type: "sphere", position: [0.35,  0.70, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.35,  0.35, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.35,  0.00, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.35, -0.35, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.35, -0.70, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.70,  0.70, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.70,  0.35, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.70,  0.00, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.70, -0.35, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.70, -0.70, 0.35], radius: 0.35}
+  #obstacle test
+  - {type: "sphere", position: [0.70,  0.00, 0.7], radius: 0.1}
+  - {type: "sphere", position: [0.60,  0.00, 0.7], radius: 0.1}
+  - {type: "sphere", position: [0.50,  0.00, 0.7], radius: 0.1}
+  - {type: "sphere", position: [0.40,  0.00, 0.7], radius: 0.1}
+  - {type: "sphere", position: [0.30,  0.00, 0.7], radius: 0.1}
 
 collision_sphere_links:
   - shoulder_pan_link
@@ -18,15 +34,8 @@ collision_sphere_links:
   - r_gripper_finger_link
   - l_gripper_finger_link
 
-attatchable_objects:
-  - {file: "package://itomp_exec/env/cylinder.dae"}
-  - {file: "package://itomp_exec/env/cylinder.dae"}
-  - {file: "package://itomp_exec/env/cylinder.dae"}
-  - {file: "package://itomp_exec/env/cylinder.dae"}
-  
 cost_weights:
   goal_pose: 1.0
   smoothness: 0.01
-  collision: 1.0
+  collision: 10.0
   future_obstacle: 1.0
- 

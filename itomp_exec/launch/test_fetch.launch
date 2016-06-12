@@ -17,7 +17,7 @@
   <node name="openni_depth_frame_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 camera_depth_frame openni_depth_frame 100" />
   
   <!-- future obstacle prediction -->
-  <node name="future_obstacle_publisher" pkg="pcml" type="future_obstacle_publisher" output="screen">
+  <node name="future_obstacle_publisher" pkg="pcml" type="future_obstacle_publisher">
     <param name="input_stream_type" value="realtime"/>
     <param name="joints_type" value="upper_body"/>
     <param name="render" value="true"/>
@@ -27,7 +27,7 @@
   </node>
   
   <!-- future obstacle visualizer -->
-  <node name="future_obstacle_visualizer" pkg="pcml" type="future_obstacle_visualizer" output="screen"/>
+  <node name="future_obstacle_visualizer" pkg="pcml" type="future_obstacle_visualizer"/>
   
   <!-- Broadcast static tf from map to odom -->
   <node name="odom_tf_broadcaster" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 map odom 100" />

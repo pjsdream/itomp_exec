@@ -29,4 +29,14 @@ double gaussianQuadratureQuadraticPolynomial(double t0, double t1, const ecl::Qu
             );
 }
 
+double gaussianQuadratureWeight2(int i)
+{
+    return gaussian_quadrature2_weights_[i];
+}
+
+double gaussianQuadratureAbscissa2(int i)
+{
+    return gaussian_quadrature2_abscissa_[i];
+}
+
 }

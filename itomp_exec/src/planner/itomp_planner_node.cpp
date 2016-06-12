@@ -128,50 +128,78 @@ void ITOMPPlannerNode::loadParams()
     XmlRpc::XmlRpcValue static_obstacles;
     if (node_handle_.getParam("static_obstacles", static_obstacles))
     {
-        std::vector<std::string> filenames;
-        std::vector<Eigen::Affine3d> transformations;
-        
         for (int i=0; i<static_obstacles.size(); i++)
         {
             XmlRpc::XmlRpcValue& static_obstacle = static_obstacles[i];
             
-            if (static_obstacle.hasMember("file"))
+            if (static_obstacle.hasMember("type"))
             {
-                std::string filename = static_cast<std::string>(static_obstacle["file"]);
-                
-                Eigen::Affine3d transformation = Eigen::Affine3d::Identity();
-                
-                if (static_obstacle.hasMember("position"))
+                std::string type = static_cast<std::string>(static_obstacle["type"]);
+
+                if (type == "mesh")
                 {
-                    Eigen::Vector3d p;
-                    XmlRpc::XmlRpcValue& position = static_obstacle["position"];
-                    for (int i=0; i<3; i++)
-                        p(i) = static_cast<double>(position[i]);
-                    
-                    transformation.translate(p);
+                    if (static_obstacle.hasMember("file"))
+                    {
+                        std::string filename = static_cast<std::string>(static_obstacle["file"]);
+                        Eigen::Affine3d transformation = Eigen::Affine3d::Identity();
+
+                        if (static_obstacle.hasMember("position"))
+                        {
+                            Eigen::Vector3d p;
+                            XmlRpc::XmlRpcValue& position = static_obstacle["position"];
+                            for (int i=0; i<3; i++)
+                                p(i) = static_cast<double>(position[i]);
+
+                            transformation.translate(p);
+                        }
+
+                        if (static_obstacle.hasMember("orientation"))
+                        {
+                            // TODO
+                        }
+
+                        if (static_obstacle.hasMember("scale"))
+                        {
+                            // TODO
+                        }
+
+                        addStaticObstacle(filename, transformation);
+                    }
+                    else
+                    {
+                        ROS_ERROR("ITOMP static_obstacle parameter does not have 'file' field.");
+                        continue;
+                    }
                 }
-                
-                if (static_obstacle.hasMember("orientation"))
+                else if (type == "sphere")
                 {
-                    // TODO
+                    Eigen::Vector3d p(0., 0., 0.);
+                    double radius = 1.;
+
+                    if (static_obstacle.hasMember("radius"))
+                        radius = static_cast<double>(static_obstacle["radius"]);
+
+                    if (static_obstacle.hasMember("position"))
+                    {
+                        XmlRpc::XmlRpcValue& position = static_obstacle["position"];
+                        for (int i=0; i<3; i++)
+                            p(i) = static_cast<double>(position[i]);
+                    }
+
+                    planning_scene_.addStaticSphereObstacle(p, radius);
+
+                    // add to optimizer planning scene
+                    optimizer_.addStaticObstalceSphere(radius, p);
                 }
-                
-                if (static_obstacle.hasMember("scale"))
-                {
-                    // TODO
-                }
-                
-                filenames.push_back(filename);
-                transformations.push_back(transformation);
             }
             else
             {
-                ROS_ERROR("ITOMP static_obstacle parameter does not have 'file' field.");
+                ROS_ERROR("ITOMP static_obstacle parameter does not have 'type' field.");
                 continue;
             }
         }
-        
-        addStaticObstacles(filenames, transformations);
+
+        planning_scene_.setVisualizationTopic("planning_scene");
     }
     
     // load cost weights
@@ -261,6 +289,9 @@ void ITOMPPlannerNode::setMotionPlanRequest(const planning_interface::MotionPlan
 
 bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& res)
 {
+    // visualize static obstacles before planning
+    planning_scene_.visualizeScene();
+
     res.trajectory_.reset(new robot_trajectory::RobotTrajectory(moveit_robot_model_, planning_group_name_));
 
     const double optimization_time_fraction = 0.90;
@@ -273,6 +304,7 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
     ros::WallRate rate( 1. / options_.planning_timestep );
 
     // initialize optimizer
+    optimizer_.setUseNumericalDerivative(false);
     optimizer_.setNumInterpolationSamples(options_.num_interpolation_samples);
     optimizer_.setRobotModel(robot_model_);
     optimizer_.setPlanningRobotStartState(start_state_, trajectory_duration, options_.num_milestones);

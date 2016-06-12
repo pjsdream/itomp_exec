@@ -41,14 +41,19 @@ public:
     ITOMPPlannerNode(robot_model::RobotModelConstPtr robot_model, const ros::NodeHandle& node_handle = ros::NodeHandle("~"));
     ITOMPPlannerNode(const ros::NodeHandle& node_handle = ros::NodeHandle("~"));
 
-    inline const PlanningScene& getPlaningScene() const
+    inline const PlanningScene& getPlanningScene() const
     {
         return planning_scene_;
     }
 
-    inline robot_model::RobotModelConstPtr getRobotModel() const
+    inline robot_model::RobotModelConstPtr getMoveitRobotModel() const
     {
         return moveit_robot_model_;
+    }
+
+    inline BoundingSphereRobotModelPtr getRobotModel() const
+    {
+        return robot_model_;
     }
 
     inline double getTrajectoryDuration() const
@@ -106,7 +111,7 @@ private:
     
     // planning environment
     std::string planning_group_name_;
-    PlanningScene planning_scene_;
+    PlanningScene planning_scene_; //!< spheres should be added to optimizer independantly
 
     // ITOMP options
     ITOMPPlannerOptions options_;
