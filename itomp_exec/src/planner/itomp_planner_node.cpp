@@ -187,9 +187,6 @@ void ITOMPPlannerNode::loadParams()
                     }
 
                     planning_scene_.addStaticSphereObstacle(p, radius);
-
-                    // add to optimizer planning scene
-                    optimizer_.addStaticObstalceSphere(radius, p);
                 }
             }
             else
@@ -258,6 +255,16 @@ void ITOMPPlannerNode::addStaticObstacles(const std::vector<std::string>& mesh_f
     planning_scene_.addStaticObstacles(mesh_filenames, transformations);
 }
 
+void ITOMPPlannerNode::addDelayedStaticSphereObstacle(double delay, double radius, const Eigen::Vector3d& position)
+{
+    DelayedSphereObstacle sphere;
+    sphere.delay = delay;
+    sphere.radius = radius;
+    sphere.position = position;
+    
+    delayed_sphere_obstacles_.push_back(sphere);
+}
+
 void ITOMPPlannerNode::setMotionPlanRequest(const planning_interface::MotionPlanRequest& req)
 {
     planning_group_name_ = req.group_name;
@@ -289,9 +296,6 @@ void ITOMPPlannerNode::setMotionPlanRequest(const planning_interface::MotionPlan
 
 bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& res)
 {
-    // visualize static obstacles before planning
-    planning_scene_.visualizeScene();
-
     res.trajectory_.reset(new robot_trajectory::RobotTrajectory(moveit_robot_model_, planning_group_name_));
 
     const double optimization_time_fraction = 0.90;
@@ -300,6 +304,7 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
     const int num_states_per_planning_timestep = (int)(options_.planning_timestep * states_per_second) + 1;
     
     double trajectory_duration = options_.trajectory_duration;
+    double elapsed_time = 0.;
 
     ros::WallRate rate( 1. / options_.planning_timestep );
 
@@ -308,6 +313,15 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
     optimizer_.setNumInterpolationSamples(options_.num_interpolation_samples);
     optimizer_.setRobotModel(robot_model_);
     optimizer_.setOptimizationTimeLimit(optimization_time);
+    
+    // add spheres to optimizer planning scene
+    optimizer_.clearStaticObstacleSpheres();
+    std::vector<PlanningScene::Sphere> spheres = planning_scene_.getStaticSphereObstacles();
+    for (int i=0; i<spheres.size(); i++)
+    {
+        const PlanningScene::Sphere sphere = spheres[i];
+        optimizer_.addStaticObstalceSphere(sphere.radius, sphere.position);
+    }
     
     // initialize trajectory only with start state
     optimizer_.setPlanningRobotStartState(start_state_, trajectory_duration, options_.num_milestones);
@@ -322,12 +336,30 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
     for (int i=0; i<options_.cost_weights.size(); i++)
         optimizer_.setCostWeight(options_.cost_weights[i].first, options_.cost_weights[i].second);
 
+    int delayed_obstacle_index = 0;
+    std::sort(delayed_sphere_obstacles_.begin(), delayed_sphere_obstacles_.end());
+    
     while (true)
     {
         ROS_INFO("Planning trajectory of %lf sec", trajectory_duration);
         
         // update dynamic environments
         // TODO: timeout, topic name
+        
+        // update delayed static environments
+        while (delayed_obstacle_index < delayed_sphere_obstacles_.size() &&
+               delayed_sphere_obstacles_[ delayed_obstacle_index ].delay <= elapsed_time)
+        {
+            const double radius = delayed_sphere_obstacles_[ delayed_obstacle_index ].radius;
+            const Eigen::Vector3d position = delayed_sphere_obstacles_[ delayed_obstacle_index ].position;
+            
+            optimizer_.addStaticObstalceSphere(radius, position);
+            
+            delayed_obstacle_index++;
+        }
+        
+        // visualize updated planning scene
+        optimizer_.visualizePlanningScene();
 
         // optimize during optimization_time
         optimizer_.optimize();
@@ -349,6 +381,7 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
         if (trajectory_duration <= options_.planning_timestep + 1e-6)
             break;
         trajectory_duration -= options_.planning_timestep;
+        elapsed_time += options_.planning_timestep;
 
         optimizer_.stepForward(options_.planning_timestep);
 
@@ -356,6 +389,7 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
         rate.sleep();
     }
     
+    delayed_sphere_obstacles_.clear();
     ros::Duration(options_.planning_timestep).sleep();
 
     return true;

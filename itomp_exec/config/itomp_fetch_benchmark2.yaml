@@ -1,0 +1,31 @@
+trajectory_duration: 5.0
+planning_timestep: 0.50
+num_milestones: 4
+num_interpolation_samples: 4
+
+static_obstacles:
+  #- {type: "mesh", file: "package://itomp_exec/env/table_collision_rotated.dae", position: [0.7, 0.0, 0.0]}
+  #obstacle test
+  - {type: "sphere", position: [1.40,  0.00, 0.70], radius: 0.25}
+  - {type: "sphere", position: [1.40,  0.00, 0.80], radius: 0.25}
+  - {type: "sphere", position: [1.40,  0.00, 0.90], radius: 0.25}
+  - {type: "sphere", position: [1.40,  0.00, 1.00], radius: 0.25}
+  - {type: "sphere", position: [1.40,  0.00, 1.10], radius: 0.25}
+
+collision_sphere_links:
+  - shoulder_pan_link
+  - shoulder_lift_link
+  - upperarm_roll_link
+  - elbow_flex_link
+  - forearm_roll_link
+  - wrist_flex_link
+  - wrist_roll_link
+  - gripper_link
+  - r_gripper_finger_link
+  - l_gripper_finger_link
+
+cost_weights:
+  goal_pose: 1.0
+  smoothness: 0.003
+  collision: 0.1
+  future_obstacle: 1.0

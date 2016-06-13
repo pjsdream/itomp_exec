@@ -1,0 +1,68 @@
+trajectory_duration: 5.0
+planning_timestep: 0.50
+num_milestones: 3
+num_interpolation_samples: 3
+
+static_obstacles:
+  #- {type: "mesh", file: "package://itomp_exec/env/table_collision_rotated.dae", position: [0.7, 0.0, 0.0]}
+  - {type: "sphere", position: [0.00,  0.70, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.00,  0.52, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.00,  0.35, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.00,  0.17, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.00,  0.00, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.00, -0.17, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.00, -0.35, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.00, -0.52, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.00, -0.70, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.35,  0.70, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.35,  0.52, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.35,  0.35, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.35,  0.17, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.35,  0.00, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.35, -0.17, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.35, -0.35, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.35, -0.52, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.35, -0.70, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.70,  0.70, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.70,  0.52, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.70,  0.35, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.70,  0.17, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.70,  0.00, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.70, -0.17, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.70, -0.35, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.70, -0.52, 0.35], radius: 0.35}
+  - {type: "sphere", position: [0.70, -0.70, 0.35], radius: 0.35}
+  #obstacle test
+  #- {type: "sphere", position: [0.95,  0.00, 0.75], radius: 0.09}
+  #- {type: "sphere", position: [0.85,  0.00, 0.75], radius: 0.09}
+  #- {type: "sphere", position: [0.75,  0.00, 0.75], radius: 0.09}
+  #- {type: "sphere", position: [0.65,  0.00, 0.75], radius: 0.09}
+  #- {type: "sphere", position: [0.55,  0.00, 0.75], radius: 0.09}
+  #- {type: "sphere", position: [0.95,  0.00, 0.80], radius: 0.07}
+  #- {type: "sphere", position: [0.85,  0.00, 0.80], radius: 0.07}
+  #- {type: "sphere", position: [0.75,  0.00, 0.80], radius: 0.07}
+  #- {type: "sphere", position: [0.65,  0.00, 0.80], radius: 0.07}
+  #- {type: "sphere", position: [0.55,  0.00, 0.80], radius: 0.07}
+  - {type: "sphere", position: [1.00,  0.00, 0.70], radius: 0.25}
+  - {type: "sphere", position: [1.00,  0.00, 0.80], radius: 0.25}
+  - {type: "sphere", position: [1.00,  0.00, 0.90], radius: 0.25}
+  - {type: "sphere", position: [1.00,  0.00, 1.00], radius: 0.25}
+  - {type: "sphere", position: [1.00,  0.00, 1.10], radius: 0.25}
+
+collision_sphere_links:
+  - shoulder_pan_link
+  - shoulder_lift_link
+  - upperarm_roll_link
+  - elbow_flex_link
+  - forearm_roll_link
+  - wrist_flex_link
+  - wrist_roll_link
+  - gripper_link
+  - r_gripper_finger_link
+  - l_gripper_finger_link
+
+cost_weights:
+  goal_pose: 1.0
+  smoothness: 0.003
+  collision: 1.0
+  future_obstacle: 1.0

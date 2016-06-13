@@ -2,6 +2,7 @@
 #include <itomp_exec/planner/itomp_planner_node.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <itomp_exec/util/gaussian_quadrature.h>
+#include <eigen_conversions/eigen_msg.h>
 
 #include <functional>
 
@@ -33,6 +34,28 @@ void ITOMPOptimizer::addStaticObstalceSphere(double radius, const Eigen::Vector3
     sphere.position = position;
 
     static_obstacle_spheres_.push_back( sphere );
+}
+
+void ITOMPOptimizer::clearStaticObstacleSpheres()
+{
+    // delete visualization markers
+    visualization_msgs::MarkerArray marker_array;
+
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = "base_link";
+    marker.header.stamp = ros::Time::now();
+    marker.ns = "planning_scene";
+    marker.action = visualization_msgs::Marker::DELETE;
+    
+    for (int i=0; i<static_obstacle_spheres_.size(); i++)
+    {
+        marker.id = i;
+        marker_array.markers.push_back(marker);
+    }
+
+    visualization_publisher_.publish(marker_array);
+    
+    static_obstacle_spheres_.clear();
 }
 
 void ITOMPOptimizer::setCostWeight(const std::string& cost_type, double weight)
@@ -806,6 +829,42 @@ void ITOMPOptimizer::visualizeInterpolationSamplesCollisionSpheres()
 
     for (int i=0; i<interpolated_variable_link_transforms_.size(); i++)
         robot_model_->pushCollisionSpheresVisualizationMarkers(interpolated_variable_link_transforms_[i], "interpolated_collision_" + std::to_string(i), marker_array);
+
+    visualization_publisher_.publish(marker_array);
+}
+
+void ITOMPOptimizer::visualizePlanningScene()
+{
+    visualization_msgs::MarkerArray marker_array;
+
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = "base_link";
+    marker.header.stamp = ros::Time::now();
+    marker.ns = "planning_scene";
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.type = visualization_msgs::Marker::SPHERE;
+    
+    marker.color.r = 0.;
+    marker.color.g = 1.;
+    marker.color.b = 0.;
+    marker.color.a = 1.;
+    
+    marker.pose.orientation.w = 1.;
+    marker.pose.orientation.x = 0.;
+    marker.pose.orientation.y = 0.;
+    marker.pose.orientation.z = 0.;
+    
+    for (int i=0; i<static_obstacle_spheres_.size(); i++)
+    {
+        const BoundingSphereRobotModel::Sphere& sphere = static_obstacle_spheres_[i];
+      
+        marker.id = i;
+        
+        tf::pointEigenToMsg(sphere.position, marker.pose.position);
+        marker.scale.x = marker.scale.y = marker.scale.z = sphere.radius * 2.;
+        
+        marker_array.markers.push_back(marker);
+    }
 
     visualization_publisher_.publish(marker_array);
 }

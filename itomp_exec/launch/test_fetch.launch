@@ -12,6 +12,9 @@
   <arg name="use_rviz" unless="$(arg use_real_robot)" value="true"/>
   <arg name="use_rviz"     if="$(arg use_real_robot)" value="true"/>
   
+  <arg name="benchmark1" default="false"/>
+  <arg name="benchmark2" default="false"/>
+  
   <!-- static tf publishers for camera -->
   <node name="camera_link_publisher" pkg="tf" type="static_transform_publisher" args="0 -1 1 0.2 0 0 odom camera_link 100" />
   <node name="openni_depth_frame_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 camera_depth_frame openni_depth_frame 100" />
@@ -91,6 +94,7 @@
   <rosparam ns="move_itomp" command="load" file="$(find itomp_exec)/config/table_poses.yaml"/>
   
   <!-- ITOMP parameters -->
-  <rosparam ns="move_itomp" command="load" file="$(find itomp_exec)/config/itomp_test_fetch.yaml"/>
+  <rosparam if="$(arg benchmark1)" ns="move_itomp" command="load" file="$(find itomp_exec)/config/itomp_fetch_benchmark1.yaml"/>
+  <rosparam if="$(arg benchmark2)" ns="move_itomp" command="load" file="$(find itomp_exec)/config/itomp_fetch_benchmark2.yaml"/>
   
 </launch>

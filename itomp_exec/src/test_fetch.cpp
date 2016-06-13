@@ -42,6 +42,17 @@ private:
         Eigen::Vector3d attaching_position;
     };
     
+    struct Sphere
+    {
+        Sphere(double radius, const Eigen::Vector3d& position)
+            : radius(radius), position(position)
+        {
+        }
+
+        double radius;
+        Eigen::Vector3d position;
+    };
+    
 public:
     
     TestFetch(const ros::NodeHandle& nh = ros::NodeHandle("~"));
@@ -56,6 +67,7 @@ public:
     void detachSphere(int sphere_index);
     
     void runScenario();
+    void runMovingArmScenario();
     
 private:
     
@@ -100,7 +112,7 @@ private:
 const std::string TestFetch::planning_group_ = "arm";
 const std::string TestFetch::endeffector_name_ = "wrist_roll_link";
 const double TestFetch::endeffector_vertical_moving_distance_ = 0.10;
-const double TestFetch::gripper_picking_distance_ = 0.063;
+const double TestFetch::gripper_picking_distance_ = 0.060;
 
 
 
@@ -318,9 +330,9 @@ void TestFetch::loadTablePoses()
     marker.header.stamp = ros::Time::now();
     marker.type = visualization_msgs::Marker::CUBE_LIST;
     marker.action = visualization_msgs::Marker::ADD;
-    marker.scale.x = 0.01;
-    marker.scale.y = 0.01;
-    marker.scale.z = 0.01;
+    marker.scale.x = 0.1;
+    marker.scale.y = 0.1;
+    marker.scale.z = 0.1;
     
     std_msgs::ColorRGBA red;
     red.r = 1.;
@@ -421,6 +433,26 @@ void TestFetch::initializeCurrentState(moveit_msgs::RobotState& start_state)
 
 void TestFetch::runScenario()
 {
+    // delayed obstacles
+    const double obstacle_delay = 0.38;
+    std::vector<Sphere> delayed_spheres;
+    delayed_spheres.push_back(Sphere(0.12, Eigen::Vector3d(1.00, 0.00, 0.77)));
+    delayed_spheres.push_back(Sphere(0.12, Eigen::Vector3d(0.90, 0.00, 0.77)));
+    delayed_spheres.push_back(Sphere(0.12, Eigen::Vector3d(0.80, 0.00, 0.77)));
+    delayed_spheres.push_back(Sphere(0.12, Eigen::Vector3d(0.70, 0.00, 0.77)));
+    delayed_spheres.push_back(Sphere(0.12, Eigen::Vector3d(0.60, 0.00, 0.77)));
+    delayed_spheres.push_back(Sphere(0.10, Eigen::Vector3d(1.00, 0.00, 0.82)));
+    delayed_spheres.push_back(Sphere(0.10, Eigen::Vector3d(0.90, 0.00, 0.82)));
+    delayed_spheres.push_back(Sphere(0.10, Eigen::Vector3d(0.80, 0.00, 0.82)));
+    delayed_spheres.push_back(Sphere(0.10, Eigen::Vector3d(0.70, 0.00, 0.82)));
+    delayed_spheres.push_back(Sphere(0.10, Eigen::Vector3d(0.60, 0.00, 0.82)));
+    // torso
+    delayed_spheres.push_back(Sphere(0.10, Eigen::Vector3d(0.90, 0.00, 0.80)));
+    delayed_spheres.push_back(Sphere(0.10, Eigen::Vector3d(0.90, 0.00, 0.85)));
+    delayed_spheres.push_back(Sphere(0.10, Eigen::Vector3d(0.90, 0.00, 0.90)));
+    delayed_spheres.push_back(Sphere(0.10, Eigen::Vector3d(0.90, 0.00, 0.95)));
+    delayed_spheres.push_back(Sphere(0.10, Eigen::Vector3d(0.90, 0.00, 1.00)));
+    
     int goal_type = 0;
     int goal_index = 0;
     std::vector<char> goal_achieved(start_poses_.size(), false);
@@ -482,8 +514,28 @@ void TestFetch::runScenario()
         
         planner_.setMotionPlanRequest(req);
         
+        // static scene obstacle generation after delay
+        double trajectory_duration;
+        if (goal_type == 0 && goal_index == 0)
+            trajectory_duration = 5.0;
+        else
+            trajectory_duration = 2.0 + goal_index;
+        
+        if (goal_type == 1 && goal_index > 0)
+        {
+            for (int i=0; i<delayed_spheres.size(); i++)
+            {
+                const double r = delayed_spheres[i].radius;
+                Eigen::Vector3d p = delayed_spheres[i].position;
+                
+                p(1) = target_poses_[goal_index - 1].position(1);
+                
+                planner_.addDelayedStaticSphereObstacle(obstacle_delay * trajectory_duration, r, p);
+            }
+        }
         // plan and execute
         planning_interface::MotionPlanResponse res;
+        planner_.setTrajectoryDuration(trajectory_duration);
         planner_.planAndExecute(res);
 
         // visualize robot trajectory
@@ -501,14 +553,15 @@ void TestFetch::runScenario()
         {
             //moveEndeffectorVertically(-endeffector_vertical_moving_distance_);
             moveEndeffectorVerticallyTarget(-endeffector_vertical_moving_distance_, start_poses_[goal_index].position, start_poses_[goal_index].orientation);
-            moveGripper(gripper_picking_distance_, true);
+            moveGripper(gripper_picking_distance_, false);
             attachSphere(goal_index);
             //moveEndeffectorVertically(endeffector_vertical_moving_distance_);
+            moveEndeffectorVerticallyTarget(-endeffector_vertical_moving_distance_ + 0.04, start_poses_[goal_index].position, start_poses_[goal_index].orientation);
         }
         else
         {
             //moveEndeffectorVertically(-endeffector_vertical_moving_distance_);
-            openGripper(true);
+            openGripper(false);
             detachSphere(goal_index);
             //moveEndeffectorVertically(endeffector_vertical_moving_distance_);
             moveEndeffectorVerticallyTarget(endeffector_vertical_moving_distance_, target_poses_[goal_index].position, target_poses_[goal_index].orientation);
@@ -548,6 +601,104 @@ void TestFetch::runScenario()
         
         // once
         // break;
+    }
+}
+
+void TestFetch::runMovingArmScenario()
+{
+    // open, then close the gripper to grip an object
+    openGripper();
+    ros::Duration(1.0).sleep();
+    moveGripper(gripper_picking_distance_);
+    
+    // delayed obstacles
+    const double obstacle_delay = 0.38; // 0.2, 0.38
+    std::vector<Sphere> delayed_spheres;
+    delayed_spheres.push_back(Sphere(0.12, Eigen::Vector3d(1.20, 0.00, 1.10)));
+    delayed_spheres.push_back(Sphere(0.12, Eigen::Vector3d(1.10, 0.00, 1.10)));
+    delayed_spheres.push_back(Sphere(0.12, Eigen::Vector3d(1.00, 0.00, 1.10)));
+    delayed_spheres.push_back(Sphere(0.12, Eigen::Vector3d(0.90, 0.00, 1.10)));
+    delayed_spheres.push_back(Sphere(0.12, Eigen::Vector3d(0.80, 0.00, 1.10)));
+    
+    int goal_index = 0;
+    Pose start_pose;
+    start_pose.position = Eigen::Vector3d(0.7, -0.7, 1.15);
+    start_pose.orientation = Eigen::Quaterniond(1., 0., 0., 0.);
+    Pose target_pose;
+    target_pose.position = Eigen::Vector3d(0.7, 0.7, 1.15);
+    target_pose.orientation = Eigen::Quaterniond(1., 0., 0., 0.);
+    
+    while (true)
+    {
+        ROS_INFO("Goal index: [%d]", goal_index);
+        planning_interface::MotionPlanRequest req;
+        req.group_name = planning_group_;
+        
+        // initialize start state with current robot state
+        initializeCurrentState(req.start_state);
+        
+        // initialize start state with current state
+        //initializeDefaultState(req.start_state);
+
+        // visualize start state
+        moveit_msgs::DisplayRobotState start_state_display_msg;
+        start_state_display_msg.state = req.start_state;
+        start_state_publisher_.publish(start_state_display_msg);
+        
+        // goal pose setting
+        moveit_msgs::PositionConstraint goal_position_constraint;
+        goal_position_constraint.link_name = endeffector_name_;
+        if (goal_index == 0)
+            tf::vectorEigenToMsg(start_pose.position, goal_position_constraint.target_point_offset);
+        else
+            tf::vectorEigenToMsg(target_pose.position, goal_position_constraint.target_point_offset);
+        
+        moveit_msgs::OrientationConstraint goal_orientation_constraint;
+        goal_orientation_constraint.link_name = endeffector_name_;
+        if (goal_index == 0)
+            tf::quaternionEigenToMsg(start_pose.orientation, goal_orientation_constraint.orientation);
+        else
+            tf::quaternionEigenToMsg(target_pose.orientation, goal_orientation_constraint.orientation);
+        
+        moveit_msgs::Constraints goal_constraints;
+        goal_constraints.position_constraints.push_back(goal_position_constraint);
+        goal_constraints.orientation_constraints.push_back(goal_orientation_constraint);
+        req.goal_constraints.push_back(goal_constraints);
+        
+        planner_.setMotionPlanRequest(req);
+        
+        // delayed obstacles
+        for (int i=0; i<delayed_spheres.size(); i++)
+        {
+            const double r = delayed_spheres[i].radius;
+            Eigen::Vector3d p = delayed_spheres[i].position;
+            
+            planner_.addDelayedStaticSphereObstacle(obstacle_delay * 5.0, r, p);
+        }
+            
+        // plan and execute
+        planning_interface::MotionPlanResponse res;
+        planner_.planAndExecute(res);
+
+        // visualize robot trajectory
+        moveit_msgs::MotionPlanResponse response_msg;
+        res.getMessage(response_msg);
+
+        moveit_msgs::DisplayTrajectory display_trajectory_msg;
+        display_trajectory_msg.trajectory_start = response_msg.trajectory_start;
+        display_trajectory_msg.trajectory.push_back( response_msg.trajectory );
+        display_trajectory_msg.model_id = "model";
+        display_trajectory_publisher_.publish(display_trajectory_msg);
+        
+        // move endeffector vertically using IK to pick or place
+        if (goal_index == 0)
+        {
+            goal_index = 1;
+        }
+        else
+        {
+            goal_index = 0;
+        }
     }
 }
 
@@ -744,7 +895,11 @@ int main(int argc, char** argv)
     */
 
 
-    test_fetch.runScenario();
+    if (argc==1 || argv[1][0] == '1')
+        test_fetch.runScenario();
+    
+    else
+        test_fetch.runMovingArmScenario();
     
     return 0;
 }

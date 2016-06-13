@@ -36,6 +36,18 @@ public:
         std::vector<std::string> collision_sphere_link_names;
     };
     
+    struct DelayedSphereObstacle
+    {
+        double delay;
+        double radius;
+        Eigen::Vector3d position;
+        
+        inline bool operator < (const DelayedSphereObstacle& rhs) const
+        {
+            return delay < rhs.delay;
+        }
+    };
+    
 public:
 
     ITOMPPlannerNode(robot_model::RobotModelConstPtr robot_model, const ros::NodeHandle& node_handle = ros::NodeHandle("~"));
@@ -75,6 +87,8 @@ public:
     {
         options_.planning_timestep = planning_timestep;
     }
+    
+    void addDelayedStaticSphereObstacle(double delay, double radius, const Eigen::Vector3d& position);
 
     void setRobotModel(const robot_model::RobotModelConstPtr& robot_model);
 
@@ -112,6 +126,7 @@ private:
     // planning environment
     std::string planning_group_name_;
     PlanningScene planning_scene_; //!< spheres should be added to optimizer independantly
+    std::vector<DelayedSphereObstacle> delayed_sphere_obstacles_;
 
     // ITOMP options
     ITOMPPlannerOptions options_;

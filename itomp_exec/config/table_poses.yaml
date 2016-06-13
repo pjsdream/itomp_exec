@@ -1,16 +1,16 @@
 poses:
-  - {type: "start",  position: [0.10,  0.60, 1.05], orientation: [0.707106781, 0.0, 0.707106781, 0.0]}
-  - {type: "start",  position: [0.20,  0.60, 1.05], orientation: [0.707106781, 0.0, 0.707106781, 0.0]}
-  - {type: "start",  position: [0.10,  0.70, 1.05], orientation: [0.707106781, 0.0, 0.707106781, 0.0]}
-  - {type: "start",  position: [0.20,  0.70, 1.05], orientation: [0.707106781, 0.0, 0.707106781, 0.0]}
-  - {type: "target", position: [0.55,  0.60, 0.95], orientation: [0.707106781, 0.0, 0.707106781, 0.0]}
-  - {type: "target", position: [0.55,  0.20, 0.95], orientation: [0.707106781, 0.0, 0.707106781, 0.0]}
-  - {type: "target", position: [0.55, -0.20, 0.95], orientation: [0.707106781, 0.0, 0.707106781, 0.0]}
-  - {type: "target", position: [0.55, -0.60, 0.95], orientation: [0.707106781, 0.0, 0.707106781, 0.0]}
+  - {type: "start",  position: [0.36,  0.73, 1.05], orientation: [0.707106781, 0.0, 0.707106781, 0.0]}
+  - {type: "start",  position: [0.26,  0.73, 1.05], orientation: [0.707106781, 0.0, 0.707106781, 0.0]}
+  - {type: "start",  position: [0.16,  0.73, 1.04], orientation: [0.707106781, 0.0, 0.707106781, 0.0]}
+  - {type: "start",  position: [0.06,  0.73, 1.04], orientation: [0.707106781, 0.0, 0.707106781, 0.0]}
+  - {type: "target", position: [0.55,  0.60, 0.96], orientation: [0.707106781, 0.0, 0.707106781, 0.0]}
+  - {type: "target", position: [0.55,  0.20, 0.96], orientation: [0.707106781, 0.0, 0.707106781, 0.0]}
+  - {type: "target", position: [0.55, -0.20, 0.96], orientation: [0.707106781, 0.0, 0.707106781, 0.0]}
+  - {type: "target", position: [0.55, -0.60, 0.96], orientation: [0.707106781, 0.0, 0.707106781, 0.0]}
 
 attachable_objects:
-  - {type: "sphere", position: [0.70, -0.70, 0.35], radius: 0.03, attaching_link: "wrist_roll_link", attaching_position: [0.22, 0.0, 0.0]}
-  - {type: "sphere", position: [0.70, -0.70, 0.35], radius: 0.03, attaching_link: "wrist_roll_link", attaching_position: [0.22, 0.0, 0.0]}
-  - {type: "sphere", position: [0.70, -0.70, 0.35], radius: 0.03, attaching_link: "wrist_roll_link", attaching_position: [0.22, 0.0, 0.0]}
-  - {type: "sphere", position: [0.70, -0.70, 0.35], radius: 0.03, attaching_link: "wrist_roll_link", attaching_position: [0.22, 0.0, 0.0]}
+  - {type: "sphere", position: [0.70, -0.70, 0.35], radius: 0.04, attaching_link: "wrist_roll_link", attaching_position: [0.22, 0.0, 0.0]}
+  - {type: "sphere", position: [0.70, -0.70, 0.35], radius: 0.04, attaching_link: "wrist_roll_link", attaching_position: [0.22, 0.0, 0.0]}
+  - {type: "sphere", position: [0.70, -0.70, 0.35], radius: 0.04, attaching_link: "wrist_roll_link", attaching_position: [0.22, 0.0, 0.0]}
+  - {type: "sphere", position: [0.70, -0.70, 0.35], radius: 0.04, attaching_link: "wrist_roll_link", attaching_position: [0.22, 0.0, 0.0]}
 

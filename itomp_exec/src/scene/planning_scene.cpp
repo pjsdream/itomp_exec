@@ -51,6 +51,31 @@ void PlanningScene::addStaticSphereObstacle(const Eigen::Vector3d& position, dou
     transformations_.push_back(affine);
 }
 
+std::vector<PlanningScene::Sphere> PlanningScene::getStaticSphereObstacles() const
+{
+    std::vector<Sphere> spheres;
+    Sphere sphere;
+    
+    for (int i=0; i<shapes_.size(); i++)
+    {
+        const shapes::Shape* shape = shapes_[i];
+        
+        if (shape->type == shapes::SPHERE)
+        {
+            const shapes::Sphere* sphere_shape = dynamic_cast<const shapes::Sphere*>(shape);
+            const double radius = sphere_shape->radius;
+            const Eigen::Vector3d position = transformations_[i].translation();
+            
+            sphere.radius = radius;
+            sphere.position = position;
+            
+            spheres.push_back(sphere);
+        }
+    }
+    
+    return spheres;
+}
+
 void PlanningScene::setVisualizationTopic(const std::string &topic)
 {
     static_scene_publisher_ = node_handle_.advertise<visualization_msgs::MarkerArray>(topic, 1);

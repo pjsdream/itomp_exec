@@ -14,6 +14,14 @@ namespace itomp_exec
 class PlanningScene
 {
 public:
+    
+    struct Sphere
+    {
+        double radius;
+        Eigen::Vector3d position;
+    };
+
+public:
 
     PlanningScene(const ros::NodeHandle& node_handle = ros::NodeHandle("~"));
     ~PlanningScene();
@@ -21,6 +29,8 @@ public:
     void addStaticObstacle(const std::string& mesh_filename, const Eigen::Affine3d& transformation);
     void addStaticObstacles(const std::vector<std::string>& mesh_filenames, const std::vector<Eigen::Affine3d>& transformations);
     void addStaticSphereObstacle(const Eigen::Vector3d& position, double radius);
+    
+    std::vector<Sphere> getStaticSphereObstacles() const;
 
     void setVisualizationTopic(const std::string& topic);
     void visualizeScene();
