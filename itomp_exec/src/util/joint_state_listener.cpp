@@ -57,7 +57,6 @@ JointStateListener::JointStateListener()
 
     ros::SubscribeOptions options;
     options.template init<sensor_msgs::JointState>("/joint_states", 1, std::bind(&JointStateListener::jointStateCallbackFunction, this, std::placeholders::_1));
-    options.allow_concurrent_callbacks = true;
     options.callback_queue = &callback_queue_;
 
     joint_state_subscriber_ = node_handle.subscribe(options);

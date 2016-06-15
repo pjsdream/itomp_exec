@@ -16,6 +16,7 @@ namespace itomp_exec
 ITOMPPlannerNode::ITOMPPlannerNode(robot_model::RobotModelConstPtr robot_model, const ros::NodeHandle& node_handle)
     : moveit_robot_model_(robot_model)
     , node_handle_(node_handle)
+    , planning_scene_(node_handle)
 {
     initialize();
 }
@@ -196,9 +197,8 @@ void ITOMPPlannerNode::loadParams()
                 continue;
             }
         }
-
-        planning_scene_.setVisualizationTopic("planning_scene");
     }
+    planning_scene_.setVisualizationTopic("planning_scene");
     
     // load cost weights
     options_.cost_weights.clear();
@@ -323,7 +323,6 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
         ROS_INFO("Planning trajectory of %lf sec", trajectory_duration);
         
         // update dynamic environments
-        // TODO: timeout, topic name
 
         // visualize updated planning scene
         optimizer_.visualizePlanningScene();

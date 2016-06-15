@@ -38,9 +38,7 @@ void ITOMPOptimizer::setCostWeight(const std::string& cost_type, double weight)
         cost_weights_.collision_cost_weight = weight;
     
     else
-    {
         ROS_WARN("ITOMPOptimizer: Unknown cost type [%s]", cost_type.c_str());
-    }
 }
 
 const Eigen::VectorXd ITOMPOptimizer::convertDlibToEigenVector(const column_vector& v)
@@ -215,6 +213,10 @@ void ITOMPOptimizer::optimize()
 {
     // update static obstacle spheres
     static_obstacle_spheres_ = planning_scene_->getStaticSphereObstacles();
+
+    // update dynamic obstacle spheres at current time
+    Spheres dynamic_obstacle_spheres = planning_scene_->getDynamicSphereObstacles();
+    static_obstacle_spheres_.insert( static_obstacle_spheres_.end(), dynamic_obstacle_spheres.begin(), dynamic_obstacle_spheres.end() );
 
     ros::WallTime start_time = ros::WallTime::now();
     

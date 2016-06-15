@@ -54,7 +54,7 @@ private:
         double orientation_weight;
         Eigen::Quaterniond orientation;
     };
-    
+
 public:
     
     ITOMPOptimizer();

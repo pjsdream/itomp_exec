@@ -6,7 +6,6 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /Grid1
         - /PlanningScene1/Scene Geometry1
         - /itomp trajectory1/Namespaces1
       Splitter Ratio: 0.568571
@@ -29,7 +28,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: Kinect
 Visualization Manager:
   Class: ""
   Displays:
@@ -220,131 +219,6 @@ Visualization Manager:
           Expand Link Details: false
           Expand Tree: false
           Link Tree Style: Links in Alphabetic Order
-          base_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          bellows_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          bellows_link2:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          elbow_flex_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          estop_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          forearm_roll_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          gripper_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          head_camera_depth_frame:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          head_camera_depth_optical_frame:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          head_camera_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          head_camera_rgb_frame:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          head_camera_rgb_optical_frame:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          head_pan_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          head_tilt_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          l_gripper_finger_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          l_wheel_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          laser_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          r_gripper_finger_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          r_wheel_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          shoulder_lift_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          shoulder_pan_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          torso_fixed_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          torso_lift_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          upperarm_roll_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          wrist_flex_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          wrist_roll_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
         Robot Alpha: 1
         Show Robot Collision: false
         Show Robot Visual: false
@@ -795,40 +669,18 @@ Visualization Manager:
       Visual Enabled: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /move_itomp/trajectory
+      Marker Topic: /test_fetch/trajectory
       Name: itomp trajectory
       Namespaces:
-        interpolated_0: true
-        interpolated_1: true
-        interpolated_10: true
-        interpolated_11: true
-        interpolated_12: true
-        interpolated_13: true
-        interpolated_14: true
-        interpolated_15: true
-        interpolated_16: true
-        interpolated_17: true
-        interpolated_18: true
-        interpolated_19: true
-        interpolated_2: true
-        interpolated_20: true
-        interpolated_3: true
-        interpolated_4: true
-        interpolated_5: true
-        interpolated_6: true
-        interpolated_7: true
-        interpolated_8: true
-        interpolated_9: true
-        planning_scene: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /move_itomp/target_positions
+      Marker Topic: /test_fetch/target_positions
       Name: itomp target positions
       Namespaces:
-        start_poses: true
-        target_poses: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -843,7 +695,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: RGB8
       Decay Time: 0
-      Enabled: true
+      Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 4096
@@ -860,13 +712,21 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /future_obstacle_publisher/skeleton_realtime
       Name: joints
       Namespaces:
-        {}
+        head: true
+        left_elbow: true
+        left_hand: true
+        left_shoulder: true
+        neck: true
+        right_elbow: true
+        right_hand: true
+        right_shoulder: true
+        torso: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -874,7 +734,7 @@ Visualization Manager:
       Marker Topic: /future_obstacle_distributions_marker_array
       Name: future
       Namespaces:
-        {}
+        future_obstacle_distrtibutions: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -961,22 +821,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 2.08116
+      Distance: 3.78102
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.394871
-        Y: 0.0586044
-        Z: 0.869844
+        X: 0.799253
+        Y: -0.309783
+        Z: 1.20269
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.459796
+      Pitch: 0.244796
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.19411
+      Yaw: 1.63141
     Saved: ~
 Window Geometry:
   Displays:
@@ -994,5 +854,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1200
-  X: 444
-  Y: 27
+  X: 116
+  Y: 90

@@ -580,6 +580,7 @@ void TestFetch::runMovingArmScenario()
 {
     // open, then close the gripper to grip an object
     openGripper();
+    ROS_INFO("Waiting for 1.0 sec for grasping");
     ros::Duration(1.0).sleep();
     moveGripper(gripper_picking_distance_);
 
@@ -598,9 +599,7 @@ void TestFetch::runMovingArmScenario()
         req.group_name = planning_group_;
         
         // initialize start state with current robot state
-        ros::WallTime start_time = ros::WallTime::now();
         initializeCurrentState(req.start_state);
-        ROS_INFO("current state initialize time: %lf sec", (ros::WallTime::now() - start_time).toSec());
         
         // initialize start state with current state
         //initializeDefaultState(req.start_state);
@@ -837,7 +836,7 @@ int main(int argc, char** argv)
     
     srand(time(NULL));
     
-    ros::init(argc, argv, "move_itomp");
+    ros::init(argc, argv, "test_fetch");
     
     TestFetch test_fetch;
 

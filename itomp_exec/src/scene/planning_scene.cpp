@@ -4,12 +4,16 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <eigen_conversions/eigen_msg.h>
 
+#include <pcml/FutureObstacleDistributions.h>
+
 namespace itomp_exec
 {
 
 PlanningScene::PlanningScene(const ros::NodeHandle& node_handle)
     : node_handle_(node_handle)
+    , transform_listener_(node_handle)
 {
+    disableFutureDynamicObstacles();
 }
 
 PlanningScene::~PlanningScene()
@@ -73,6 +77,50 @@ Spheres PlanningScene::getStaticSphereObstacles() const
         }
     }
     
+    return spheres;
+}
+
+Spheres PlanningScene::getDynamicSphereObstacles() const
+{
+    pcml::FutureObstacleDistributions obstacles = future_obstacle_listener_.getObstaclesAtCurrentTime();
+    std::string frame_id = future_obstacle_listener_.getFrameId();
+
+    Eigen::Affine3d transform;
+    transform.setIdentity();
+
+    tf::StampedTransform tf_transform;
+    ros::Time time;
+    std::string error_string;
+    if (transform_listener_.getLatestCommonTime("base_link", frame_id, time, &error_string) != tf::NO_ERROR)
+    {
+        ROS_ERROR("TF error: %s", error_string.c_str());
+        ROS_ERROR("Set transform to identity");
+    }
+    else
+    {
+        transform_listener_.lookupTransform("base_link", frame_id, time, tf_transform);
+
+        tf::Point tf_translation = tf_transform.getOrigin();
+        tf::Quaternion tf_quaternion = tf_transform.getRotation();
+
+        const Eigen::Vector3d translation(tf_translation.x(), tf_translation.y(), tf_translation.z());
+        const Eigen::Quaterniond quaternion(tf_quaternion.w(), tf_quaternion.x(), tf_quaternion.y(), tf_quaternion.z());
+        transform.translate(translation).rotate(quaternion);
+    }
+
+    Spheres spheres;
+    for (int i=0; i<obstacles.obstacles.size(); i++)
+    {
+        const pcml::FutureObstacleDistribution& obstacle = obstacles.obstacles[i];
+
+        Eigen::Vector3d position;
+        tf::pointMsgToEigen(obstacle.obstacle_point, position);
+
+        const double radius = obstacle.radius;
+
+        spheres.push_back(Sphere(radius, transform * position));
+    }
+
     return spheres;
 }
 
