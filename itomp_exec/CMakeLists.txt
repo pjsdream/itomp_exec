@@ -161,6 +161,7 @@ add_library(itomp_exec
   src/robot/bounding_sphere_robot_model.cpp
   src/util/conversions.cpp
   src/util/gaussian_quadrature.cpp
+  src/util/joint_state_listener.cpp
   #src/optimization/itomp_optimizer.cpp
   #src/trajectory/trajectory.cpp
   #src/cost/cost.cpp

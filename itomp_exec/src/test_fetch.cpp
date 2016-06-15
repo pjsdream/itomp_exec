@@ -11,6 +11,7 @@
 #include <actionlib/client/simple_action_client.h>
 #include <control_msgs/GripperCommandAction.h>
 #include <control_msgs/FollowJointTrajectoryAction.h>
+#include <itomp_exec/util/joint_state_listener.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <Eigen/Dense>
 #include <ros/ros.h>
@@ -105,6 +106,9 @@ private:
     
     robot_model::RobotModelConstPtr moveit_robot_model_;
     itomp_exec::BoundingSphereRobotModelPtr robot_model_;
+
+    // joint state listener
+    itomp_exec::JointStateListener joint_state_listener_;
 };
 
 
@@ -396,26 +400,26 @@ void TestFetch::initializeCurrentState(robot_state::RobotState& state)
     
     while (!joint_set.empty())
     {
-        sensor_msgs::JointStateConstPtr current_joint_state = ros::topic::waitForMessage<sensor_msgs::JointState>("/joint_states");
+        sensor_msgs::JointState current_joint_state = joint_state_listener_.getJointStates();
         
-        for (int i=0; i<current_joint_state->name.size(); i++)
+        for (int i=0; i<current_joint_state.name.size(); i++)
         {
-            const std::string joint_name = current_joint_state->name[i];
+            const std::string joint_name = current_joint_state.name[i];
             if (joint_set.find(joint_name) != joint_set.end())
             {
                 joint_set.erase(joint_name);
                 
-                start_joint_state.header = current_joint_state->header;
+                start_joint_state.header = current_joint_state.header;
                 start_joint_state.name.push_back(joint_name);
                 
-                if (!current_joint_state->position.empty())
-                    start_joint_state.position.push_back( current_joint_state->position[i] );
+                if (!current_joint_state.position.empty())
+                    start_joint_state.position.push_back( current_joint_state.position[i] );
                 
-                if (!current_joint_state->velocity.empty())
-                    start_joint_state.velocity.push_back( current_joint_state->velocity[i] );
+                if (!current_joint_state.velocity.empty())
+                    start_joint_state.velocity.push_back( current_joint_state.velocity[i] );
                 
-                if (!current_joint_state->effort.empty())
-                    start_joint_state.effort.push_back( current_joint_state->effort[i] );
+                if (!current_joint_state.effort.empty())
+                    start_joint_state.effort.push_back( current_joint_state.effort[i] );
             }
         }
     }
@@ -433,26 +437,6 @@ void TestFetch::initializeCurrentState(moveit_msgs::RobotState& start_state)
 
 void TestFetch::runScenario()
 {
-    // delayed obstacles
-    const double obstacle_delay = 0.38;
-    std::vector<Sphere> delayed_spheres;
-    delayed_spheres.push_back(Sphere(0.12, Eigen::Vector3d(1.00, 0.00, 0.77)));
-    delayed_spheres.push_back(Sphere(0.12, Eigen::Vector3d(0.90, 0.00, 0.77)));
-    delayed_spheres.push_back(Sphere(0.12, Eigen::Vector3d(0.80, 0.00, 0.77)));
-    delayed_spheres.push_back(Sphere(0.12, Eigen::Vector3d(0.70, 0.00, 0.77)));
-    delayed_spheres.push_back(Sphere(0.12, Eigen::Vector3d(0.60, 0.00, 0.77)));
-    delayed_spheres.push_back(Sphere(0.10, Eigen::Vector3d(1.00, 0.00, 0.82)));
-    delayed_spheres.push_back(Sphere(0.10, Eigen::Vector3d(0.90, 0.00, 0.82)));
-    delayed_spheres.push_back(Sphere(0.10, Eigen::Vector3d(0.80, 0.00, 0.82)));
-    delayed_spheres.push_back(Sphere(0.10, Eigen::Vector3d(0.70, 0.00, 0.82)));
-    delayed_spheres.push_back(Sphere(0.10, Eigen::Vector3d(0.60, 0.00, 0.82)));
-    // torso
-    delayed_spheres.push_back(Sphere(0.10, Eigen::Vector3d(0.90, 0.00, 0.80)));
-    delayed_spheres.push_back(Sphere(0.10, Eigen::Vector3d(0.90, 0.00, 0.85)));
-    delayed_spheres.push_back(Sphere(0.10, Eigen::Vector3d(0.90, 0.00, 0.90)));
-    delayed_spheres.push_back(Sphere(0.10, Eigen::Vector3d(0.90, 0.00, 0.95)));
-    delayed_spheres.push_back(Sphere(0.10, Eigen::Vector3d(0.90, 0.00, 1.00)));
-    
     int goal_type = 0;
     int goal_index = 0;
     std::vector<char> goal_achieved(start_poses_.size(), false);
@@ -514,25 +498,13 @@ void TestFetch::runScenario()
         
         planner_.setMotionPlanRequest(req);
         
-        // static scene obstacle generation after delay
+        // trajectory duration
         double trajectory_duration;
         if (goal_type == 0 && goal_index == 0)
             trajectory_duration = 5.0;
         else
             trajectory_duration = 2.0 + goal_index;
-        
-        if (goal_type == 1 && goal_index > 0)
-        {
-            for (int i=0; i<delayed_spheres.size(); i++)
-            {
-                const double r = delayed_spheres[i].radius;
-                Eigen::Vector3d p = delayed_spheres[i].position;
-                
-                p(1) = target_poses_[goal_index - 1].position(1);
-                
-                planner_.addDelayedStaticSphereObstacle(obstacle_delay * trajectory_duration, r, p);
-            }
-        }
+
         // plan and execute
         planning_interface::MotionPlanResponse res;
         planner_.setTrajectoryDuration(trajectory_duration);
@@ -610,16 +582,7 @@ void TestFetch::runMovingArmScenario()
     openGripper();
     ros::Duration(1.0).sleep();
     moveGripper(gripper_picking_distance_);
-    
-    // delayed obstacles
-    const double obstacle_delay = 0.38; // 0.2, 0.38
-    std::vector<Sphere> delayed_spheres;
-    delayed_spheres.push_back(Sphere(0.12, Eigen::Vector3d(1.20, 0.00, 1.10)));
-    delayed_spheres.push_back(Sphere(0.12, Eigen::Vector3d(1.10, 0.00, 1.10)));
-    delayed_spheres.push_back(Sphere(0.12, Eigen::Vector3d(1.00, 0.00, 1.10)));
-    delayed_spheres.push_back(Sphere(0.12, Eigen::Vector3d(0.90, 0.00, 1.10)));
-    delayed_spheres.push_back(Sphere(0.12, Eigen::Vector3d(0.80, 0.00, 1.10)));
-    
+
     int goal_index = 0;
     Pose start_pose;
     start_pose.position = Eigen::Vector3d(0.7, -0.7, 1.15);
@@ -635,7 +598,9 @@ void TestFetch::runMovingArmScenario()
         req.group_name = planning_group_;
         
         // initialize start state with current robot state
+        ros::WallTime start_time = ros::WallTime::now();
         initializeCurrentState(req.start_state);
+        ROS_INFO("current state initialize time: %lf sec", (ros::WallTime::now() - start_time).toSec());
         
         // initialize start state with current state
         //initializeDefaultState(req.start_state);
@@ -666,16 +631,7 @@ void TestFetch::runMovingArmScenario()
         req.goal_constraints.push_back(goal_constraints);
         
         planner_.setMotionPlanRequest(req);
-        
-        // delayed obstacles
-        for (int i=0; i<delayed_spheres.size(); i++)
-        {
-            const double r = delayed_spheres[i].radius;
-            Eigen::Vector3d p = delayed_spheres[i].position;
-            
-            planner_.addDelayedStaticSphereObstacle(obstacle_delay * 5.0, r, p);
-        }
-            
+
         // plan and execute
         planning_interface::MotionPlanResponse res;
         planner_.planAndExecute(res);

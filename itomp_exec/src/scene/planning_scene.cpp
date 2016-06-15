@@ -51,7 +51,7 @@ void PlanningScene::addStaticSphereObstacle(const Eigen::Vector3d& position, dou
     transformations_.push_back(affine);
 }
 
-std::vector<PlanningScene::Sphere> PlanningScene::getStaticSphereObstacles() const
+Spheres PlanningScene::getStaticSphereObstacles() const
 {
     std::vector<Sphere> spheres;
     Sphere sphere;

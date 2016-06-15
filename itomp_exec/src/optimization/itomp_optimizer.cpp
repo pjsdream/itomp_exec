@@ -4,8 +4,6 @@
 #include <itomp_exec/util/gaussian_quadrature.h>
 #include <eigen_conversions/eigen_msg.h>
 
-#include <functional>
-
 #include <ros/ros.h>
 
 
@@ -19,43 +17,13 @@ ITOMPOptimizer::ITOMPOptimizer()
     : trajectory_duration_(0.)
     , use_numerical_derivative_(true)
     , numerical_derivative_eps_(1e-5)
+    , planning_scene_(0)
 {
     initializeSmoothnessCostDerivaiveAuxilaryMatrix();
 }
 
 ITOMPOptimizer::~ITOMPOptimizer()
 {
-}
-
-void ITOMPOptimizer::addStaticObstalceSphere(double radius, const Eigen::Vector3d& position)
-{
-    BoundingSphereRobotModel::Sphere sphere;
-    sphere.radius = radius;
-    sphere.position = position;
-
-    static_obstacle_spheres_.push_back( sphere );
-}
-
-void ITOMPOptimizer::clearStaticObstacleSpheres()
-{
-    // delete visualization markers
-    visualization_msgs::MarkerArray marker_array;
-
-    visualization_msgs::Marker marker;
-    marker.header.frame_id = "base_link";
-    marker.header.stamp = ros::Time::now();
-    marker.ns = "planning_scene";
-    marker.action = visualization_msgs::Marker::DELETE;
-    
-    for (int i=0; i<static_obstacle_spheres_.size(); i++)
-    {
-        marker.id = i;
-        marker_array.markers.push_back(marker);
-    }
-
-    visualization_publisher_.publish(marker_array);
-    
-    static_obstacle_spheres_.clear();
 }
 
 void ITOMPOptimizer::setCostWeight(const std::string& cost_type, double weight)
@@ -245,6 +213,9 @@ void ITOMPOptimizer::stepForward(double time)
 
 void ITOMPOptimizer::optimize()
 {
+    // update static obstacle spheres
+    static_obstacle_spheres_ = planning_scene_->getStaticSphereObstacles();
+
     ros::WallTime start_time = ros::WallTime::now();
     
     column_vector initial_variables = convertEigenToDlibVector( getOptimizationVariables() );
@@ -389,15 +360,15 @@ double ITOMPOptimizer::optimizationCost(const column_vector& variables)
         {
             for (int j=0; j<interpolated_collision_spheres_[i].size(); j++)
             {
-                const BoundingSphereRobotModel::Spheres& robot_spheres = interpolated_collision_spheres_[i][j];
+                const Spheres& robot_spheres = interpolated_collision_spheres_[i][j];
 
                 for (int k=0; k<robot_spheres.size(); k++)
                 {
-                    const BoundingSphereRobotModel::Sphere& robot_sphere = robot_spheres[k];
+                    const Sphere& robot_sphere = robot_spheres[k];
 
                     for (int l=0; l<static_obstacle_spheres_.size(); l++)
                     {
-                        const BoundingSphereRobotModel::Sphere& obstacle_sphere = static_obstacle_spheres_[l];
+                        const Sphere& obstacle_sphere = static_obstacle_spheres_[l];
 
                         const double r = robot_sphere.radius + obstacle_sphere.radius;
                         const double d_squared = (robot_sphere.position - obstacle_sphere.position).squaredNorm();
@@ -560,15 +531,15 @@ const ITOMPOptimizer::column_vector ITOMPOptimizer::optimizationCostDerivative(c
         {
             for (int j=0; j<interpolated_collision_spheres_[i].size(); j++)
             {
-                const BoundingSphereRobotModel::Spheres& robot_spheres = interpolated_collision_spheres_[i][j];
+                const Spheres& robot_spheres = interpolated_collision_spheres_[i][j];
 
                 for (int k=0; k<robot_spheres.size(); k++)
                 {
-                    const BoundingSphereRobotModel::Sphere& robot_sphere = robot_spheres[k];
+                    const Sphere& robot_sphere = robot_spheres[k];
 
                     for (int l=0; l<static_obstacle_spheres_.size(); l++)
                     {
-                        const BoundingSphereRobotModel::Sphere& obstacle_sphere = static_obstacle_spheres_[l];
+                        const Sphere& obstacle_sphere = static_obstacle_spheres_[l];
 
                         const double r = robot_sphere.radius + obstacle_sphere.radius;
                         const double d_squared = (robot_sphere.position - obstacle_sphere.position).squaredNorm();
@@ -856,7 +827,7 @@ void ITOMPOptimizer::visualizePlanningScene()
     
     for (int i=0; i<static_obstacle_spheres_.size(); i++)
     {
-        const BoundingSphereRobotModel::Sphere& sphere = static_obstacle_spheres_[i];
+        const Sphere& sphere = static_obstacle_spheres_[i];
       
         marker.id = i;
         

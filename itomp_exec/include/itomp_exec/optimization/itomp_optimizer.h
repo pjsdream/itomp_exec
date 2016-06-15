@@ -4,6 +4,7 @@
 
 #include <itomp_exec/robot/bounding_sphere_robot_model.h>
 #include <itomp_exec/robot/robot_state.h>
+#include <itomp_exec/scene/planning_scene.h>
 #include <dlib/optimization.h>
 #include <Eigen/Dense>
 #include <moveit_msgs/RobotTrajectory.h>
@@ -76,8 +77,10 @@ public:
         num_interpolation_samples_ = num_interpolation_samples;
     }
 
-    void addStaticObstalceSphere(double radius, const Eigen::Vector3d& position);
-    void clearStaticObstacleSpheres();
+    inline void setPlanningScene(const PlanningScene* planning_scene)
+    {
+        planning_scene_ = planning_scene;
+    }
 
     void setRobotModel(const BoundingSphereRobotModelPtr& robot_model);
 
@@ -131,8 +134,9 @@ private:
     BoundingSphereRobotModelPtr robot_model_;
     RobotState start_state_;
 
-    // obstacles
-    BoundingSphereRobotModel::Spheres static_obstacle_spheres_;
+    // planning scene
+    const PlanningScene* planning_scene_;
+    Spheres static_obstacle_spheres_;
 
     // numerical derivative
     bool use_numerical_derivative_;
@@ -157,7 +161,7 @@ private:
     Eigen::MatrixXd interpolated_variables_; //!< all interpolated robot states, including start state
     std::vector<Eigen::Affine3d> goal_link_transforms_;
     std::vector<std::vector<Eigen::Affine3d> > interpolated_variable_link_transforms_; //!< [interpolation_index][link_index]
-    std::vector<std::vector<BoundingSphereRobotModel::Spheres> > interpolated_collision_spheres_; //!< [interpolation_index][link_index]
+    std::vector<std::vector<Spheres> > interpolated_collision_spheres_; //!< [interpolation_index][link_index]
     Eigen::MatrixX4d interpolated_curve_bases_; //!< (interpolation_index, basis_index)  ex. row(0) = [B0 B1 B2 B3](t0). Bases are unnormalized i.e. B(t) = (t1-t0) H((t-t0)/(t1-t0))
     std::vector<std::pair<int, int> > interpolation_index_position_; //!< [interpolation_index] = ( milestone index, interpolation_index )
 

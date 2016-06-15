@@ -3,7 +3,7 @@
 
 
 #include <itomp_exec/robot/robot_model.h>
-
+#include <itomp_exec/shape/sphere.h>
 #include <geometric_shapes/shapes.h>
 
 
@@ -12,16 +12,6 @@ namespace itomp_exec
 
 class BoundingSphereRobotModel : public RobotModel
 {
-public:
-
-    struct Sphere
-    {
-        double radius;
-        Eigen::Vector3d position;
-    };
-
-    typedef std::vector<Sphere> Spheres;
-
 private:
 
     struct AABB
