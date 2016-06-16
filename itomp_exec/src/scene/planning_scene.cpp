@@ -91,14 +91,14 @@ Spheres PlanningScene::getDynamicSphereObstacles() const
     tf::StampedTransform tf_transform;
     ros::Time time;
     std::string error_string;
-    if (transform_listener_.getLatestCommonTime("base_link", frame_id, time, &error_string) != tf::NO_ERROR)
+    if (transform_listener_.getLatestCommonTime("map", frame_id, time, &error_string) != tf::NO_ERROR)
     {
         ROS_ERROR("TF error: %s", error_string.c_str());
         ROS_ERROR("Set transform to identity");
     }
     else
     {
-        transform_listener_.lookupTransform("base_link", frame_id, time, tf_transform);
+        transform_listener_.lookupTransform("map", frame_id, time, tf_transform);
 
         tf::Point tf_translation = tf_transform.getOrigin();
         tf::Quaternion tf_quaternion = tf_transform.getRotation();
@@ -135,7 +135,7 @@ void PlanningScene::visualizeScene()
 
     visualization_msgs::Marker marker;
     marker.header.stamp = ros::Time::now();
-    marker.header.frame_id = "base_link";
+    marker.header.frame_id = "map";
     marker.ns = "scene";
     marker.action = visualization_msgs::Marker::ADD;
     marker.scale.x = 1.;

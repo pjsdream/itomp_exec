@@ -330,7 +330,7 @@ void TestFetch::loadTablePoses()
     // visualize target poses
     visualization_msgs::MarkerArray marker_array;
     visualization_msgs::Marker marker;
-    marker.header.frame_id = "base_link";
+    marker.header.frame_id = "map";
     marker.header.stamp = ros::Time::now();
     marker.type = visualization_msgs::Marker::CUBE_LIST;
     marker.action = visualization_msgs::Marker::ADD;
