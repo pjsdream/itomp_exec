@@ -1,10 +1,11 @@
 trajectory_duration: 5.0
 planning_timestep: 0.5
-num_milestones: 4
-num_interpolation_samples: 4
-dynamic_obstacle_max_speed: 0.2 # m/s
+num_milestones: 3
+num_interpolation_samples: 3
+dynamic_obstacle_max_speed: 0.1 # m/s
+dynamic_obstacle_duration: 2.0  # s
 
-static_obstacles:
+#static_obstacles:
   #- {type: "mesh", file: "package://itomp_exec/env/table_collision_rotated.dae", position: [0.7, 0.0, 0.0]}
   #obstacle test
   #- {type: "sphere", position: [1.40,  0.00, 0.70], radius: 0.25}
@@ -13,14 +14,14 @@ static_obstacles:
   #- {type: "sphere", position: [1.40,  0.00, 1.00], radius: 0.25}
   #- {type: "sphere", position: [1.40,  0.00, 1.10], radius: 0.25}
   #near
-  - {type: "sphere", position: [1.00,  0.00, 0.70], radius: 0.25}
-  - {type: "sphere", position: [1.00,  0.00, 0.80], radius: 0.25}
-  - {type: "sphere", position: [1.00,  0.00, 0.90], radius: 0.25}
-  - {type: "sphere", position: [1.00,  0.00, 1.00], radius: 0.25}
-  - {type: "sphere", position: [1.00,  0.00, 1.10], radius: 0.25}
-  - {type: "sphere", position: [1.00,  0.00, 1.20], radius: 0.25}
-  - {type: "sphere", position: [1.00,  0.00, 1.30], radius: 0.25}
-  - {type: "sphere", position: [1.00,  0.00, 1.40], radius: 0.25}
+  #- {type: "sphere", position: [1.00,  0.00, 0.70], radius: 0.25}
+  #- {type: "sphere", position: [1.00,  0.00, 0.80], radius: 0.25}
+  #- {type: "sphere", position: [1.00,  0.00, 0.90], radius: 0.25}
+  #- {type: "sphere", position: [1.00,  0.00, 1.00], radius: 0.25}
+  #- {type: "sphere", position: [1.00,  0.00, 1.10], radius: 0.25}
+  #- {type: "sphere", position: [1.00,  0.00, 1.20], radius: 0.25}
+  #- {type: "sphere", position: [1.00,  0.00, 1.30], radius: 0.25}
+  #- {type: "sphere", position: [1.00,  0.00, 1.40], radius: 0.25}
 
 collision_sphere_links:
   - shoulder_pan_link

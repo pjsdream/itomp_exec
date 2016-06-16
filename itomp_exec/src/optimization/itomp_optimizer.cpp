@@ -2,6 +2,7 @@
 #include <itomp_exec/planner/itomp_planner_node.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <itomp_exec/util/gaussian_quadrature.h>
+#include <itomp_exec/optimization/optimization_stop_strategy.h>
 #include <eigen_conversions/eigen_msg.h>
 
 #include <ros/ros.h>
@@ -213,62 +214,59 @@ void ITOMPOptimizer::stepForward(double time)
 
 void ITOMPOptimizer::optimize()
 {
+    ros::WallTime start_time = ros::WallTime::now();
+
     // update static obstacle spheres
     static_obstacle_spheres_ = planning_scene_->getStaticSphereObstacles();
 
     // update dynamic obstacle spheres at current time
     dynamic_obstacle_spheres_ = planning_scene_->getDynamicSphereObstacles();
-
-    ros::WallTime start_time = ros::WallTime::now();
     
     column_vector initial_variables = convertEigenToDlibVector( getOptimizationVariables() );
     column_vector lower = convertEigenToDlibVector( getOptimizationVariableLowerLimits() );
     column_vector upper = convertEigenToDlibVector( getOptimizationVariableUpperLimits() );
-    
-    const int optimization_max_iter = 10;
-    
-    while ((ros::WallTime::now() - start_time).toSec() < optimization_time_limit_)
+
+    if (use_numerical_derivative_)
     {
-        if (use_numerical_derivative_)
-        {
-            dlib::find_min_box_constrained(
-                        dlib::bfgs_search_strategy(),
-                        dlib::objective_delta_stop_strategy(1e-7, optimization_max_iter),
-                        std::bind(&ITOMPOptimizer::optimizationCost, this, std::placeholders::_1),
-                        std::bind(&ITOMPOptimizer::optimizationCostNumericalDerivative, this, std::placeholders::_1),
-                        initial_variables,
-                        lower,
-                        upper
-                        );
-        }
-        else
-        {
-            dlib::find_min_box_constrained(
-                        dlib::bfgs_search_strategy(),
-                        dlib::objective_delta_stop_strategy(1e-7, optimization_max_iter),
-                        std::bind(&ITOMPOptimizer::optimizationCost, this, std::placeholders::_1),
-                        std::bind(&ITOMPOptimizer::optimizationCostDerivative, this, std::placeholders::_1),
-                        initial_variables,
-                        lower,
-                        upper
-                        );
-        }
-        
-        // derivative test
-        /*
-        const double c = optimizationCost(initial_variables);
-        column_vector d = optimizationCostNumericalDerivative(initial_variables);
-        const double cd = optimizationCost(initial_variables + d * numerical_derivative_eps_);
-        printf("%lf -> %lf, (diff: %lf)\n", c, cd, (cd - c) / numerical_derivative_eps_);
-        */
-        
-        // visualize trajectory
-        //visualizeMilestones();
-        visualizeInterpolationSamples();
-        //visualizeInterpolationSamplesCollisionSpheres();
+        dlib::find_min_box_constrained(
+                    dlib::bfgs_search_strategy(),
+                    itomp_exec::time_limit_stop_strategy(optimization_time_limit_).be_verbose(),
+                    std::bind(&ITOMPOptimizer::optimizationCost, this, std::placeholders::_1),
+                    std::bind(&ITOMPOptimizer::optimizationCostNumericalDerivative, this, std::placeholders::_1),
+                    initial_variables,
+                    lower,
+                    upper
+                    );
     }
+    else
+    {
+        dlib::find_min_box_constrained(
+                    dlib::bfgs_search_strategy(),
+                    itomp_exec::time_limit_stop_strategy(optimization_time_limit_).be_verbose(),
+                    std::bind(&ITOMPOptimizer::optimizationCost, this, std::placeholders::_1),
+                    std::bind(&ITOMPOptimizer::optimizationCostDerivative, this, std::placeholders::_1),
+                    initial_variables,
+                    lower,
+                    upper
+                    );
+    }
+
+    // derivative test
+    /*
+    const double c = optimizationCost(initial_variables);
+    column_vector d = optimizationCostNumericalDerivative(initial_variables);
+    const double cd = optimizationCost(initial_variables + d * numerical_derivative_eps_);
+    printf("%lf -> %lf, (diff: %lf)\n", c, cd, (cd - c) / numerical_derivative_eps_);
+    */
+
+    // visualize trajectory
+    //visualizeMilestones();
+    visualizeInterpolationSamples();
+    //visualizeInterpolationSamplesCollisionSpheres();
     
     milestoneInitializeWithDlibVector(initial_variables);
+
+    ROS_INFO("Optimization elapsed time: %lf sec", (ros::WallTime::now() - start_time).toSec());
 }
 
 Eigen::VectorXd ITOMPOptimizer::getOptimizationVariables()
@@ -369,6 +367,7 @@ double ITOMPOptimizer::optimizationCost(const column_vector& variables)
                 {
                     const Sphere& robot_sphere = robot_spheres[k];
 
+                    // static obstacle spheres
                     for (int l=0; l<static_obstacle_spheres_.size(); l++)
                     {
                         const Sphere& obstacle_sphere = static_obstacle_spheres_[l];
@@ -379,6 +378,23 @@ double ITOMPOptimizer::optimizationCost(const column_vector& variables)
                         if (d_squared < r*r)
                         {
                             cost += (r*r - d_squared) * trajectory_duration_ * cost_weights_.collision_cost_weight / num_interpolation_samples_;
+                        }
+                    }
+
+                    // dynamic obstacle spheres
+                    if (planning_timestep_ + interpolated_times_[i] <= dynamic_obstacle_duration_)
+                    {
+                        for (int l=0; l<dynamic_obstacle_spheres_.size(); l++)
+                        {
+                            const Sphere& obstacle_sphere = dynamic_obstacle_spheres_[l];
+
+                            const double r = robot_sphere.radius + (obstacle_sphere.radius + dynamic_obstacle_max_speed_ * (planning_timestep_ + interpolated_times_[i]));
+                            const double d_squared = (robot_sphere.position - obstacle_sphere.position).squaredNorm();
+
+                            if (d_squared < r*r)
+                            {
+                                cost += (r*r - d_squared) * cost_weights_.collision_cost_weight / num_interpolation_samples_;
+                            }
                         }
                     }
                 }
@@ -540,6 +556,7 @@ const ITOMPOptimizer::column_vector ITOMPOptimizer::optimizationCostDerivative(c
                 {
                     const Sphere& robot_sphere = robot_spheres[k];
 
+                    // static obstacle spheres
                     for (int l=0; l<static_obstacle_spheres_.size(); l++)
                     {
                         const Sphere& obstacle_sphere = static_obstacle_spheres_[l];
@@ -592,6 +609,63 @@ const ITOMPOptimizer::column_vector ITOMPOptimizer::optimizationCostDerivative(c
                             }
                         }
                     }
+
+                    // dynamic obstacle spheres
+                    if (planning_timestep_ + interpolated_times_[i] <= dynamic_obstacle_duration_)
+                    {
+                        for (int l=0; l<dynamic_obstacle_spheres_.size(); l++)
+                        {
+                            const Sphere& obstacle_sphere = dynamic_obstacle_spheres_[l];
+
+                            const double r = robot_sphere.radius + (obstacle_sphere.radius + dynamic_obstacle_max_speed_ * (planning_timestep_ + interpolated_times_[i]));
+                            const double d_squared = (robot_sphere.position - obstacle_sphere.position).squaredNorm();
+
+                            if (d_squared < r*r)
+                            {
+                                //cost += (r*r - d_squared) * cost_weights_.collision_cost_weight / num_interpolation_samples_;
+
+                                for (int m=0; m<num_joints_; m++)
+                                {
+                                    if (joints_affecting_link_transforms_[m][j])
+                                    {
+                                        const int joint_index = planning_joint_indices_[m];
+
+                                        const Eigen::Affine3d& transform_joint = interpolated_variable_link_transforms_[i][joint_index];
+                                        const Eigen::Vector3d& relative_robot_position = transform_joint.inverse() * robot_sphere.position;
+                                        const Eigen::Vector3d& relative_obstacle_position = transform_joint.inverse() * obstacle_sphere.position;
+
+                                        switch (robot_model_->getJointType(joint_index))
+                                        {
+                                        case RobotModel::REVOLUTE:
+                                        {
+                                            const Eigen::Vector3d axis = robot_model_->getJointAxis(joint_index).normalized();
+                                            // derivative = 2 (axis cross link) dot (link - target)
+                                            const double curve_derivative = - 2. * (axis.cross(relative_robot_position)).dot(relative_robot_position - relative_obstacle_position);
+
+                                            const int milestone_index0 = interpolation_index_position_[i].first - 1;
+                                            const int milestone_index1 = interpolation_index_position_[i].first;
+                                            const int interpolation_index = interpolation_index_position_[i].second;
+                                            const Eigen::Vector4d variable_derivative = interpolated_curve_bases_.row(interpolation_index) * curve_derivative * trajectory_duration_ * cost_weights_.collision_cost_weight / num_interpolation_samples_;
+
+                                            if (milestone_index0 != -1)
+                                            {
+                                                derivative(m, milestone_index0) += variable_derivative(0);
+                                                derivative(m, milestone_index0) += variable_derivative(1);
+                                            }
+                                            derivative(m, milestone_index1) += variable_derivative(2);
+                                            derivative(m, milestone_index1) += variable_derivative(3);
+
+                                            break;
+                                        }
+
+                                        default:
+                                            ROS_ERROR("Unsupported joint type [%d] for goal pose cost computation", robot_model_->getJointType(joint_index));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -636,6 +710,8 @@ void ITOMPOptimizer::allocateOptimizationResources()
     interpolation_index_position_.resize(num_interpolated_variables);
 
     interpolated_curve_bases_.resize(num_interpolation_samples_ + 1, Eigen::NoChange);
+
+    interpolated_times_.resize(num_interpolated_variables);
 }
 
 void ITOMPOptimizer::precomputeOptimizationResources()
@@ -689,6 +765,8 @@ void ITOMPOptimizer::precomputeInterpolation()
                 interpolated_variables_(num_joints_ + i, column_index) = clampVelocity(poly.derivative(t), i);
 
                 interpolation_index_position_[column_index] = std::make_pair(j, k);
+
+                interpolated_times_[column_index] = t;
 
                 column_index++;
             }
@@ -814,7 +892,6 @@ void ITOMPOptimizer::visualizePlanningScene()
     visualization_msgs::Marker marker;
     marker.header.frame_id = "map";
     marker.header.stamp = ros::Time::now();
-    marker.ns = "planning_scene";
     marker.action = visualization_msgs::Marker::ADD;
     marker.type = visualization_msgs::Marker::SPHERE;
 
@@ -826,6 +903,7 @@ void ITOMPOptimizer::visualizePlanningScene()
     marker.pose.orientation.z = 0.;
     
     // static obstacles as green
+    marker.ns = "planning_scene_static";
     marker.color.r = 0.;
     marker.color.g = 1.;
     marker.color.b = 0.;
@@ -842,6 +920,7 @@ void ITOMPOptimizer::visualizePlanningScene()
     }
 
     // dynamic obstacles as red
+    marker.ns = "planning_scene_dynamic";
     marker.color.r = 1.;
     marker.color.g = 0.;
     for (int i=0; i<dynamic_obstacle_spheres_.size(); i++)
@@ -851,7 +930,22 @@ void ITOMPOptimizer::visualizePlanningScene()
         marker.id = i;
 
         tf::pointEigenToMsg(sphere.position, marker.pose.position);
-        marker.scale.x = marker.scale.y = marker.scale.z = (sphere.radius + 2. * planning_timestep_ * dynamic_obstacle_max_speed_) * 2.;
+        marker.scale.x = marker.scale.y = marker.scale.z = sphere.radius * 2.;
+
+        marker_array.markers.push_back(marker);
+    }
+
+    // future dynamic obstacles as transparent red
+    marker.ns = "planning_scene_dynamic_future";
+    marker.color.a = 0.5;
+    for (int i=0; i<dynamic_obstacle_spheres_.size(); i++)
+    {
+        const Sphere& sphere = dynamic_obstacle_spheres_[i];
+
+        marker.id = i;
+
+        tf::pointEigenToMsg(sphere.position, marker.pose.position);
+        marker.scale.x = marker.scale.y = marker.scale.z = (sphere.radius + dynamic_obstacle_duration_ * dynamic_obstacle_max_speed_) * 2.;
 
         marker_array.markers.push_back(marker);
     }

@@ -92,6 +92,11 @@ public:
         dynamic_obstacle_max_speed_ = max_speed;
     }
 
+    inline void setDynamicObstacleDuration(double duration)
+    {
+        dynamic_obstacle_duration_ = duration;
+    }
+
     void setRobotModel(const BoundingSphereRobotModelPtr& robot_model);
 
     void setPlanningRobotStartState(const RobotState& start_state, double trajectory_duration, int num_milestones);
@@ -154,6 +159,7 @@ private:
     Spheres dynamic_obstacle_spheres_;
     double planning_timestep_;
     double dynamic_obstacle_max_speed_;
+    double dynamic_obstacle_duration_;
 
     // TODO: ITOMP with motion prediction
 
@@ -183,6 +189,7 @@ private:
     std::vector<std::vector<Spheres> > interpolated_collision_spheres_; //!< [interpolation_index][link_index]
     Eigen::MatrixX4d interpolated_curve_bases_; //!< (interpolation_index, basis_index)  ex. row(0) = [B0 B1 B2 B3](t0). Bases are unnormalized i.e. B(t) = (t1-t0) H((t-t0)/(t1-t0))
     std::vector<std::pair<int, int> > interpolation_index_position_; //!< [interpolation_index] = ( milestone index, interpolation_index )
+    std::vector<double> interpolated_times_; //!< uniform time samples between 0 and trajectory_duration
 
     // temporary variables for optimization
     void initializeSmoothnessCostDerivaiveAuxilaryMatrix();

@@ -39,6 +39,7 @@ public:
         struct
         {
             double dynamic_obstacle_max_speed;
+            double dynamic_obstacle_duration;
         } conservative;
     };
     

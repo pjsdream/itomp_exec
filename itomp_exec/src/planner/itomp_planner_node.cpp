@@ -126,6 +126,7 @@ void ITOMPPlannerNode::loadParams()
     node_handle_.param("num_interpolation_samples", options_.num_interpolation_samples, 10);
     node_handle_.param("planning_timestep", options_.planning_timestep, 0.5);
     node_handle_.param("dynamic_obstacle_max_speed", options_.conservative.dynamic_obstacle_max_speed, 0.1);
+    node_handle_.param("dynamic_obstacle_duration", options_.conservative.dynamic_obstacle_duration, 1.0);
     
     // load static obstacles
     XmlRpc::XmlRpcValue static_obstacles;
@@ -290,7 +291,7 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
 {
     res.trajectory_.reset(new robot_trajectory::RobotTrajectory(moveit_robot_model_, planning_group_name_));
 
-    const double optimization_time_fraction = 0.90;
+    const double optimization_time_fraction = 0.80;
     const double optimization_time = options_.planning_timestep * optimization_time_fraction;
     const int states_per_second = 15;
     const int num_states_per_planning_timestep = (int)(options_.planning_timestep * states_per_second) + 1;
@@ -306,6 +307,7 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
     optimizer_.setOptimizationTimeLimit(optimization_time);
     optimizer_.setPlanningTimestep(options_.planning_timestep);
     optimizer_.setDynamicObstacleMaxSpeed(options_.conservative.dynamic_obstacle_max_speed);
+    optimizer_.setDynamicObstacleDuration(options_.conservative.dynamic_obstacle_duration);
     
     // initialize trajectory only with start state
     optimizer_.setPlanningRobotStartState(start_state_, trajectory_duration, options_.num_milestones);
