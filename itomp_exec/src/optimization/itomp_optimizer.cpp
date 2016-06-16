@@ -226,11 +226,15 @@ void ITOMPOptimizer::optimize()
     column_vector lower = convertEigenToDlibVector( getOptimizationVariableLowerLimits() );
     column_vector upper = convertEigenToDlibVector( getOptimizationVariableUpperLimits() );
 
+    // stop strategy is both time limit and objective delta
+    coupled_stop_strategy<itomp_exec::time_limit_stop_strategy, dlib::objective_delta_stop_strategy>
+            stop_strategy(itomp_exec::time_limit_stop_strategy(optimization_time_limit_, start_time), dlib::objective_delta_stop_strategy(1e-7, 1000000));
+
     if (use_numerical_derivative_)
     {
         dlib::find_min_box_constrained(
                     dlib::bfgs_search_strategy(),
-                    itomp_exec::time_limit_stop_strategy(optimization_time_limit_).be_verbose(),
+                    stop_strategy,
                     std::bind(&ITOMPOptimizer::optimizationCost, this, std::placeholders::_1),
                     std::bind(&ITOMPOptimizer::optimizationCostNumericalDerivative, this, std::placeholders::_1),
                     initial_variables,
@@ -242,7 +246,7 @@ void ITOMPOptimizer::optimize()
     {
         dlib::find_min_box_constrained(
                     dlib::bfgs_search_strategy(),
-                    itomp_exec::time_limit_stop_strategy(optimization_time_limit_).be_verbose(),
+                    stop_strategy,
                     std::bind(&ITOMPOptimizer::optimizationCost, this, std::placeholders::_1),
                     std::bind(&ITOMPOptimizer::optimizationCostDerivative, this, std::placeholders::_1),
                     initial_variables,

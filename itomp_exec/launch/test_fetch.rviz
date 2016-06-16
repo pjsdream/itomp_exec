@@ -673,7 +673,21 @@ Visualization Manager:
       Marker Topic: /test_fetch/trajectory
       Name: itomp trajectory
       Namespaces:
-        {}
+        interpolated_0: true
+        interpolated_1: true
+        interpolated_10: true
+        interpolated_11: true
+        interpolated_12: true
+        interpolated_2: true
+        interpolated_3: true
+        interpolated_4: true
+        interpolated_5: true
+        interpolated_6: true
+        interpolated_7: true
+        interpolated_8: true
+        interpolated_9: true
+        planning_scene_dynamic: true
+        planning_scene_dynamic_future: false
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -822,22 +836,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 2.52875
+      Distance: 2.67255
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.799253
-        Y: -0.309783
-        Z: 1.20269
+        X: 0.976801
+        Y: 0.0132124
+        Z: 1.11349
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.154796
+      Pitch: 0.414797
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.85959
+      Yaw: 5.8028
     Saved: ~
 Window Geometry:
   Displays:
@@ -855,5 +869,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1200
-  X: 100
-  Y: 74
+  X: -52
+  Y: 128
