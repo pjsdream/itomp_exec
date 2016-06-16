@@ -17,7 +17,7 @@
   
   <!-- static tf publishers for camera -->
   <!-- <node name="camera_link_publisher" pkg="tf" type="static_transform_publisher" args="0 -1 1 0.2 0 0 odom camera_link 100" /> -->
-  <node name="camera_link_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 head_camera_link camera_link 100" />
+  <node name="camera_link_publisher" pkg="tf" type="static_transform_publisher" args="0 0 1.5 0 0 0 map camera_link 100" />
   <node name="openni_depth_frame_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 camera_depth_frame openni_depth_frame 100" />
   
   <!-- future obstacle prediction -->

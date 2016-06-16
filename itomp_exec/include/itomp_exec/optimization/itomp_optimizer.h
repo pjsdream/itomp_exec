@@ -82,6 +82,16 @@ public:
         planning_scene_ = planning_scene;
     }
 
+    inline void setPlanningTimestep(double planning_timestep)
+    {
+        planning_timestep_ = planning_timestep;
+    }
+
+    inline void setDynamicObstacleMaxSpeed(double max_speed)
+    {
+        dynamic_obstacle_max_speed_ = max_speed;
+    }
+
     void setRobotModel(const BoundingSphereRobotModelPtr& robot_model);
 
     void setPlanningRobotStartState(const RobotState& start_state, double trajectory_duration, int num_milestones);
@@ -137,6 +147,15 @@ private:
     // planning scene
     const PlanningScene* planning_scene_;
     Spheres static_obstacle_spheres_;
+
+    // original ITOMP with conservative bound
+    // scaling the radius: r(t) = r(0) * c * t
+    // lookup t \in [delta t, 2 delta t]
+    Spheres dynamic_obstacle_spheres_;
+    double planning_timestep_;
+    double dynamic_obstacle_max_speed_;
+
+    // TODO: ITOMP with motion prediction
 
     // numerical derivative
     bool use_numerical_derivative_;

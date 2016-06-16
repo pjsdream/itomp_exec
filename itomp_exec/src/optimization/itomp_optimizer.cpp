@@ -217,8 +217,7 @@ void ITOMPOptimizer::optimize()
     static_obstacle_spheres_ = planning_scene_->getStaticSphereObstacles();
 
     // update dynamic obstacle spheres at current time
-    Spheres dynamic_obstacle_spheres = planning_scene_->getDynamicSphereObstacles();
-    static_obstacle_spheres_.insert( static_obstacle_spheres_.end(), dynamic_obstacle_spheres.begin(), dynamic_obstacle_spheres.end() );
+    dynamic_obstacle_spheres_ = planning_scene_->getDynamicSphereObstacles();
 
     ros::WallTime start_time = ros::WallTime::now();
     
@@ -818,10 +817,7 @@ void ITOMPOptimizer::visualizePlanningScene()
     marker.ns = "planning_scene";
     marker.action = visualization_msgs::Marker::ADD;
     marker.type = visualization_msgs::Marker::SPHERE;
-    
-    marker.color.r = 0.;
-    marker.color.g = 1.;
-    marker.color.b = 0.;
+
     marker.color.a = 1.;
     
     marker.pose.orientation.w = 1.;
@@ -829,6 +825,10 @@ void ITOMPOptimizer::visualizePlanningScene()
     marker.pose.orientation.y = 0.;
     marker.pose.orientation.z = 0.;
     
+    // static obstacles as green
+    marker.color.r = 0.;
+    marker.color.g = 1.;
+    marker.color.b = 0.;
     for (int i=0; i<static_obstacle_spheres_.size(); i++)
     {
         const Sphere& sphere = static_obstacle_spheres_[i];
@@ -838,6 +838,21 @@ void ITOMPOptimizer::visualizePlanningScene()
         tf::pointEigenToMsg(sphere.position, marker.pose.position);
         marker.scale.x = marker.scale.y = marker.scale.z = sphere.radius * 2.;
         
+        marker_array.markers.push_back(marker);
+    }
+
+    // dynamic obstacles as red
+    marker.color.r = 1.;
+    marker.color.g = 0.;
+    for (int i=0; i<dynamic_obstacle_spheres_.size(); i++)
+    {
+        const Sphere& sphere = dynamic_obstacle_spheres_[i];
+
+        marker.id = i;
+
+        tf::pointEigenToMsg(sphere.position, marker.pose.position);
+        marker.scale.x = marker.scale.y = marker.scale.z = (sphere.radius + 2. * planning_timestep_ * dynamic_obstacle_max_speed_) * 2.;
+
         marker_array.markers.push_back(marker);
     }
 

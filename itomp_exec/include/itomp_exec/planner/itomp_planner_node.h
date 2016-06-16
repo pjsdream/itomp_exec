@@ -34,6 +34,12 @@ public:
         
         std::vector<std::pair<std::string, double> > cost_weights;
         std::vector<std::string> collision_sphere_link_names;
+
+        // ITOMP dynamic obstacle conservative bound
+        struct
+        {
+            double dynamic_obstacle_max_speed;
+        } conservative;
     };
     
 public:

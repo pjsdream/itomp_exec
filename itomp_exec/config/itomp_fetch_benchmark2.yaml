@@ -2,6 +2,7 @@ trajectory_duration: 5.0
 planning_timestep: 0.5
 num_milestones: 4
 num_interpolation_samples: 4
+dynamic_obstacle_max_speed: 0.2 # m/s
 
 static_obstacles:
   #- {type: "mesh", file: "package://itomp_exec/env/table_collision_rotated.dae", position: [0.7, 0.0, 0.0]}
