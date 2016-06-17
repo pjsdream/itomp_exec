@@ -69,6 +69,7 @@ public:
     
     void runScenario();
     void runMovingArmScenario();
+    void runMovingArmScenarioOMPL();
     
 private:
     
@@ -657,6 +658,249 @@ void TestFetch::runMovingArmScenario()
     }
 }
 
+void TestFetch::runMovingArmScenarioOMPL()
+{
+    // prepare for OMPL
+    planning_scene::PlanningScenePtr planning_scene(new planning_scene::PlanningScene(moveit_robot_model_));
+
+    boost::scoped_ptr<pluginlib::ClassLoader<planning_interface::PlannerManager> > planner_plugin_loader;
+    planning_interface::PlannerManagerPtr planner_instance;
+    const std::string planner_plugin_name = "ompl_interface/OMPLPlanner";
+
+    try
+    {
+      planner_plugin_loader.reset(new pluginlib::ClassLoader<planning_interface::PlannerManager>("moveit_core", "planning_interface::PlannerManager"));
+    }
+    catch(pluginlib::PluginlibException& ex)
+    {
+      ROS_FATAL_STREAM("Exception while creating planning plugin loader " << ex.what());
+    }
+    try
+    {
+      planner_instance.reset(planner_plugin_loader->createUnmanagedInstance(planner_plugin_name));
+      if (!planner_instance->initialize(moveit_robot_model_, "move_group"))
+        ROS_FATAL_STREAM("Could not initialize planner instance");
+      ROS_INFO_STREAM("Using planning interface '" << planner_instance->getDescription() << "'");
+    }
+    catch(pluginlib::PluginlibException& ex)
+    {
+      const std::vector<std::string> &classes = planner_plugin_loader->getDeclaredClasses();
+      std::stringstream ss;
+      for (std::size_t i = 0 ; i < classes.size() ; ++i)
+        ss << classes[i] << " ";
+      ROS_ERROR_STREAM("Exception while loading planner '" << planner_plugin_name << "': " << ex.what() << std::endl
+                       << "Available plugins: " << ss.str());
+    }
+
+    ROS_INFO("OMPL configurations:");
+    const planning_interface::PlannerConfigurationMap& configurations = planner_instance->getPlannerConfigurations();
+    for (auto it = configurations.begin(); it != configurations.end(); it++)
+    {
+        const std::string key = it->first;
+        const planning_interface::PlannerConfigurationSettings& configuration = it->second;
+
+        ROS_INFO(" Configuration key: %s", key.c_str());
+        ROS_INFO("  group: %s", configuration.group.c_str());
+        ROS_INFO("  name : %s", configuration.name.c_str());
+        ROS_INFO("  config:");
+        for (auto it2 = configuration.config.begin(); it2 != configuration.config.end(); it2++)
+            ROS_INFO("   * %s: %s", it2->first.c_str(), it2->second.c_str());
+    }
+
+
+    trajectory_execution_manager::TrajectoryExecutionManagerPtr trajectory_execution_manager;
+    // initialize trajectory_execution_manager with robot model
+    // see how it is initialized with ros params at http://docs.ros.org/indigo/api/moveit_ros_planning/html/trajectory__execution__manager_8cpp_source.html#l00074
+    std::string controller;
+    if (nh_.getParam("moveit_controller_manager", controller))
+    {
+        trajectory_execution_manager.reset(new trajectory_execution_manager::TrajectoryExecutionManager(moveit_robot_model_));
+    }
+    else if (nh_.getParam("/move_group/moveit_controller_manager", controller))
+    {
+        // copy parameters from "/move_group" namespace to "~"
+        bool moveit_manage_controllers = false;
+        bool allowed_execution_duration_scaling = false;
+        bool allowed_goal_duration_margin = false;
+        bool controller_list_declared = false;
+        XmlRpc::XmlRpcValue controller_list;
+        double value;
+
+        nh_.setParam("moveit_controller_manager", controller);
+
+        if (nh_.getParam("/move_group/controller_list", controller_list))
+        {
+            controller_list_declared = true;
+            nh_.setParam("controller_list", controller_list);
+        }
+
+        if (nh_.getParam("/move_group/moveit_manage_controllers", value))
+        {
+            moveit_manage_controllers = true;
+            nh_.setParam("moveit_manage_controllers", value);
+        }
+
+        if (nh_.getParam("/move_group/allowed_execution_duration_scaling", value))
+        {
+            allowed_execution_duration_scaling = true;
+            nh_.setParam("allowed_execution_duration_scaling", value);
+        }
+
+        if (nh_.getParam("/move_group/allowed_goal_duration_margin", value))
+        {
+            allowed_goal_duration_margin = true;
+            nh_.setParam("allowed_goal_duration_margin", value);
+        }
+
+        trajectory_execution_manager.reset(new trajectory_execution_manager::TrajectoryExecutionManager(moveit_robot_model_));
+
+        nh_.deleteParam("moveit_controller_manager");
+
+        if (controller_list_declared)
+            nh_.deleteParam("controller_list");
+
+        if (moveit_manage_controllers)
+            nh_.deleteParam("moveit_manage_controllers");
+
+        if (allowed_execution_duration_scaling)
+            nh_.deleteParam("allowed_execution_duration_scaling");
+
+        if (allowed_goal_duration_margin)
+            nh_.deleteParam("allowed_goal_duration_margin");
+    }
+    else
+    {
+        ROS_WARN("Controller is not defined. MoveItFakeControllerManager is used.");
+        nh_.setParam("moveit_controller_manager", "moveit_fake_controller_manager/MoveItFakeControllerManager");
+        trajectory_execution_manager.reset(new trajectory_execution_manager::TrajectoryExecutionManager(moveit_robot_model_, true));
+        nh_.deleteParam("moveit_controller_manager");
+    }
+
+
+    // open, then close the gripper to grip an object
+    openGripper();
+    ROS_INFO("Waiting for 1.0 sec for grasping");
+    ros::Duration(1.0).sleep();
+    moveGripper(gripper_picking_distance_);
+
+    int goal_index = 0;
+    Pose start_pose;
+    start_pose.position = Eigen::Vector3d(0.7, -0.7, 1.15);
+    start_pose.orientation = Eigen::Quaterniond(1., 0., 0., 0.);
+    Pose target_pose;
+    target_pose.position = Eigen::Vector3d(0.7, 0.7, 1.15);
+    target_pose.orientation = Eigen::Quaterniond(1., 0., 0., 0.);
+
+    while (true)
+    {
+        ROS_INFO("Goal index: [%d]", goal_index);
+        planning_interface::MotionPlanRequest req;
+        req.group_name = planning_group_;
+
+        // initialize start state with current robot state
+        initializeCurrentState(req.start_state);
+
+        // initialize start state with current state
+        //initializeDefaultState(req.start_state);
+
+        // visualize start state
+        moveit_msgs::DisplayRobotState start_state_display_msg;
+        start_state_display_msg.state = req.start_state;
+        start_state_publisher_.publish(start_state_display_msg);
+
+        // goal pose setting
+        moveit_msgs::PositionConstraint goal_position_constraint;
+        goal_position_constraint.header.frame_id = "base_link";
+        goal_position_constraint.link_name = endeffector_name_;
+        goal_position_constraint.weight = 1.;
+        if (goal_index == 0)
+            tf::vectorEigenToMsg(start_pose.position, goal_position_constraint.target_point_offset);
+        else
+            tf::vectorEigenToMsg(target_pose.position, goal_position_constraint.target_point_offset);
+
+        shape_msgs::SolidPrimitive box;
+        box.type = shape_msgs::SolidPrimitive::BOX;
+        box.dimensions.push_back(0.1);
+        box.dimensions.push_back(0.1);
+        box.dimensions.push_back(0.1);
+
+        geometry_msgs::Pose box_pose;
+        box_pose.position.x = 0.;
+        box_pose.position.y = 0.;
+        box_pose.position.z = 0.;
+        box_pose.orientation.w = 1.;
+        box_pose.orientation.x = 0.;
+        box_pose.orientation.y = 0.;
+        box_pose.orientation.z = 0.;
+
+        goal_position_constraint.constraint_region.primitives.push_back(box);
+        goal_position_constraint.constraint_region.primitive_poses.push_back(box_pose);
+
+        moveit_msgs::OrientationConstraint goal_orientation_constraint;
+        goal_orientation_constraint.header.frame_id = "base_link";
+        goal_orientation_constraint.link_name = endeffector_name_;
+        goal_orientation_constraint.weight = 1.;
+        goal_orientation_constraint.absolute_x_axis_tolerance = 0.1;
+        goal_orientation_constraint.absolute_y_axis_tolerance = 0.1;
+        goal_orientation_constraint.absolute_z_axis_tolerance = 0.1;
+        if (goal_index == 0)
+            tf::quaternionEigenToMsg(start_pose.orientation, goal_orientation_constraint.orientation);
+        else
+            tf::quaternionEigenToMsg(target_pose.orientation, goal_orientation_constraint.orientation);
+
+        moveit_msgs::Constraints goal_constraints;
+        goal_constraints.position_constraints.push_back(goal_position_constraint);
+        goal_constraints.orientation_constraints.push_back(goal_orientation_constraint);
+        req.goal_constraints.push_back(goal_constraints);
+
+        // set algorithm to RRTk
+        req.planner_id = "RRTkConfigDefault";
+        req.allowed_planning_time = 5.0;
+        req.num_planning_attempts = 1;
+        req.workspace_parameters.header.frame_id = "map";
+        req.workspace_parameters.min_corner.x = -10.;
+        req.workspace_parameters.min_corner.y = -10.;
+        req.workspace_parameters.min_corner.z = -10.;
+        req.workspace_parameters.max_corner.x =  10.;
+        req.workspace_parameters.max_corner.y =  10.;
+        req.workspace_parameters.max_corner.z =  10.;
+
+        // OMPL planner
+        planning_interface::MotionPlanResponse res;
+        planning_interface::PlanningContextPtr context = planner_instance->getPlanningContext(planning_scene, req, res.error_code_);
+        context->solve(res);
+        if(res.error_code_.val != res.error_code_.SUCCESS)
+        {
+          ROS_ERROR("Could not compute plan successfully (error code: %d)", res.error_code_.val);
+          return;
+        }
+
+        // visualize robot trajectory
+        moveit_msgs::MotionPlanResponse response_msg;
+        res.getMessage(response_msg);
+
+        moveit_msgs::DisplayTrajectory display_trajectory_msg;
+        display_trajectory_msg.trajectory_start = response_msg.trajectory_start;
+        display_trajectory_msg.trajectory.push_back( response_msg.trajectory );
+        display_trajectory_msg.model_id = "model";
+        display_trajectory_publisher_.publish(display_trajectory_msg);
+
+        // execute robot trajectory
+        trajectory_execution_manager->push(response_msg.trajectory);
+        trajectory_execution_manager->execute();
+
+        // move endeffector vertically using IK to pick or place
+        if (goal_index == 0)
+        {
+            goal_index = 1;
+        }
+        else
+        {
+            goal_index = 0;
+        }
+    }
+}
+
 void TestFetch::moveEndeffectorVertically(double distance)
 {
     const double trajectory_duration = 1.0;
@@ -850,11 +1094,16 @@ int main(int argc, char** argv)
     */
 
 
-    if (argc==1 || argv[1][0] == '1')
+    if (argc == 1 || argv[1][0] == '1')
         test_fetch.runScenario();
     
     else
-        test_fetch.runMovingArmScenario();
+    {
+        if (argc >= 3 && !strcmp(argv[2], "OMPL"))
+            test_fetch.runMovingArmScenarioOMPL();
+        else
+            test_fetch.runMovingArmScenario();
+    }
     
     return 0;
 }
