@@ -9,6 +9,8 @@
 
 #include <iostream>
 
+#include <std_msgs/Float64MultiArray.h>
+
 
 namespace itomp_exec
 {
@@ -39,6 +41,9 @@ void ITOMPPlannerNode::initialize()
     // initialize publishers
     ros::Rate rate(0.5);
     optimizer_.setVisualizationTopic(node_handle_, "trajectory");
+
+    // initialize virtual human arm publisher
+    virtual_human_arm_request_publisher_ = node_handle_.advertise<std_msgs::Float64MultiArray>("/future_obstacle_publisher/virtual_human_arm_request", 1);
 
     // initialize robot model from moveit model
     robot_model_.reset( new BoundingSphereRobotModel );
@@ -287,6 +292,36 @@ void ITOMPPlannerNode::setMotionPlanRequest(const planning_interface::MotionPlan
     }
 }
 
+Eigen::Affine3d ITOMPPlannerNode::getRobotRootTransform()
+{
+    const std::string root_link_name = robot_model_->getFrameId();
+
+    Eigen::Affine3d transform;
+    transform.setIdentity();
+
+    tf::StampedTransform tf_transform;
+    ros::Time time;
+    std::string error_string;
+    if (transform_listener_.getLatestCommonTime("map", root_link_name, time, &error_string) != tf::NO_ERROR)
+    {
+        ROS_ERROR("TF error: %s", error_string.c_str());
+        ROS_ERROR("Set transform from map to [%s] to identity", root_link_name.c_str());
+    }
+    else
+    {
+        transform_listener_.lookupTransform("map", root_link_name, time, tf_transform);
+
+        tf::Point tf_translation = tf_transform.getOrigin();
+        tf::Quaternion tf_quaternion = tf_transform.getRotation();
+
+        const Eigen::Vector3d translation(tf_translation.x(), tf_translation.y(), tf_translation.z());
+        const Eigen::Quaterniond quaternion(tf_quaternion.w(), tf_quaternion.x(), tf_quaternion.y(), tf_quaternion.z());
+        transform.translate(translation).rotate(quaternion);
+    }
+
+    return transform;
+}
+
 bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& res)
 {
     res.trajectory_.reset(new robot_trajectory::RobotTrajectory(moveit_robot_model_, planning_group_name_));
@@ -300,7 +335,11 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
     double elapsed_time = 0.;
     ros::WallRate rate( 1. / options_.planning_timestep );
 
+    // compute robot's root transformation from tf listener
+    const Eigen::Affine3d robot_root_transform = getRobotRootTransform();
+
     // initialize optimizer
+    optimizer_.setRobotRootLinkTransform(robot_root_transform);
     optimizer_.setUseNumericalDerivative(false);
     optimizer_.setNumInterpolationSamples(options_.num_interpolation_samples);
     optimizer_.setRobotModel(robot_model_);
@@ -313,6 +352,7 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
     optimizer_.setPlanningRobotStartState(start_state_, trajectory_duration, options_.num_milestones);
     
     // initialize goal poses
+    optimizer_.clearGoalLinkPoses();
     for (int i=0; i<goal_link_positions_.size(); i++)
         optimizer_.addGoalLinkPosition(goal_link_positions_[i].first, goal_link_positions_[i].second);
     for (int i=0; i<goal_link_orientations_.size(); i++)
@@ -321,6 +361,14 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
     // initialize cost weights
     for (int i=0; i<options_.cost_weights.size(); i++)
         optimizer_.setCostWeight(options_.cost_weights[i].first, options_.cost_weights[i].second);
+
+    // virtual human arm request
+    const double virtual_human_arm_delay = 1.5;
+    const double virtual_human_arm_speed = 50.0;
+    std_msgs::Float64MultiArray msg;
+    msg.data.push_back(virtual_human_arm_delay);
+    msg.data.push_back(virtual_human_arm_speed);
+    virtual_human_arm_request_publisher_.publish(msg);
 
     while (true)
     {
@@ -334,7 +382,10 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
         // optimize during optimization_time
         optimizer_.optimize();
 
-        // TODO: execute
+        // sleep until next timestep
+        rate.sleep();
+
+        // execute
         moveit_msgs::RobotTrajectory robot_trajectory_msg;
         optimizer_.getRobotTrajectoryIntervalMsg(robot_trajectory_msg, 0, options_.planning_timestep, num_states_per_planning_timestep);
         trajectory_execution_manager_->pushAndExecute(robot_trajectory_msg);
@@ -354,15 +405,10 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
         elapsed_time += options_.planning_timestep;
 
         optimizer_.stepForward(options_.planning_timestep);
-
-        // sleep until next optimization
-        rate.sleep();
     }
 
-    rate.sleep();
-
     ROS_INFO("Waiting %lf sec for the last execution step", options_.planning_timestep);
-    ros::Duration(options_.planning_timestep).sleep();
+    ros::WallDuration(options_.planning_timestep).sleep();
 
     return true;
 }

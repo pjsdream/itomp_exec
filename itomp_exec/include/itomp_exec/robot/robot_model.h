@@ -95,6 +95,11 @@ public:
     {
         return joint_axes_.col(joint_index);
     }
+
+    inline std::string getFrameId() const
+    {
+        return frame_id_;
+    }
     
     std::vector<int> getDescendantJointIndices(int joint_index) const; //!< descendant joint indices including itself
 

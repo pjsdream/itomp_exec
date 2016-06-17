@@ -93,8 +93,10 @@ Spheres PlanningScene::getDynamicSphereObstacles() const
     std::string error_string;
     if (transform_listener_.getLatestCommonTime("map", frame_id, time, &error_string) != tf::NO_ERROR)
     {
+        /*
         ROS_ERROR("TF error: %s", error_string.c_str());
         ROS_ERROR("Set transform to identity");
+        */
     }
     else
     {

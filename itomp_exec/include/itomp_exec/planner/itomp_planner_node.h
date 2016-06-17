@@ -13,6 +13,8 @@
 
 #include <pcml/FutureObstacleDistributions.h>
 
+#include <tf/transform_listener.h>
+
 #include <ros/ros.h>
 
 
@@ -103,6 +105,10 @@ private:
     void initialize();
     void loadParams();
     void loadStaticObstacles();
+
+    Eigen::Affine3d getRobotRootTransform();
+
+    tf::TransformListener transform_listener_;
     
     // ros & moveit stuffs
     ros::NodeHandle node_handle_;
@@ -122,6 +128,9 @@ private:
 
     // ITOMP options
     ITOMPPlannerOptions options_;
+
+    // virtual human
+    ros::Publisher virtual_human_arm_request_publisher_;
 };
 
 typedef std::shared_ptr<ITOMPPlannerNode> ITOMPPlannerNodePtr;

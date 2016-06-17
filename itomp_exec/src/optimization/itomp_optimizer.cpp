@@ -3,6 +3,7 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <itomp_exec/util/gaussian_quadrature.h>
 #include <itomp_exec/optimization/optimization_stop_strategy.h>
+#include <itomp_exec/optimization/optimization_search_strategy.h>
 #include <eigen_conversions/eigen_msg.h>
 
 #include <ros/ros.h>
@@ -136,18 +137,27 @@ void ITOMPOptimizer::setPlanningRobotStartGoalStates(const RobotState& start_sta
     }
 }
 
+void ITOMPOptimizer::clearGoalLinkPoses()
+{
+    for (int i=0; i<goal_link_poses_.size(); i++)
+    {
+        goal_link_poses_[i].position_weight = 0.;
+        goal_link_poses_[i].orientation_weight = 0.;
+    }
+}
+
 void ITOMPOptimizer::addGoalLinkPosition(const std::string& link_name, const Eigen::Vector3d& goal_position)
 {
     const int joint_index = robot_model_->getJointIndexByLinkName(link_name);
     goal_link_poses_[joint_index].position_weight = 1.0;
-    goal_link_poses_[joint_index].position = goal_position;
+    goal_link_poses_[joint_index].position = root_link_transform_ * goal_position;
 }
 
 void ITOMPOptimizer::addGoalLinkOrientation(const std::string& link_name, const Eigen::Quaterniond& goal_orientation)
 {
     const int joint_index = robot_model_->getJointIndexByLinkName(link_name);
     goal_link_poses_[joint_index].orientation_weight = 1.0;
-    goal_link_poses_[joint_index].orientation = goal_orientation;
+    goal_link_poses_[joint_index].orientation = root_link_transform_.linear() * goal_orientation;
 }
 
 double ITOMPOptimizer::clampPosition(double value, int joint_index) const
@@ -228,12 +238,12 @@ void ITOMPOptimizer::optimize()
 
     // stop strategy is both time limit and objective delta
     coupled_stop_strategy<itomp_exec::time_limit_stop_strategy, dlib::objective_delta_stop_strategy>
-            stop_strategy(itomp_exec::time_limit_stop_strategy(optimization_time_limit_, start_time), dlib::objective_delta_stop_strategy(1e-7, 1000000));
+            stop_strategy(itomp_exec::time_limit_stop_strategy(optimization_time_limit_, start_time), dlib::objective_delta_stop_strategy(1e-5, 1000000));
 
     if (use_numerical_derivative_)
     {
         dlib::find_min_box_constrained(
-                    dlib::bfgs_search_strategy(),
+                    itomp_exec::bfgs_search_strategy(),
                     stop_strategy,
                     std::bind(&ITOMPOptimizer::optimizationCost, this, std::placeholders::_1),
                     std::bind(&ITOMPOptimizer::optimizationCostNumericalDerivative, this, std::placeholders::_1),
@@ -245,7 +255,7 @@ void ITOMPOptimizer::optimize()
     else
     {
         dlib::find_min_box_constrained(
-                    dlib::bfgs_search_strategy(),
+                    itomp_exec::bfgs_search_strategy(),
                     stop_strategy,
                     std::bind(&ITOMPOptimizer::optimizationCost, this, std::placeholders::_1),
                     std::bind(&ITOMPOptimizer::optimizationCostDerivative, this, std::placeholders::_1),
@@ -806,6 +816,9 @@ void ITOMPOptimizer::precomputeGoalLinkTransforms()
     }
 
     robot_model_->getLinkTransforms(joint_positions, goal_link_transforms_);
+
+    for (int i=0; i<goal_link_transforms_.size(); i++)
+        goal_link_transforms_[i] = root_link_transform_ * goal_link_transforms_[i];
 }
 
 void ITOMPOptimizer::precomputeInterpolatedVariableTransforms()
@@ -822,6 +835,9 @@ void ITOMPOptimizer::precomputeInterpolatedVariableTransforms()
         }
 
         robot_model_->getLinkTransforms(joint_positions, interpolated_variable_link_transforms_[i]);
+
+        for (int j=0; j<interpolated_variable_link_transforms_[i].size(); j++)
+            interpolated_variable_link_transforms_[i][j] = root_link_transform_ * interpolated_variable_link_transforms_[i][j];
     }
 }
 
@@ -876,6 +892,10 @@ void ITOMPOptimizer::visualizeInterpolationSamples()
     for (int i=0; i<interpolated_variable_link_transforms_.size(); i++)
         robot_model_->pushVisualLinkVisualizationMarkers(interpolated_variable_link_transforms_[i], "interpolated_" + std::to_string(i), marker_array);
 
+    // link transforms are w.r.t "map"
+    for (int i=0; i<marker_array.markers.size(); i++)
+        marker_array.markers[i].header.frame_id = "map";
+
     visualization_publisher_.publish(marker_array);
 }
 
@@ -885,6 +905,10 @@ void ITOMPOptimizer::visualizeInterpolationSamplesCollisionSpheres()
 
     for (int i=0; i<interpolated_variable_link_transforms_.size(); i++)
         robot_model_->pushCollisionSpheresVisualizationMarkers(interpolated_variable_link_transforms_[i], "interpolated_collision_" + std::to_string(i), marker_array);
+
+    // link transforms are w.r.t "map"
+    for (int i=0; i<marker_array.markers.size(); i++)
+        marker_array.markers[i].header.frame_id = "map";
 
     visualization_publisher_.publish(marker_array);
 }

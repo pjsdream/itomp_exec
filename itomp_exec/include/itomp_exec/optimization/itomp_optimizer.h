@@ -97,11 +97,17 @@ public:
         dynamic_obstacle_duration_ = duration;
     }
 
+    inline void setRobotRootLinkTransform(const Eigen::Affine3d& transform)
+    {
+        root_link_transform_ = transform;
+    }
+
     void setRobotModel(const BoundingSphereRobotModelPtr& robot_model);
 
     void setPlanningRobotStartState(const RobotState& start_state, double trajectory_duration, int num_milestones);
     void setPlanningRobotStartGoalStates(const RobotState& start_state, const RobotState& goal_state, double trajectory_duration, int num_milestones);
     
+    void clearGoalLinkPoses();
     void addGoalLinkPosition(const std::string& link_name, const Eigen::Vector3d& goal_position);
     void addGoalLinkOrientation(const std::string& link_name, const Eigen::Quaterniond& goal_orientation);
     
@@ -148,6 +154,7 @@ private:
     // robot
     BoundingSphereRobotModelPtr robot_model_;
     RobotState start_state_;
+    Eigen::Affine3d root_link_transform_;
 
     // planning scene
     const PlanningScene* planning_scene_;
