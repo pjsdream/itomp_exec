@@ -33,7 +33,7 @@ void CollisionCost::addCost()
 
         for (int j=0; j<num_robot_joints; j++)
         {
-            const Spheres& robot_spheres = optimizer.getInterpolatedCollisionSpheres(i, j);
+            const Spheres& robot_spheres = optimizer.getInterpolatedLinkCollisionSpheres(i, j);
 
             for (int k=0; k<robot_spheres.size(); k++)
             {
@@ -99,7 +99,7 @@ void CollisionCost::addDerivative()
 
         for (int j=0; j<num_robot_joints; j++)
         {
-            const Spheres& robot_spheres = optimizer.getInterpolatedCollisionSpheres(i, j);
+            const Spheres& robot_spheres = optimizer.getInterpolatedLinkCollisionSpheres(i, j);
 
             for (int k=0; k<robot_spheres.size(); k++)
             {
@@ -115,8 +115,6 @@ void CollisionCost::addDerivative()
 
                     if (d_squared < r*r)
                     {
-                        //cost += (r*r - d_squared) * cost_weights_.collision_cost_weight / num_interpolation_samples_;
-
                         for (int m=0; m<num_joints; m++)
                         {
                             if (optimizer.doesJointAffectLinkTransform(m, j))
@@ -132,7 +130,6 @@ void CollisionCost::addDerivative()
                                 case RobotModel::REVOLUTE:
                                 {
                                     const Eigen::Vector3d axis = robot_model.getJointAxis(joint_index).normalized();
-                                    // derivative = 2 (axis cross link) dot (link - target)
                                     const double curve_derivative = - 2. * (axis.cross(relative_robot_position)).dot(relative_robot_position - relative_obstacle_position);
 
                                     const std::pair<int, int> interpolation_index_position = optimizer.getInterpolationIndexPosition(i);
@@ -172,8 +169,6 @@ void CollisionCost::addDerivative()
 
                         if (d_squared < r*r)
                         {
-                            //cost += (r*r - d_squared) * cost_weights_.collision_cost_weight / num_interpolation_samples_;
-
                             for (int m=0; m<num_joints; m++)
                             {
                                 if (optimizer.doesJointAffectLinkTransform(m, j))
@@ -189,7 +184,6 @@ void CollisionCost::addDerivative()
                                     case RobotModel::REVOLUTE:
                                     {
                                         const Eigen::Vector3d axis = robot_model.getJointAxis(joint_index).normalized();
-                                        // derivative = 2 (axis cross link) dot (link - target)
                                         const double curve_derivative = - 2. * (axis.cross(relative_robot_position)).dot(relative_robot_position - relative_obstacle_position);
 
                                         const std::pair<int, int> interpolation_index_position = optimizer.getInterpolationIndexPosition(i);

@@ -47,6 +47,7 @@ public:
     ITOMPOptimizer();
     ~ITOMPOptimizer();
     
+    void clearCostWeights();
     void setCostWeight(const std::string& cost_type, double weight);
     
     inline void setUseNumericalDerivative(bool flag = true)
@@ -169,9 +170,9 @@ public:
         return num_interpolation_samples_;
     }
 
-    inline const Spheres& getInterpolatedCollisionSpheres(int interpolation_index, int joint_index) const
+    inline const Spheres& getInterpolatedLinkCollisionSpheres(int interpolation_index, int link_index) const
     {
-        return interpolated_collision_spheres_[interpolation_index][joint_index];
+        return interpolated_link_collision_spheres_[interpolation_index][link_index];
     }
 
     inline double getInterpolatedTime(int interpolation_index) const
@@ -196,7 +197,7 @@ public:
 
     inline const Eigen::Affine3d& getInterpolatedLinkTransform(int interpolation_index, int link_index) const
     {
-        return interpolated_variable_link_transforms_[interpolation_index][link_index];
+        return interpolated_link_transforms_[interpolation_index][link_index];
     }
 
     inline const std::pair<int, int>& getInterpolationIndexPosition(int interpolation_index) const
@@ -224,17 +225,22 @@ public:
 
     void setPlanningRobotStartState(const RobotState& start_state, double trajectory_duration, int num_milestones);
     void setPlanningRobotStartGoalStates(const RobotState& start_state, const RobotState& goal_state, double trajectory_duration, int num_milestones);
+    void initializeRandomMilestones();
     
     void clearGoalLinkPoses();
     void addGoalLinkPosition(const std::string& link_name, const Eigen::Vector3d& goal_position);
     void addGoalLinkOrientation(const std::string& link_name, const Eigen::Quaterniond& goal_orientation);
-    
+
     double clampPosition(double value, int joint_index) const;
     double clampVelocity(double value, int joint_index) const;
 
     void stepForward(double time);
 
+    void copyTrajectory(const ITOMPOptimizer& optimizer);
+
     void optimize();
+
+    double trajectoryCost();
 
     Eigen::VectorXd getOptimizationVariables();
     Eigen::VectorXd getOptimizationVariableLowerLimits();
@@ -309,14 +315,14 @@ private:
     void precomputeCubicPolynomials();
     void precomputeInterpolation(); //!< must be called after cubic polynomial precomputation
     void precomputeGoalLinkTransforms();
-    void precomputeInterpolatedVariableTransforms();
-    void precomputeInterpolatedCollisionSpheres();
+    void precomputeInterpolatedLinkTransforms();
+    void precomputeInterpolatedLinkCollisionSpheres();
     int num_interpolated_configurations_;
     std::vector<std::vector<ecl::CubicPolynomial> > cubic_polynomials_; //!< [joint_index][milestone_index]
     Eigen::MatrixXd interpolated_variables_; //!< all interpolated robot states, including start state
     std::vector<Eigen::Affine3d> goal_link_transforms_;
-    std::vector<std::vector<Eigen::Affine3d> > interpolated_variable_link_transforms_; //!< [interpolation_index][link_index]
-    std::vector<std::vector<Spheres> > interpolated_collision_spheres_; //!< [interpolation_index][link_index]
+    std::vector<std::vector<Eigen::Affine3d> > interpolated_link_transforms_; //!< [interpolation_index][link_index]
+    std::vector<std::vector<Spheres> > interpolated_link_collision_spheres_; //!< [interpolation_index][link_index]
     Eigen::MatrixX4d interpolated_curve_bases_; //!< (interpolation_index, basis_index)  ex. row(0) = [B0 B1 B2 B3](t0). Bases are unnormalized i.e. B(t) = (t1-t0) H((t-t0)/(t1-t0))
     std::vector<std::pair<int, int> > interpolation_index_position_; //!< [interpolation_index] = ( milestone index, interpolation_index )
     std::vector<double> interpolated_times_; //!< uniform time samples between 0 and trajectory_duration

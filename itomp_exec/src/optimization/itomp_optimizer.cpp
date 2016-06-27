@@ -6,6 +6,8 @@
 #include <itomp_exec/optimization/optimization_search_strategy.h>
 #include <eigen_conversions/eigen_msg.h>
 
+#include <random>
+
 #include <ros/ros.h>
 
 #include <omp.h>
@@ -24,8 +26,15 @@ ITOMPOptimizer::ITOMPOptimizer()
 
 ITOMPOptimizer::~ITOMPOptimizer()
 {
+    clearCostWeights();
+}
+
+void ITOMPOptimizer::clearCostWeights()
+{
     for (int i=0; i<cost_functions_.size(); i++)
         delete cost_functions_[i];
+
+    cost_functions_.clear();
 }
 
 void ITOMPOptimizer::setCostWeight(const std::string& cost_type, double weight)
@@ -114,6 +123,20 @@ void ITOMPOptimizer::setPlanningRobotStartState(const RobotState& start_state, d
 
     // the optimizer parameters are all set, now allocate memories for optimization
     allocateOptimizationResources();
+}
+
+void ITOMPOptimizer::initializeRandomMilestones()
+{
+    std::default_random_engine generator;
+
+    // position and velocity at once
+    for (int i=0; i<num_joints_ * 2; i++)
+    {
+        std::uniform_real_distribution<double> distribution(optimization_variable_lower_limits_[i], optimization_variable_upper_limits_[i]);
+
+        for (int j=0; j<num_milestones_; j++)
+            milestones_(i, j) = distribution(generator);
+    }
 }
 
 void ITOMPOptimizer::setPlanningRobotStartGoalStates(const RobotState& start_state, const RobotState& goal_state, double trajectory_duration, int num_milestones)
@@ -221,6 +244,15 @@ void ITOMPOptimizer::stepForward(double time)
     trajectory_duration_ -= time;
 }
 
+void ITOMPOptimizer::copyTrajectory(const ITOMPOptimizer& optimizer)
+{
+    // assuming all parameters are the same except milestones and trajectory duration
+    start_milestone_ = optimizer.start_milestone_;
+    milestones_ = optimizer.milestones_;
+
+    trajectory_duration_ = optimizer.trajectory_duration_;
+}
+
 void ITOMPOptimizer::optimize()
 {
     ros::Time start_time = ros::Time::now();
@@ -238,8 +270,6 @@ void ITOMPOptimizer::optimize()
     // stop strategy is both time limit and objective delta
     coupled_stop_strategy<itomp_exec::time_limit_stop_strategy, dlib::objective_delta_stop_strategy>
             stop_strategy(itomp_exec::time_limit_stop_strategy(optimization_time_limit_, start_time), dlib::objective_delta_stop_strategy(1e-5, 1000000));
-
-    stop_strategy.be_verbose();
 
     if (use_numerical_derivative_)
     {
@@ -282,6 +312,11 @@ void ITOMPOptimizer::optimize()
     milestoneInitializeWithDlibVector(initial_variables);
 
     ROS_INFO("Optimization elapsed time: %lf sec", (ros::Time::now() - start_time).toSec());
+}
+
+double ITOMPOptimizer::trajectoryCost()
+{
+    return optimizationCost( convertEigenToDlibVector( getOptimizationVariables() ) );
 }
 
 Eigen::VectorXd ITOMPOptimizer::getOptimizationVariables()
@@ -361,9 +396,9 @@ void ITOMPOptimizer::allocateOptimizationResources()
     num_interpolated_configurations_ = num_milestones_ * (num_interpolation_samples_ + 1) + 1;
 
     interpolated_variables_.resize(num_joints_ * 2, num_interpolated_configurations_);
-    interpolated_variable_link_transforms_.resize(num_interpolated_configurations_);
+    interpolated_link_transforms_.resize(num_interpolated_configurations_);
 
-    interpolated_collision_spheres_.resize(num_interpolated_configurations_);
+    interpolated_link_collision_spheres_.resize(num_interpolated_configurations_);
 
     interpolation_index_position_.resize(num_interpolated_configurations_);
 
@@ -377,8 +412,8 @@ void ITOMPOptimizer::precomputeOptimizationResources()
     precomputeCubicPolynomials();
     precomputeInterpolation();
     precomputeGoalLinkTransforms();
-    precomputeInterpolatedVariableTransforms();
-    precomputeInterpolatedCollisionSpheres();
+    precomputeInterpolatedLinkTransforms();
+    precomputeInterpolatedLinkCollisionSpheres();
 }
 
 void ITOMPOptimizer::precomputeCubicPolynomials()
@@ -465,7 +500,7 @@ void ITOMPOptimizer::precomputeGoalLinkTransforms()
         goal_link_transforms_[i] = root_link_transform_ * goal_link_transforms_[i];
 }
 
-void ITOMPOptimizer::precomputeInterpolatedVariableTransforms()
+void ITOMPOptimizer::precomputeInterpolatedLinkTransforms()
 {
     Eigen::VectorXd joint_positions = start_state_.getDefaultJointPositions();
     const std::vector<int>& planning_joint_indices = start_state_.getPlanningJointIndices();
@@ -478,18 +513,18 @@ void ITOMPOptimizer::precomputeInterpolatedVariableTransforms()
             joint_positions(joint_index) = interpolated_variables_(j, i);
         }
 
-        robot_model_->getLinkTransforms(joint_positions, interpolated_variable_link_transforms_[i]);
+        robot_model_->getLinkTransforms(joint_positions, interpolated_link_transforms_[i]);
 
-        for (int j=0; j<interpolated_variable_link_transforms_[i].size(); j++)
-            interpolated_variable_link_transforms_[i][j] = root_link_transform_ * interpolated_variable_link_transforms_[i][j];
+        for (int j=0; j<interpolated_link_transforms_[i].size(); j++)
+            interpolated_link_transforms_[i][j] = root_link_transform_ * interpolated_link_transforms_[i][j];
     }
 }
 
-void ITOMPOptimizer::precomputeInterpolatedCollisionSpheres()
+void ITOMPOptimizer::precomputeInterpolatedLinkCollisionSpheres()
 {
     // interpolated variables
-    for (int i=0; i<interpolated_variable_link_transforms_.size(); i++)
-        robot_model_->getCollisionSpheres(interpolated_variable_link_transforms_[i], interpolated_collision_spheres_[i]);
+    for (int i=0; i<interpolated_link_transforms_.size(); i++)
+        robot_model_->getCollisionSpheres(interpolated_link_transforms_[i], interpolated_link_collision_spheres_[i]);
 }
 
 void ITOMPOptimizer::initializeJointsAffectingLinkTransforms()
@@ -521,8 +556,8 @@ void ITOMPOptimizer::visualizeInterpolationSamples()
 {
     visualization_msgs::MarkerArray marker_array;
 
-    for (int i=0; i<interpolated_variable_link_transforms_.size(); i++)
-        robot_model_->pushVisualLinkVisualizationMarkers(interpolated_variable_link_transforms_[i], "interpolated_" + std::to_string(i), marker_array);
+    for (int i=0; i<interpolated_link_transforms_.size(); i++)
+        robot_model_->pushVisualLinkVisualizationMarkers(interpolated_link_transforms_[i], "interpolated_" + std::to_string(i), marker_array);
 
     // link transforms are w.r.t "map"
     for (int i=0; i<marker_array.markers.size(); i++)
@@ -535,8 +570,8 @@ void ITOMPOptimizer::visualizeInterpolationSamplesCollisionSpheres()
 {
     visualization_msgs::MarkerArray marker_array;
 
-    for (int i=0; i<interpolated_variable_link_transforms_.size(); i++)
-        robot_model_->pushCollisionSpheresVisualizationMarkers(interpolated_variable_link_transforms_[i], "interpolated_collision_" + std::to_string(i), marker_array);
+    for (int i=0; i<interpolated_link_transforms_.size(); i++)
+        robot_model_->pushCollisionSpheresVisualizationMarkers(interpolated_link_transforms_[i], "interpolated_collision_" + std::to_string(i), marker_array);
 
     // link transforms are w.r.t "map"
     for (int i=0; i<marker_array.markers.size(); i++)

@@ -35,6 +35,7 @@ public:
 
     struct ITOMPPlannerOptions
     {
+        int num_trajectories;
         double trajectory_duration;
         int num_milestones;
         int num_interpolation_samples;
@@ -114,6 +115,8 @@ private:
     void loadParams();
     void loadStaticObstacles();
 
+    void optimizeAllTrajectories();
+
     Eigen::Affine3d getRobotRootTransform();
 
     tf::TransformListener transform_listener_;
@@ -125,7 +128,10 @@ private:
 
     BoundingSphereRobotModelPtr robot_model_;
     RobotState start_state_;
-    ITOMPOptimizer optimizer_;
+
+    // multithreaded optimizers
+    std::vector<ITOMPOptimizer> optimizers_;
+    std::vector<pthread_t> optimizer_threads_;
     
     std::vector<std::pair<std::string, Eigen::Vector3d> > goal_link_positions_;
     std::vector<std::pair<std::string, Eigen::Quaterniond> > goal_link_orientations_;

@@ -8,6 +8,7 @@
 #include <eigen_conversions/eigen_msg.h>
 
 #include <iostream>
+#include <functional>
 
 #include <std_msgs/Float64MultiArray.h>
 
@@ -35,12 +36,7 @@ ITOMPPlannerNode::ITOMPPlannerNode(const ros::NodeHandle& node_handle)
 
 void ITOMPPlannerNode::initialize()
 {
-    // initialize planning scene
-    optimizer_.setPlanningScene(&planning_scene_);
-
-    // initialize publishers
     ros::Rate rate(0.5);
-    optimizer_.setVisualizationTopic(node_handle_, "trajectory");
 
     // initialize virtual human arm publisher
     virtual_human_arm_request_publisher_ = node_handle_.advertise<std_msgs::Float64MultiArray>("/future_obstacle_publisher/virtual_human_arm_request", 1);
@@ -126,6 +122,7 @@ void ITOMPPlannerNode::initialize()
 void ITOMPPlannerNode::loadParams()
 {
     // load options
+    node_handle_.param("num_trajectoreis", options_.num_trajectories, 8);
     node_handle_.param("trajectory_duration", options_.trajectory_duration, 5.0);
     node_handle_.param("num_milestones", options_.num_milestones, 10);
     node_handle_.param("num_interpolation_samples", options_.num_interpolation_samples, 10);
@@ -332,6 +329,21 @@ Eigen::Affine3d ITOMPPlannerNode::getRobotRootTransform()
     return transform;
 }
 
+static void* optimizeSingleTrajectory(void* optimizer)
+{
+    ITOMPOptimizer* casted_optimizer = (ITOMPOptimizer*)optimizer;
+    casted_optimizer->optimize();
+}
+
+void ITOMPPlannerNode::optimizeAllTrajectories()
+{
+    for (int i=0; i<optimizers_.size(); i++)
+        pthread_create(&optimizer_threads_[i], NULL, optimizeSingleTrajectory, (void *)&optimizers_[i]);
+
+    for (int i=0; i<optimizers_.size(); i++)
+        pthread_join(optimizer_threads_[i], NULL);
+}
+
 bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& res)
 {
     res.trajectory_.reset(new robot_trajectory::RobotTrajectory(moveit_robot_model_, planning_group_name_));
@@ -348,29 +360,47 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
     // compute robot's root transformation from tf listener
     const Eigen::Affine3d robot_root_transform = getRobotRootTransform();
 
-    // initialize optimizer
-    optimizer_.setRobotRootLinkTransform(robot_root_transform);
-    optimizer_.setUseNumericalDerivative(false);
-    optimizer_.setNumInterpolationSamples(options_.num_interpolation_samples);
-    optimizer_.setRobotModel(robot_model_);
-    optimizer_.setOptimizationTimeLimit(optimization_time);
-    optimizer_.setPlanningTimestep(options_.planning_timestep);
-    optimizer_.setDynamicObstacleMaxSpeed(options_.conservative.dynamic_obstacle_max_speed);
-    optimizer_.setDynamicObstacleDuration(options_.conservative.dynamic_obstacle_duration);
-    
-    // initialize trajectory only with start state
-    optimizer_.setPlanningRobotStartState(start_state_, trajectory_duration, options_.num_milestones);
-    
-    // initialize goal poses
-    optimizer_.clearGoalLinkPoses();
-    for (int i=0; i<goal_link_positions_.size(); i++)
-        optimizer_.addGoalLinkPosition(goal_link_positions_[i].first, goal_link_positions_[i].second);
-    for (int i=0; i<goal_link_orientations_.size(); i++)
-        optimizer_.addGoalLinkOrientation(goal_link_orientations_[i].first, goal_link_orientations_[i].second);
-    
-    // initialize cost weights
-    for (int i=0; i<options_.cost_weights.size(); i++)
-        optimizer_.setCostWeight(options_.cost_weights[i].first, options_.cost_weights[i].second);
+    // initialize optimizers
+    optimizers_.resize(options_.num_trajectories);
+    optimizer_threads_.resize(options_.num_trajectories);
+    for (int i=0; i<options_.num_trajectories; i++)
+    {
+        ITOMPOptimizer& optimizer = optimizers_[i];
+
+        // initialize planning scene
+        optimizer.setPlanningScene(&planning_scene_);
+
+        // initialize publishers
+        optimizer.setVisualizationTopic(node_handle_, std::string("trajectory_") + std::to_string(i));
+
+        optimizer.setRobotRootLinkTransform(robot_root_transform);
+        optimizer.setUseNumericalDerivative(false);
+        optimizer.setNumInterpolationSamples(options_.num_interpolation_samples);
+        optimizer.setRobotModel(robot_model_);
+        optimizer.setOptimizationTimeLimit(optimization_time);
+        optimizer.setPlanningTimestep(options_.planning_timestep);
+        optimizer.setDynamicObstacleMaxSpeed(options_.conservative.dynamic_obstacle_max_speed);
+        optimizer.setDynamicObstacleDuration(options_.conservative.dynamic_obstacle_duration);
+
+        // initialize trajectory only with start state
+        optimizer.setPlanningRobotStartState(start_state_, trajectory_duration, options_.num_milestones);
+
+        // initialize goal poses
+        optimizer.clearGoalLinkPoses();
+        for (int i=0; i<goal_link_positions_.size(); i++)
+            optimizer.addGoalLinkPosition(goal_link_positions_[i].first, goal_link_positions_[i].second);
+        for (int i=0; i<goal_link_orientations_.size(); i++)
+            optimizer.addGoalLinkOrientation(goal_link_orientations_[i].first, goal_link_orientations_[i].second);
+
+        // initialize cost weights
+        optimizer.clearCostWeights();
+        for (int i=0; i<options_.cost_weights.size(); i++)
+            optimizer.setCostWeight(options_.cost_weights[i].first, options_.cost_weights[i].second);
+    }
+
+    // trajectory 0 starts with linear path. Other start with random milestones
+    for (int i=1; i<optimizers_.size(); i++)
+        optimizers_[i].initializeRandomMilestones();
 
     // virtual human arm request
     const double virtual_human_arm_delay = 1.5;
@@ -387,17 +417,31 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
         // update dynamic environments
 
         // visualize updated planning scene
-        optimizer_.visualizePlanningScene();
+        optimizers_[0].visualizePlanningScene();
 
         // optimize during optimization_time
-        optimizer_.optimize();
+        optimizeAllTrajectories();
 
         // sleep until next timestep
         rate.sleep();
 
+        // find the best trajectory
+        int best_trajectory_index = 0;
+        double best_trajectory_cost = optimizers_[0].cost();
+        for (int i=1; i<optimizers_.size(); i++)
+        {
+            const double cost = optimizers_[i].trajectoryCost();
+
+            if (cost < best_trajectory_cost)
+            {
+                best_trajectory_index = i;
+                best_trajectory_cost = cost;
+            }
+        }
+
         // execute
         moveit_msgs::RobotTrajectory robot_trajectory_msg;
-        optimizer_.getRobotTrajectoryIntervalMsg(robot_trajectory_msg, 0, options_.planning_timestep, num_states_per_planning_timestep);
+        optimizers_[best_trajectory_index].getRobotTrajectoryIntervalMsg(robot_trajectory_msg, 0, options_.planning_timestep, num_states_per_planning_timestep);
         trajectory_execution_manager_->pushAndExecute(robot_trajectory_msg);
         
         // TODO: record to response
@@ -414,7 +458,14 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
         trajectory_duration -= options_.planning_timestep;
         elapsed_time += options_.planning_timestep;
 
-        optimizer_.stepForward(options_.planning_timestep);
+        optimizers_[best_trajectory_index].stepForward(options_.planning_timestep);
+
+        // copy the best trajectory to others
+        for (int i=0; i<optimizers_.size(); i++)
+        {
+            if (i != best_trajectory_index)
+                optimizers_[i].copyTrajectory( optimizers_[best_trajectory_index] );
+        }
     }
 
     ROS_INFO("Waiting %lf sec for the last execution step", options_.planning_timestep);
