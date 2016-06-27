@@ -1,5 +1,5 @@
 #include <itomp_exec/cost/goal_pose_cost.h>
-#include <itomp_exec/planner/itomp_planner_node.h>
+#include <itomp_exec/optimization/itomp_optimizer.h>
 #include <moveit/robot_model/robot_model.h>
 #include <ros/console.h>
 
@@ -7,202 +7,164 @@
 namespace itomp_exec
 {
 
-const double GoalPoseCost::ratio_cosine_to_meter_ = 1.0;
-const double GoalPoseCost::ratio_radian_per_sec_to_meter_ = 1.0;
+const double GoalPoseCost::ratio_cosine_to_meter_ = 2.;
+const double GoalPoseCost::ratio_radian_per_sec_to_meter_ = 10.;
 
-GoalPoseCost::GoalPoseCost(double weight)
-    : Cost(weight)
+GoalPoseCost::GoalPoseCost(ITOMPOptimizer& optimizer, double weight)
+    : Cost(optimizer, weight)
 {
 }
 
-void GoalPoseCost::initialize(const ITOMPPlannerNode& planner_node)
+void GoalPoseCost::addCost()
 {
-    goal_link_positions_ = planner_node.getGoalLinkPositions();
-    goal_link_orientations_ = planner_node.getGoalLinkOrientations();
-    
-    // robot state initialize
-    robot_model_ = planner_node.getRobotModel();
-    const Trajectory& trajectory_template = planner_node.getTrajectoryTemplate();
-    
-    robot_state_.reset(new robot_state::RobotState(robot_model_));
-    trajectory_template.setRobotStateWithStartState(*robot_state_);
-    
-    num_planning_group_joints_ = trajectory_template.getNumPlanningGroupJoints();
-    planning_group_joint_names_ = trajectory_template.getPlanningGroupJointNames();
-    planning_group_joint_models_ = trajectory_template.getPlanningGroupJointModels();
-    
-    // find joints that affect the link position and orientation
-    initializeJointsAffectingGoalLinkPoses(trajectory_template, joints_affecting_goal_link_positions_, goal_link_positions_);
-    initializeJointsAffectingGoalLinkPoses(trajectory_template, joints_affecting_goal_link_orientations_, goal_link_orientations_);
-}
+    ITOMPOptimizer& optimizer = getOptimizer();
+    const double weight = getWeight();
 
-template<typename T>
-void GoalPoseCost::initializeJointsAffectingGoalLinkPoses(const Trajectory& trajectory_template, std::vector<std::vector<char> >& joints_affecting_goal_link_poses, const T& goal_links)
-{    
-    joints_affecting_goal_link_poses.resize(goal_links.size());
-    for (int i=0; i<goal_links.size(); i++)
+    double& cost = optimizer.cost();
+
+    const int num_joints = optimizer.getNumJoints();
+    const int num_robot_joints = optimizer.getNumRobotJoints();
+    const int num_milestones = optimizer.getNumMilestones();
+    const Eigen::MatrixXd& milestones = optimizer.getMilestones();
+
+    for (int i=0; i<num_robot_joints; i++)
     {
-        joints_affecting_goal_link_poses[i].resize(num_planning_group_joints_, false);
-        
-        const std::string name = goal_links[i].first;
-        const robot_model::LinkModel* link = robot_model_->getLinkModel(name);
-        
-        const robot_model::JointModel* joint = link->getParentJointModel();
-        while (joint != NULL)
+        const ITOMPOptimizer::GoalLinkPose& goal_link_pose = optimizer.getGoalLinkPose(i);
+
+        const double& position_weight = goal_link_pose.position_weight;
+        const double& orientation_weight = goal_link_pose.orientation_weight;
+
+        if (position_weight != 0.)
         {
-            const std::string& joint_name = joint->getName();
-            const int trajectory_joint_index = trajectory_template.getJointIndexInPlanningGroup(joint_name);
-            
-            if (trajectory_joint_index != -1)
-                joints_affecting_goal_link_poses[i][trajectory_joint_index] = true;
-            
-            link = joint->getParentLinkModel();
-            if (link == NULL)
-                break;
-            
-            joint = link->getParentJointModel();
+            const Eigen::Vector3d& link_position = optimizer.getGoalLinkTransform(i).translation();
+            const Eigen::Vector3d& target_position = goal_link_pose.position;
+
+            cost += (link_position - target_position).squaredNorm() * weight;
+        }
+
+        if (orientation_weight != 0.)
+        {
+            const Eigen::Quaterniond link_orientation( optimizer.getGoalLinkTransform(i).linear() );
+            const Eigen::Quaterniond target_orientation = goal_link_pose.orientation;
+
+            cost += (1 - std::abs(link_orientation.dot(target_orientation))) * ratio_cosine_to_meter_ * weight;
         }
     }
-}
 
-double GoalPoseCost::cost(const Trajectory& trajectory)
-{
-    double cost = 0.;
-    
-    trajectory.setMilestoneVariablesPositionsToRobotState(*robot_state_, trajectory.getNumMilestones() - 1);
-    robot_state_->updateLinkTransforms();
-    
-    // translation-1.0
-    for (int i=0; i<goal_link_positions_.size(); i++)
-    {
-        const Eigen::Vector3d& link_position = robot_state_->getGlobalLinkTransform(goal_link_positions_[i].first).translation();
-        const Eigen::Vector3d& target_position = goal_link_positions_[i].second;
-        
-        cost += (link_position - target_position).squaredNorm();
-    }
-    
-    // orientation
-    for (int i=0; i<goal_link_orientations_.size(); i++)
-    {
-        const Eigen::Quaterniond link_orientation( robot_state_->getGlobalLinkTransform(goal_link_orientations_[i].first).linear() );
-        Eigen::Quaterniond target_orientation = goal_link_orientations_[i].second;
-        if (target_orientation.dot(link_orientation) < 0)
-            target_orientation = Eigen::Quaterniond(
-                        -target_orientation.w(),
-                        -target_orientation.x(),
-                        -target_orientation.y(),
-                        -target_orientation.z()
-                        );
-        
-        cost += ratio_cosine_to_meter_ * (1 - std::abs(link_orientation.dot(target_orientation)));
-    }
-    
     // penalize velocities at last state
-    const Eigen::VectorXd& last_milestone_variables = trajectory.getMilestoneVariables( trajectory.getNumMilestones() - 1 );
-    for (int i=0; i<num_planning_group_joints_; i++)
+    for (int i=0; i<num_joints; i++)
     {
-        const double& v = last_milestone_variables(2*i+1);
-        cost += ratio_radian_per_sec_to_meter_ * (v*v);
+        const double v = milestones(num_joints + i, num_milestones - 1);
+        cost += (v * v) * ratio_radian_per_sec_to_meter_ * weight;
     }
-    
-    return cost * weight_;
 }
 
-TrajectoryDerivative GoalPoseCost::derivative(const Trajectory& trajectory)
+void GoalPoseCost::addDerivative()
 {
-    TrajectoryDerivative derivative(trajectory);
-    
-    const int num_milestones = trajectory.getNumMilestones();
-    
-    trajectory.setMilestoneVariablesPositionsToRobotState(*robot_state_, num_milestones - 1);
-    robot_state_->update();
-    
-    // translation
-    for (int i=0; i<goal_link_positions_.size(); i++)
+    ITOMPOptimizer& optimizer = getOptimizer();
+    const double weight = getWeight();
+
+    Eigen::MatrixXd& milestone_derivative = optimizer.milestoneDerivative();
+
+    const int num_joints = optimizer.getNumJoints();
+    const int num_robot_joints = optimizer.getNumRobotJoints();
+    const int num_milestones = optimizer.getNumMilestones();
+    const Eigen::MatrixXd& milestones = optimizer.getMilestones();
+    const BoundingSphereRobotModel& robot_model = optimizer.getRobotModel();
+
+    for (int i=0; i<num_robot_joints; i++)
     {
-        const Eigen::Vector3d& link_position = robot_state_->getGlobalLinkTransform(goal_link_positions_[i].first).translation();
-        const Eigen::Vector3d& target_position = goal_link_positions_[i].second;
-        
-        for (int j=0; j<num_planning_group_joints_; j++)
+        const ITOMPOptimizer::GoalLinkPose& goal_link_pose = optimizer.getGoalLinkPose(i);
+
+        const double& position_weight = goal_link_pose.position_weight;
+        const double& orientation_weight = goal_link_pose.orientation_weight;
+
+        if (position_weight != 0.)
         {
-            if (joints_affecting_goal_link_positions_[i][j])
+            const Eigen::Affine3d& goal_link_transform = optimizer.getGoalLinkTransform(i);
+
+            const Eigen::Vector3d& link_position = goal_link_transform.translation();
+            const Eigen::Vector3d& target_position = goal_link_pose.position;
+
+            for (int j=0; j<num_joints; j++)
             {
-                const Eigen::Affine3d& transform_joint = robot_state_->getGlobalLinkTransform(planning_group_joint_models_[j]->getChildLinkModel());
-                const Eigen::Vector3d& relative_link_position = transform_joint.inverse() * link_position;
-                const Eigen::Vector3d& relative_target_position = transform_joint.inverse() * target_position;
-                const robot_model::JointModel* joint_model = planning_group_joint_models_[j];
-                
-                switch (joint_model->getType())
+                if (optimizer.doesJointAffectLinkTransform(j, i))
                 {
-                case robot_model::JointModel::REVOLUTE:
-                {
-                    const robot_model::RevoluteJointModel* revolute_joint_model = dynamic_cast<const robot_model::RevoluteJointModel*>(joint_model);
-                    const Eigen::Vector3d axis = revolute_joint_model->getAxis().normalized();
-                    // derivative = 2 (axis cross link) dot (link - target)
-                    derivative(2*j, num_milestones - 1) += 2. * (axis.cross(relative_link_position)).dot(relative_link_position - relative_target_position);
-                    
-                    break;
+                    const int joint_index = optimizer.getPlanningJointIndex(j);
+
+                    const Eigen::Affine3d& transform_joint = optimizer.getGoalLinkTransform(joint_index);
+                    const Eigen::Vector3d& relative_link_position = transform_joint.inverse() * link_position;
+                    const Eigen::Vector3d& relative_target_position = transform_joint.inverse() * target_position;
+
+                    switch (robot_model.getJointType(joint_index))
+                    {
+                    case RobotModel::REVOLUTE:
+                    {
+                        const Eigen::Vector3d axis = robot_model.getJointAxis(joint_index).normalized();
+                        // derivative = 2 (axis cross link) dot (link - target)
+                        milestone_derivative(j, num_milestones - 1) += 2. * (axis.cross(relative_link_position)).dot(relative_link_position - relative_target_position) * position_weight * weight;
+
+                        break;
+                    }
+
+                    default:
+                        ROS_ERROR("Unsupported joint type [%s] for goal pose cost computation", robot_model.getJointType(joint_index));
+                    }
                 }
-                    
-                default:
-                    ROS_ERROR("Unsupported joint type [%s] for goal pose cost computation", joint_model->getTypeName().c_str());
+            }
+        }
+
+        if (orientation_weight != 0.)
+        {
+            const Eigen::Affine3d& goal_link_transform = optimizer.getGoalLinkTransform(i);
+
+            const Eigen::Quaterniond link_orientation( goal_link_transform.linear() );
+            const Eigen::Quaterniond& target_orientation( goal_link_pose.orientation );
+
+            for (int j=0; j<num_joints; j++)
+            {
+                if (optimizer.doesJointAffectLinkTransform(j, i))
+                {
+                    const int joint_index = optimizer.getPlanningJointIndex(j);
+
+                    const Eigen::Matrix3d& rotation_joint = optimizer.getGoalLinkTransform(joint_index).linear();
+                    const Eigen::Quaterniond relative_link_orientation( rotation_joint.inverse() * link_orientation.toRotationMatrix() );
+                    Eigen::Quaterniond relative_target_orientation( rotation_joint.inverse() * target_orientation.toRotationMatrix() );
+
+                    if (relative_link_orientation.dot(relative_target_orientation) < 0)
+                        relative_target_orientation = Eigen::Quaterniond(
+                                    -relative_target_orientation.w(),
+                                    -relative_target_orientation.x(),
+                                    -relative_target_orientation.y(),
+                                    -relative_target_orientation.z()
+                                    );
+
+                    switch (robot_model.getJointType(joint_index))
+                    {
+                    case RobotModel::REVOLUTE:
+                    {
+                        const Eigen::Vector3d axis = robot_model.getJointAxis(joint_index).normalized();
+                        const Eigen::Quaterniond q_prime(0., 0.5 * axis(0), 0.5 * axis(1), 0.5 * axis(2));
+                        // derivative = - ((0, 0.5 axis) times link) dot target
+                        milestone_derivative(j, num_milestones - 1) += ratio_cosine_to_meter_ * (- (q_prime * relative_link_orientation).dot(relative_target_orientation)) * orientation_weight * weight;
+
+                        break;
+                    }
+
+                    default:
+                        ROS_ERROR("Unsupported joint type [%d] for goal pose cost computation", robot_model.getJointType(joint_index));
+                    }
                 }
             }
         }
     }
-    
-    // orientation
-    for (int i=0; i<goal_link_orientations_.size(); i++)
-    {
-        const Eigen::Quaterniond link_orientation( robot_state_->getGlobalLinkTransform(goal_link_orientations_[i].first).linear() );
-        const Eigen::Quaterniond& target_orientation = goal_link_orientations_[i].second;
-        
-        for (int j=0; j<num_planning_group_joints_; j++)
-        {
-            if (joints_affecting_goal_link_orientations_[i][j])
-            {
-                const Eigen::Matrix3d& rotation_joint = robot_state_->getGlobalLinkTransform(planning_group_joint_models_[j]->getChildLinkModel()).linear();
-                const Eigen::Quaterniond relative_link_orientation( rotation_joint.inverse() * link_orientation.toRotationMatrix() );
-                Eigen::Quaterniond relative_target_orientation( rotation_joint.inverse() * target_orientation.toRotationMatrix() );
-                const robot_model::JointModel* joint_model = planning_group_joint_models_[j];
-                
-                if (relative_link_orientation.dot(relative_target_orientation) < 0)
-                    relative_target_orientation = Eigen::Quaterniond(
-                                -relative_target_orientation.w(),
-                                -relative_target_orientation.x(),
-                                -relative_target_orientation.y(),
-                                -relative_target_orientation.z()
-                                );
-                
-                switch (joint_model->getType())
-                {
-                case robot_model::JointModel::REVOLUTE:
-                {
-                    const robot_model::RevoluteJointModel* revolute_joint_model = dynamic_cast<const robot_model::RevoluteJointModel*>(joint_model);
-                    const Eigen::Vector3d axis = revolute_joint_model->getAxis().normalized();
-                    const Eigen::Quaterniond q_prime(0., 0.5 * axis(0), 0.5 * axis(1), 0.5 * axis(2));
-                    // derivative = - ((0, 0.5 axis) times link) dot target
-                    derivative(2*j, num_milestones - 1) += ratio_cosine_to_meter_ * (- (q_prime * relative_link_orientation).dot(relative_target_orientation));
-                    
-                    break;
-                }
-                    
-                default:
-                    ROS_ERROR("Unsupported joint type [%s] for goal pose cost computation", joint_model->getTypeName().c_str());
-                }
-            }
-        }
-    }
-    
+
     // penalize velocities at last state
-    const Eigen::VectorXd& last_milestone_variables = trajectory.getMilestoneVariables( num_milestones - 1 );
-    for (int i=0; i<num_planning_group_joints_; i++)
+    for (int i=0; i<num_joints; i++)
     {
-        const double& v = last_milestone_variables(2*i+1);
-        derivative(2*i+1, num_milestones - 1) += ratio_radian_per_sec_to_meter_ * (2*v);
+        const double v = milestones(num_joints + i, num_milestones - 1);
+        milestone_derivative(num_joints + i, num_milestones - 1) += 2. * v * ratio_radian_per_sec_to_meter_ * weight;
     }
-    
-    return derivative * weight_;
 }
 
 }

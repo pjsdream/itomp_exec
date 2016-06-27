@@ -26,13 +26,21 @@ namespace itomp_exec
 class ITOMPPlannerNode
 {
 public:
-    
+
+    enum ITOMPAlgorithm
+    {
+        ITOMPFixedTrajectoryDuration = 0,
+        ITOMPFlexibleTrajectoryDuration,
+    };
+
     struct ITOMPPlannerOptions
     {
         double trajectory_duration;
         int num_milestones;
         int num_interpolation_samples;
         double planning_timestep;
+
+        ITOMPAlgorithm itomp_algorithm;
         
         std::vector<std::pair<std::string, double> > cost_weights;
         std::vector<std::string> collision_sphere_link_names;

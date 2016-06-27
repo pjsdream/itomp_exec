@@ -9,6 +9,7 @@
 #include <Eigen/Dense>
 #include <moveit_msgs/RobotTrajectory.h>
 #include <ecl/geometry/polynomial.hpp>
+#include <itomp_exec/cost/cost_functions.h>
 
 #include <ros/ros.h>
 
@@ -19,29 +20,15 @@ namespace itomp_exec
 class ITOMPOptimizer
 {
 private:
-    
-    static double ratio_cosine_to_meter_;
-    static double ratio_radian_per_sec_to_meter_;
 
     typedef dlib::matrix<double,0,1> column_vector;
     
     // dlib/Eigen conversion utilities
     static const Eigen::VectorXd convertDlibToEigenVector(const column_vector& v);
     static const column_vector convertEigenToDlibVector(const Eigen::MatrixXd& v);
-    
-    struct CostWeights
-    {
-        CostWeights()
-            : smoothness_cost_weight(0.)
-            , goal_pose_cost_weight(0.)
-            , collision_cost_weight(0.)
-        {}
-            
-        double smoothness_cost_weight;
-        double goal_pose_cost_weight;
-        double collision_cost_weight;
-    };
-    
+
+public:
+
     struct GoalLinkPose
     {
         GoalLinkPose()
@@ -102,6 +89,137 @@ public:
         root_link_transform_ = transform;
     }
 
+    inline int getNumJoints() const
+    {
+        return num_joints_;
+    }
+
+    inline int getNumRobotJoints() const
+    {
+        return robot_model_->getNumJoints();
+    }
+
+    inline int getNumMilestones() const
+    {
+        return num_milestones_;
+    }
+
+    inline double getTrajectoryDuration() const
+    {
+        return trajectory_duration_;
+    }
+
+    inline double getDynamicObstacleDuration() const
+    {
+        return dynamic_obstacle_duration_;
+    }
+
+    inline double getPlanningTimestep() const
+    {
+        return planning_timestep_;
+    }
+
+    inline const ecl::CubicPolynomial& getCubicPolynomial(int joint_index, int milestone_index) const
+    {
+        return cubic_polynomials_[joint_index][milestone_index];
+    }
+
+    inline const Eigen::VectorXd& getStartMilestone() const
+    {
+        return start_milestone_;
+    }
+
+    inline const Eigen::MatrixXd& getMilestones() const
+    {
+        return milestones_;
+    }
+
+    inline const GoalLinkPose& getGoalLinkPose(int joint_index) const
+    {
+        return goal_link_poses_[joint_index];
+    }
+
+    inline const Eigen::Affine3d& getGoalLinkTransform(int joint_index) const
+    {
+        return goal_link_transforms_[joint_index];
+    }
+
+    inline int getPlanningJointIndex(int variable_index) const
+    {
+        return planning_joint_indices_[variable_index];
+    }
+
+    inline bool doesJointAffectLinkTransform(int joint_index_affecting, int link_index_affected) const
+    {
+        return joints_affecting_link_transforms_[joint_index_affecting][link_index_affected];
+    }
+
+    inline const BoundingSphereRobotModel& getRobotModel() const
+    {
+        return *robot_model_;
+    }
+
+    inline int getNumInterpolatedConfigurations() const
+    {
+        return num_interpolated_configurations_;
+    }
+
+    inline int getNumInterpolationSamples() const
+    {
+        return num_interpolation_samples_;
+    }
+
+    inline const Spheres& getInterpolatedCollisionSpheres(int interpolation_index, int joint_index) const
+    {
+        return interpolated_collision_spheres_[interpolation_index][joint_index];
+    }
+
+    inline double getInterpolatedTime(int interpolation_index) const
+    {
+        return interpolated_times_[interpolation_index];
+    }
+
+    inline const Spheres& getStaticObstacleSpheres() const
+    {
+        return static_obstacle_spheres_;
+    }
+
+    inline const Spheres& getDynamicObstacleSpheres() const
+    {
+        return dynamic_obstacle_spheres_;
+    }
+
+    inline double getDynamicObstacleMaxSpeed() const
+    {
+        return dynamic_obstacle_max_speed_;
+    }
+
+    inline const Eigen::Affine3d& getInterpolatedLinkTransform(int interpolation_index, int link_index) const
+    {
+        return interpolated_variable_link_transforms_[interpolation_index][link_index];
+    }
+
+    inline const std::pair<int, int>& getInterpolationIndexPosition(int interpolation_index) const
+    {
+        return interpolation_index_position_[interpolation_index];
+    }
+
+    inline const Eigen::Vector4d getInterpolatedCurveBasis(int interpolation_index) const
+    {
+        return interpolated_curve_bases_.row(interpolation_index).transpose();
+    }
+
+    // cost variables to be changed by cost functions
+    inline double& cost()
+    {
+        return cost_;
+    }
+
+    inline Eigen::MatrixXd& milestoneDerivative()
+    {
+        return milestone_derivative_;
+    }
+
     void setRobotModel(const BoundingSphereRobotModelPtr& robot_model);
 
     void setPlanningRobotStartState(const RobotState& start_state, double trajectory_duration, int num_milestones);
@@ -150,6 +268,11 @@ private:
     
     // optimization objectives
     std::vector<GoalLinkPose> goal_link_poses_;
+
+    // cost functions and cost/derivative variables to be changed by cost functions
+    std::vector<Cost*> cost_functions_;
+    double cost_;
+    Eigen::MatrixXd milestone_derivative_;
     
     // robot
     BoundingSphereRobotModelPtr robot_model_;
@@ -175,7 +298,6 @@ private:
     double numerical_derivative_eps_;
 
     // dlib function value/derivative evaluation
-    CostWeights cost_weights_;
     void milestoneInitializeWithDlibVector(const column_vector& variables);
     double optimizationCost(const column_vector& variables);
     const column_vector optimizationCostDerivative(const column_vector& variables);
@@ -189,7 +311,8 @@ private:
     void precomputeGoalLinkTransforms();
     void precomputeInterpolatedVariableTransforms();
     void precomputeInterpolatedCollisionSpheres();
-    std::vector<std::vector<ecl::CubicPolynomial> > cubic_polynomials_;
+    int num_interpolated_configurations_;
+    std::vector<std::vector<ecl::CubicPolynomial> > cubic_polynomials_; //!< [joint_index][milestone_index]
     Eigen::MatrixXd interpolated_variables_; //!< all interpolated robot states, including start state
     std::vector<Eigen::Affine3d> goal_link_transforms_;
     std::vector<std::vector<Eigen::Affine3d> > interpolated_variable_link_transforms_; //!< [interpolation_index][link_index]
@@ -199,9 +322,7 @@ private:
     std::vector<double> interpolated_times_; //!< uniform time samples between 0 and trajectory_duration
 
     // temporary variables for optimization
-    void initializeSmoothnessCostDerivaiveAuxilaryMatrix();
     void initializeJointsAffectingLinkTransforms();
-    Eigen::Matrix4d H2_; //!< for smoothness cost derivative computation
     std::vector<std::vector<bool> > joints_affecting_link_transforms_; //!< [joint_index][link_index]
     
     // ros publisher for visualization

@@ -11,16 +11,10 @@ namespace itomp_exec
 
 class FutureObstacleCost : public Cost
 {
-    ITOMP_COST_DERIVED_CLASS_DECL(FutureObstacle)
-    
 public:
         
-    FutureObstacleCost(double weight = 1.0);
-    
-    virtual void initialize(const ITOMPPlannerNode& planner_node);
-    
-    virtual double cost(const Trajectory& trajectory);
-    
+    FutureObstacleCost(ITOMPOptimizer& optimizer, double weight = 1.0);
+
 private:
     
 };

@@ -3,6 +3,9 @@ planning_timestep: 0.50
 num_milestones: 3
 num_interpolation_samples: 3
 
+#itomp_algorithm: "fixed_trajectory_duration"
+itomp_algorithm: "flexible_trajectory_duration"
+
 static_obstacles:
   #- {type: "mesh", file: "package://itomp_exec/env/table_collision_rotated.dae", position: [0.7, 0.0, 0.0]}
   - {type: "sphere", position: [0.00,  0.70, 0.35], radius: 0.35}

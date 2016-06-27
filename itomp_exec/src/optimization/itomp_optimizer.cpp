@@ -14,32 +14,30 @@
 namespace itomp_exec
 {
 
-double ITOMPOptimizer::ratio_cosine_to_meter_ = 2.;
-double ITOMPOptimizer::ratio_radian_per_sec_to_meter_ = 10.;
-
 ITOMPOptimizer::ITOMPOptimizer()
     : trajectory_duration_(0.)
     , use_numerical_derivative_(true)
     , numerical_derivative_eps_(1e-5)
     , planning_scene_(0)
 {
-    initializeSmoothnessCostDerivaiveAuxilaryMatrix();
 }
 
 ITOMPOptimizer::~ITOMPOptimizer()
 {
+    for (int i=0; i<cost_functions_.size(); i++)
+        delete cost_functions_[i];
 }
 
 void ITOMPOptimizer::setCostWeight(const std::string& cost_type, double weight)
 {
     if (cost_type == "smoothness")
-        cost_weights_.smoothness_cost_weight = weight;
+        cost_functions_.push_back(new SmoothnessCost(*this, weight));
     
     else if (cost_type == "goal_pose")
-        cost_weights_.goal_pose_cost_weight = weight;
+        cost_functions_.push_back(new GoalPoseCost(*this, weight));
     
     else if (cost_type == "collision")
-        cost_weights_.collision_cost_weight = weight;
+        cost_functions_.push_back(new CollisionCost(*this, weight));
     
     else
         ROS_WARN("ITOMPOptimizer: Unknown cost type [%s]", cost_type.c_str());
@@ -98,6 +96,7 @@ void ITOMPOptimizer::setPlanningRobotStartState(const RobotState& start_state, d
     
     // interpolate initial milestones
     milestones_.resize(num_joints_ * 2, num_milestones);
+    milestone_derivative_.resize(num_joints_ * 2, num_milestones);
     for (int i=0; i<num_joints_; i++)
     {
         const ecl::CubicPolynomial poly = ecl::CubicDerivativeInterpolation(0., start_milestone_(i), start_milestone_(num_joints_ + i),
@@ -224,7 +223,7 @@ void ITOMPOptimizer::stepForward(double time)
 
 void ITOMPOptimizer::optimize()
 {
-    ros::WallTime start_time = ros::WallTime::now();
+    ros::Time start_time = ros::Time::now();
 
     // update static obstacle spheres
     static_obstacle_spheres_ = planning_scene_->getStaticSphereObstacles();
@@ -239,6 +238,8 @@ void ITOMPOptimizer::optimize()
     // stop strategy is both time limit and objective delta
     coupled_stop_strategy<itomp_exec::time_limit_stop_strategy, dlib::objective_delta_stop_strategy>
             stop_strategy(itomp_exec::time_limit_stop_strategy(optimization_time_limit_, start_time), dlib::objective_delta_stop_strategy(1e-5, 1000000));
+
+    stop_strategy.be_verbose();
 
     if (use_numerical_derivative_)
     {
@@ -280,7 +281,7 @@ void ITOMPOptimizer::optimize()
     
     milestoneInitializeWithDlibVector(initial_variables);
 
-    ROS_INFO("Optimization elapsed time: %lf sec", (ros::WallTime::now() - start_time).toSec());
+    ROS_INFO("Optimization elapsed time: %lf sec", (ros::Time::now() - start_time).toSec());
 }
 
 Eigen::VectorXd ITOMPOptimizer::getOptimizationVariables()
@@ -308,115 +309,13 @@ double ITOMPOptimizer::optimizationCost(const column_vector& variables)
 {
     milestoneInitializeWithDlibVector(variables);
     precomputeOptimizationResources();
-    
-    double cost = 0.;
-    
-    // smoothness cost
-    if (cost_weights_.smoothness_cost_weight != 0.)
-    {
-        for (int i=0; i<num_joints_; i++)
-        {
-            for (int j=0; j<num_milestones_; j++)
-            {
-                const double t0 = (double)j / num_milestones_ * trajectory_duration_;
-                const double t1 = (double)(j+1) / num_milestones_ * trajectory_duration_;
-                const ecl::CubicPolynomial& poly = cubic_polynomials_[i][j];
-                
-                ecl::LinearFunction acc = poly.derivative().derivative();
-                const double a0 = acc.coefficients()[0];
-                const double a1 = acc.coefficients()[1];
-                
-                ecl::QuadraticPolynomial acc_square;
-                acc_square.coefficients() << a0*a0, 2*a0*a1, a1*a1;
-                
-                // normalize with trajectory duration
-                cost += gaussianQuadratureQuadraticPolynomial(t0, t1, acc_square) * trajectory_duration_ * cost_weights_.smoothness_cost_weight;
-            }
-        }
-    }
-    
-    // goal pose cost
-    if (cost_weights_.goal_pose_cost_weight != 0.)
-    {
-        for (int i=0; i<goal_link_poses_.size(); i++)
-        {
-            const double& position_weight = goal_link_poses_[i].position_weight;
-            const double& orientation_weight = goal_link_poses_[i].orientation_weight;
-            
-            if (position_weight != 0.)
-            {
-                const Eigen::Vector3d& link_position = goal_link_transforms_[i].translation();
-                const Eigen::Vector3d& target_position = goal_link_poses_[i].position;
-                
-                cost += (link_position - target_position).squaredNorm() * cost_weights_.goal_pose_cost_weight;
-            }
 
-            if (orientation_weight != 0.)
-            {
-                Eigen::Quaterniond link_orientation( goal_link_transforms_[i].linear() );
-                Eigen::Quaterniond target_orientation = goal_link_poses_[i].orientation;
+    cost_ = 0.;
 
-                cost += (1 - std::abs(link_orientation.dot(target_orientation))) * ratio_cosine_to_meter_ * cost_weights_.goal_pose_cost_weight;
-            }
-        }
-        
-        // penalize velocities at last state
-        for (int i=0; i<num_joints_; i++)
-        {
-            const double v = milestones_(num_joints_ + i, num_milestones_ - 1);
-            cost += (v * v) * ratio_radian_per_sec_to_meter_ * cost_weights_.goal_pose_cost_weight;
-        }
-    }
-    
-    // collision cost (all pairs)
-    if (cost_weights_.collision_cost_weight != 0.)
-    {
-        for (int i=0; i<interpolated_collision_spheres_.size(); i++)
-        {
-            for (int j=0; j<interpolated_collision_spheres_[i].size(); j++)
-            {
-                const Spheres& robot_spheres = interpolated_collision_spheres_[i][j];
+    for (int i=0; i<cost_functions_.size(); i++)
+        cost_functions_[i]->addCost();
 
-                for (int k=0; k<robot_spheres.size(); k++)
-                {
-                    const Sphere& robot_sphere = robot_spheres[k];
-
-                    // static obstacle spheres
-                    for (int l=0; l<static_obstacle_spheres_.size(); l++)
-                    {
-                        const Sphere& obstacle_sphere = static_obstacle_spheres_[l];
-
-                        const double r = robot_sphere.radius + obstacle_sphere.radius;
-                        const double d_squared = (robot_sphere.position - obstacle_sphere.position).squaredNorm();
-
-                        if (d_squared < r*r)
-                        {
-                            cost += (r*r - d_squared) * trajectory_duration_ * cost_weights_.collision_cost_weight / num_interpolation_samples_;
-                        }
-                    }
-
-                    // dynamic obstacle spheres
-                    if (planning_timestep_ + interpolated_times_[i] <= dynamic_obstacle_duration_)
-                    {
-                        for (int l=0; l<dynamic_obstacle_spheres_.size(); l++)
-                        {
-                            const Sphere& obstacle_sphere = dynamic_obstacle_spheres_[l];
-
-                            const double r = robot_sphere.radius + (obstacle_sphere.radius + dynamic_obstacle_max_speed_ * (planning_timestep_ + interpolated_times_[i]));
-                            const double d_squared = (robot_sphere.position - obstacle_sphere.position).squaredNorm();
-
-                            if (d_squared < r*r)
-                            {
-                                cost += (r*r - d_squared) * cost_weights_.collision_cost_weight / num_interpolation_samples_;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    return cost;
+    return cost_;
 }
 
 const ITOMPOptimizer::column_vector ITOMPOptimizer::optimizationCostDerivative(const column_vector& variables)
@@ -424,268 +323,12 @@ const ITOMPOptimizer::column_vector ITOMPOptimizer::optimizationCostDerivative(c
     milestoneInitializeWithDlibVector(variables);
     precomputeOptimizationResources();
 
-    Eigen::MatrixXd derivative(milestones_.rows(), milestones_.cols());
-    derivative.setZero();
+    milestone_derivative_.setZero();
 
-    // smoothness cost
-    if (cost_weights_.smoothness_cost_weight != 0.)
-    {
-        for (int i=0; i<num_milestones_; i++)
-        {
-            const Eigen::VectorXd& variables0 = i==0 ? start_milestone_ : milestones_.col(i-1);
-            const Eigen::VectorXd& variables1 = milestones_.col(i);
-            const double t0 = (double)i / num_milestones_ * trajectory_duration_;
-            const double t1 = (double)(i+1) / num_milestones_ * trajectory_duration_;
+    for (int i=0; i<cost_functions_.size(); i++)
+        cost_functions_[i]->addDerivative();
 
-            for (int j=0; j<num_joints_; j++)
-            {
-                const double& p0 = variables0(j);
-                const double& v0 = variables0(num_joints_ + j);
-                const double& p1 = variables1(j);
-                const double& v1 = variables1(num_joints_ + j);
-
-                const Eigen::Vector4d v(p0, v0, p1, v1);
-
-                const double dinv = 1. / (t1-t0);
-                const Eigen::Vector4d diag(1., t1-t0, 1., t1-t0);
-                const Eigen::DiagonalMatrix<double, 4> D(diag);
-                Eigen::Vector4d term_derivative = (dinv * dinv * dinv) * D * H2_ * D * v;
-
-                // normalize with trajectory duration
-                term_derivative *= cost_weights_.smoothness_cost_weight * trajectory_duration_;
-
-                if (i)
-                {
-                    derivative(j, i-1) += term_derivative(0);
-                    derivative(num_joints_ + j, i-1) += term_derivative(1);
-                }
-                derivative(j, i) += term_derivative(2);
-                derivative(num_joints_ + j, i) += term_derivative(3);
-            }
-        }
-    }
-
-    // goal pose cost
-    if (cost_weights_.goal_pose_cost_weight != 0.)
-    {
-        for (int i=0; i<goal_link_poses_.size(); i++)
-        {
-            const double& position_weight = goal_link_poses_[i].position_weight;
-            const double& orientation_weight = goal_link_poses_[i].orientation_weight;
-
-            if (position_weight != 0.)
-            {
-                const Eigen::Vector3d& link_position = goal_link_transforms_[i].translation();
-                const Eigen::Vector3d& target_position = goal_link_poses_[i].position;
-
-                for (int j=0; j<num_joints_; j++)
-                {
-                    if (joints_affecting_link_transforms_[j][i])
-                    {
-                        const int joint_index = planning_joint_indices_[j];
-
-                        const Eigen::Affine3d& transform_joint = goal_link_transforms_[joint_index];
-                        const Eigen::Vector3d& relative_link_position = transform_joint.inverse() * link_position;
-                        const Eigen::Vector3d& relative_target_position = transform_joint.inverse() * target_position;
-
-                        switch (robot_model_->getJointType(joint_index))
-                        {
-                        case RobotModel::REVOLUTE:
-                        {
-                            const Eigen::Vector3d axis = robot_model_->getJointAxis(joint_index).normalized();
-                            // derivative = 2 (axis cross link) dot (link - target)
-                            derivative(j, num_milestones_ - 1) += 2. * (axis.cross(relative_link_position)).dot(relative_link_position - relative_target_position) * position_weight * cost_weights_.goal_pose_cost_weight;
-
-                            break;
-                        }
-
-                        default:
-                            ROS_ERROR("Unsupported joint type [%s] for goal pose cost computation", robot_model_->getJointType(joint_index));
-                        }
-                    }
-                }
-            }
-
-            if (orientation_weight != 0.)
-            {
-                const Eigen::Quaterniond link_orientation( goal_link_transforms_[i].linear() );
-                const Eigen::Quaterniond& target_orientation( goal_link_poses_[i].orientation );
-
-                for (int j=0; j<num_joints_; j++)
-                {
-                    if (joints_affecting_link_transforms_[j][i])
-                    {
-                        const int joint_index = planning_joint_indices_[j];
-
-                        const Eigen::Matrix3d& rotation_joint = goal_link_transforms_[joint_index].linear();
-                        const Eigen::Quaterniond relative_link_orientation( rotation_joint.inverse() * link_orientation.toRotationMatrix() );
-                        Eigen::Quaterniond relative_target_orientation( rotation_joint.inverse() * target_orientation.toRotationMatrix() );
-
-                        if (relative_link_orientation.dot(relative_target_orientation) < 0)
-                            relative_target_orientation = Eigen::Quaterniond(
-                                        -relative_target_orientation.w(),
-                                        -relative_target_orientation.x(),
-                                        -relative_target_orientation.y(),
-                                        -relative_target_orientation.z()
-                                        );
-
-                        switch (robot_model_->getJointType(joint_index))
-                        {
-                        case RobotModel::REVOLUTE:
-                        {
-                            const Eigen::Vector3d axis = robot_model_->getJointAxis(joint_index).normalized();
-                            const Eigen::Quaterniond q_prime(0., 0.5 * axis(0), 0.5 * axis(1), 0.5 * axis(2));
-                            // derivative = - ((0, 0.5 axis) times link) dot target
-                            derivative(j, num_milestones_ - 1) += ratio_cosine_to_meter_ * (- (q_prime * relative_link_orientation).dot(relative_target_orientation)) * orientation_weight * cost_weights_.goal_pose_cost_weight;
-
-                            break;
-                        }
-
-                        default:
-                            ROS_ERROR("Unsupported joint type [%d] for goal pose cost computation", robot_model_->getJointType(joint_index));
-                        }
-                    }
-                }
-            }
-        }
-
-        // penalize velocities at last state
-        for (int i=0; i<num_joints_; i++)
-        {
-            const double v = milestones_(num_joints_ + i, num_milestones_ - 1);
-            derivative(num_joints_ + i, num_milestones_ - 1) += 2. * v * ratio_radian_per_sec_to_meter_ * cost_weights_.goal_pose_cost_weight;
-        }
-    }
-
-    // collision cost (all pairs)
-    if (cost_weights_.collision_cost_weight != 0.)
-    {
-        for (int i=0; i<interpolated_collision_spheres_.size(); i++)
-        {
-            for (int j=0; j<interpolated_collision_spheres_[i].size(); j++)
-            {
-                const Spheres& robot_spheres = interpolated_collision_spheres_[i][j];
-
-                for (int k=0; k<robot_spheres.size(); k++)
-                {
-                    const Sphere& robot_sphere = robot_spheres[k];
-
-                    // static obstacle spheres
-                    for (int l=0; l<static_obstacle_spheres_.size(); l++)
-                    {
-                        const Sphere& obstacle_sphere = static_obstacle_spheres_[l];
-
-                        const double r = robot_sphere.radius + obstacle_sphere.radius;
-                        const double d_squared = (robot_sphere.position - obstacle_sphere.position).squaredNorm();
-
-                        if (d_squared < r*r)
-                        {
-                            //cost += (r*r - d_squared) * cost_weights_.collision_cost_weight / num_interpolation_samples_;
-
-                            for (int m=0; m<num_joints_; m++)
-                            {
-                                if (joints_affecting_link_transforms_[m][j])
-                                {
-                                    const int joint_index = planning_joint_indices_[m];
-
-                                    const Eigen::Affine3d& transform_joint = interpolated_variable_link_transforms_[i][joint_index];
-                                    const Eigen::Vector3d& relative_robot_position = transform_joint.inverse() * robot_sphere.position;
-                                    const Eigen::Vector3d& relative_obstacle_position = transform_joint.inverse() * obstacle_sphere.position;
-
-                                    switch (robot_model_->getJointType(joint_index))
-                                    {
-                                    case RobotModel::REVOLUTE:
-                                    {
-                                        const Eigen::Vector3d axis = robot_model_->getJointAxis(joint_index).normalized();
-                                        // derivative = 2 (axis cross link) dot (link - target)
-                                        const double curve_derivative = - 2. * (axis.cross(relative_robot_position)).dot(relative_robot_position - relative_obstacle_position);
-
-                                        const int milestone_index0 = interpolation_index_position_[i].first - 1;
-                                        const int milestone_index1 = interpolation_index_position_[i].first;
-                                        const int interpolation_index = interpolation_index_position_[i].second;
-                                        const Eigen::Vector4d variable_derivative = interpolated_curve_bases_.row(interpolation_index) * curve_derivative * trajectory_duration_ * cost_weights_.collision_cost_weight / num_interpolation_samples_;
-
-                                        if (milestone_index0 != -1)
-                                        {
-                                            derivative(m, milestone_index0) += variable_derivative(0);
-                                            derivative(m, milestone_index0) += variable_derivative(1);
-                                        }
-                                        derivative(m, milestone_index1) += variable_derivative(2);
-                                        derivative(m, milestone_index1) += variable_derivative(3);
-
-                                        break;
-                                    }
-
-                                    default:
-                                        ROS_ERROR("Unsupported joint type [%d] for goal pose cost computation", robot_model_->getJointType(joint_index));
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // dynamic obstacle spheres
-                    if (planning_timestep_ + interpolated_times_[i] <= dynamic_obstacle_duration_)
-                    {
-                        for (int l=0; l<dynamic_obstacle_spheres_.size(); l++)
-                        {
-                            const Sphere& obstacle_sphere = dynamic_obstacle_spheres_[l];
-
-                            const double r = robot_sphere.radius + (obstacle_sphere.radius + dynamic_obstacle_max_speed_ * (planning_timestep_ + interpolated_times_[i]));
-                            const double d_squared = (robot_sphere.position - obstacle_sphere.position).squaredNorm();
-
-                            if (d_squared < r*r)
-                            {
-                                //cost += (r*r - d_squared) * cost_weights_.collision_cost_weight / num_interpolation_samples_;
-
-                                for (int m=0; m<num_joints_; m++)
-                                {
-                                    if (joints_affecting_link_transforms_[m][j])
-                                    {
-                                        const int joint_index = planning_joint_indices_[m];
-
-                                        const Eigen::Affine3d& transform_joint = interpolated_variable_link_transforms_[i][joint_index];
-                                        const Eigen::Vector3d& relative_robot_position = transform_joint.inverse() * robot_sphere.position;
-                                        const Eigen::Vector3d& relative_obstacle_position = transform_joint.inverse() * obstacle_sphere.position;
-
-                                        switch (robot_model_->getJointType(joint_index))
-                                        {
-                                        case RobotModel::REVOLUTE:
-                                        {
-                                            const Eigen::Vector3d axis = robot_model_->getJointAxis(joint_index).normalized();
-                                            // derivative = 2 (axis cross link) dot (link - target)
-                                            const double curve_derivative = - 2. * (axis.cross(relative_robot_position)).dot(relative_robot_position - relative_obstacle_position);
-
-                                            const int milestone_index0 = interpolation_index_position_[i].first - 1;
-                                            const int milestone_index1 = interpolation_index_position_[i].first;
-                                            const int interpolation_index = interpolation_index_position_[i].second;
-                                            const Eigen::Vector4d variable_derivative = interpolated_curve_bases_.row(interpolation_index) * curve_derivative * trajectory_duration_ * cost_weights_.collision_cost_weight / num_interpolation_samples_;
-
-                                            if (milestone_index0 != -1)
-                                            {
-                                                derivative(m, milestone_index0) += variable_derivative(0);
-                                                derivative(m, milestone_index0) += variable_derivative(1);
-                                            }
-                                            derivative(m, milestone_index1) += variable_derivative(2);
-                                            derivative(m, milestone_index1) += variable_derivative(3);
-
-                                            break;
-                                        }
-
-                                        default:
-                                            ROS_ERROR("Unsupported joint type [%d] for goal pose cost computation", robot_model_->getJointType(joint_index));
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    return convertEigenToDlibVector( derivative );
+    return convertEigenToDlibVector( milestone_derivative_ );
 }
 
 const ITOMPOptimizer::column_vector ITOMPOptimizer::optimizationCostNumericalDerivative(const column_vector& variables)
@@ -715,17 +358,18 @@ void ITOMPOptimizer::allocateOptimizationResources()
     for (int i=0; i<num_joints_; i++)
         cubic_polynomials_[i].resize(num_milestones_);
     
-    const int num_interpolated_variables = num_milestones_ * (num_interpolation_samples_ + 1) + 1;
-    interpolated_variables_.resize(num_joints_ * 2, num_interpolated_variables);
-    interpolated_variable_link_transforms_.resize(num_interpolated_variables);
+    num_interpolated_configurations_ = num_milestones_ * (num_interpolation_samples_ + 1) + 1;
 
-    interpolated_collision_spheres_.resize(num_interpolated_variables);
+    interpolated_variables_.resize(num_joints_ * 2, num_interpolated_configurations_);
+    interpolated_variable_link_transforms_.resize(num_interpolated_configurations_);
 
-    interpolation_index_position_.resize(num_interpolated_variables);
+    interpolated_collision_spheres_.resize(num_interpolated_configurations_);
+
+    interpolation_index_position_.resize(num_interpolated_configurations_);
 
     interpolated_curve_bases_.resize(num_interpolation_samples_ + 1, Eigen::NoChange);
 
-    interpolated_times_.resize(num_interpolated_variables);
+    interpolated_times_.resize(num_interpolated_configurations_);
 }
 
 void ITOMPOptimizer::precomputeOptimizationResources()
@@ -846,18 +490,6 @@ void ITOMPOptimizer::precomputeInterpolatedCollisionSpheres()
     // interpolated variables
     for (int i=0; i<interpolated_variable_link_transforms_.size(); i++)
         robot_model_->getCollisionSpheres(interpolated_variable_link_transforms_[i], interpolated_collision_spheres_[i]);
-}
-
-void ITOMPOptimizer::initializeSmoothnessCostDerivaiveAuxilaryMatrix()
-{
-    H2_.setZero();
-    for (int i=0; i<3; i++)
-    {
-        const double w = gaussianQuadratureWeight2(i);
-        const double t = 0.5 + 0.5 * gaussianQuadratureAbscissa2(i);
-        const Eigen::Vector4d h(12.*t - 6., 6.*t - 4., -12.*t + 6., 6.*t - 2.);
-        H2_ += w * h * h.transpose();
-    }
 }
 
 void ITOMPOptimizer::initializeJointsAffectingLinkTransforms()

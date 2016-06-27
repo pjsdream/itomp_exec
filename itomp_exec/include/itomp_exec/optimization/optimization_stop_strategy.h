@@ -17,7 +17,7 @@ namespace itomp_exec
 class time_limit_stop_strategy
 {
 public:
-    time_limit_stop_strategy(double time_limit, const ros::WallTime& start_time)
+    time_limit_stop_strategy(double time_limit, const ros::Time& start_time)
         : verbose_(false)
         , cur_iter_(0)
         , time_limit_(time_limit)
@@ -35,7 +35,7 @@ public:
         : verbose_(false)
         , cur_iter_(0)
         , time_limit_(time_limit)
-        , start_time_(ros::WallTime::now())
+        , start_time_(ros::Time::now())
     {
         DLIB_ASSERT (
             time_limit > 0,
@@ -58,7 +58,7 @@ public:
         const T&
     )
     {
-        const double elapsed_time = (ros::WallTime::now() - start_time_).toSec();
+        const double elapsed_time = (ros::Time::now() - start_time_).toSec();
 
         if (verbose_)
         {
@@ -80,7 +80,7 @@ private:
 
     int cur_iter_;
     double time_limit_;
-    ros::WallTime start_time_;
+    ros::Time start_time_;
 };
 
 template<typename T1, typename T2>

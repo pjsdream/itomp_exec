@@ -1,29 +1,22 @@
 #include <itomp_exec/cost/cost.h>
+#include <itomp_exec/optimization/itomp_optimizer.h>
 
 
 namespace itomp_exec
 {
 
-const double Cost::derivative_eps = 1e-7;
-
-
-Cost::Cost(double weight)
-    : weight_(weight)
+Cost::Cost(ITOMPOptimizer& optimizer, double weight)
+    : optimizer_(optimizer)
+    , weight_(weight)
 {
 }
 
-void Cost::initialize(const ITOMPPlannerNode& planner_node)
+void Cost::addCost()
 {
 }
 
-double Cost::cost(const Trajectory& trajectory)
+void Cost::addDerivative()
 {
-    return 0.0;
-}
-
-TrajectoryDerivative Cost::derivative(const Trajectory& trajectory)
-{
-    return TrajectoryDerivative(trajectory);
 }
 
 }

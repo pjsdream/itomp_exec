@@ -132,6 +132,16 @@ void ITOMPPlannerNode::loadParams()
     node_handle_.param("planning_timestep", options_.planning_timestep, 0.5);
     node_handle_.param("dynamic_obstacle_max_speed", options_.conservative.dynamic_obstacle_max_speed, 0.1);
     node_handle_.param("dynamic_obstacle_duration", options_.conservative.dynamic_obstacle_duration, 1.0);
+
+    // load ITOMP algorithm
+    std::string itomp_algorithm;
+    node_handle_.param("itomp_algorithm", itomp_algorithm, std::string("fixed_trajectory_duration"));
+
+    if (itomp_algorithm == "fixed_trajectory_duration")
+        options_.itomp_algorithm = ITOMPFixedTrajectoryDuration;
+
+    else if (itomp_algorithm == "flexible_trajectory_duration")
+        options_.itomp_algorithm = ITOMPFlexibleTrajectoryDuration;
     
     // load static obstacles
     XmlRpc::XmlRpcValue static_obstacles;
@@ -333,7 +343,7 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
     
     double trajectory_duration = options_.trajectory_duration;
     double elapsed_time = 0.;
-    ros::WallRate rate( 1. / options_.planning_timestep );
+    ros::Rate rate( 1. / options_.planning_timestep );
 
     // compute robot's root transformation from tf listener
     const Eigen::Affine3d robot_root_transform = getRobotRootTransform();
@@ -408,7 +418,7 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
     }
 
     ROS_INFO("Waiting %lf sec for the last execution step", options_.planning_timestep);
-    ros::WallDuration(options_.planning_timestep).sleep();
+    ros::Duration(options_.planning_timestep).sleep();
 
     return true;
 }

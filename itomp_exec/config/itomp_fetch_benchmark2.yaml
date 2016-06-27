@@ -5,6 +5,9 @@ num_interpolation_samples: 3
 dynamic_obstacle_max_speed: 0.00 # m/s
 dynamic_obstacle_duration: 5.0  # s
 
+#itomp_algorithm: "fixed_trajectory_duration"
+itomp_algorithm: "flexible_trajectory_duration"
+
 #static_obstacles:
   #- {type: "mesh", file: "package://itomp_exec/env/table_collision_rotated.dae", position: [0.7, 0.0, 0.0]}
   #obstacle test

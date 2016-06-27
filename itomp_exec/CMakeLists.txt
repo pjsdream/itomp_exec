@@ -170,14 +170,13 @@ add_library(itomp_exec
   src/util/conversions.cpp
   src/util/gaussian_quadrature.cpp
   src/util/joint_state_listener.cpp
-  #src/optimization/itomp_optimizer.cpp
-  #src/trajectory/trajectory.cpp
-  #src/cost/cost.cpp
-  #src/cost/cost_factory.cpp
-  #src/cost/goal_pose_cost.cpp
-  #src/cost/smoothness_cost.cpp
-  #src/cost/collision_cost.cpp
+  src/cost/cost.cpp
+  src/cost/goal_pose_cost.cpp
+  src/cost/smoothness_cost.cpp
+  src/cost/collision_cost.cpp
   #src/cost/future_obstacle_cost.cpp
+  #src/cost/cost_factory.cpp
+  #src/trajectory/trajectory.cpp
 )
 
 ## Add cmake target dependencies of the library
