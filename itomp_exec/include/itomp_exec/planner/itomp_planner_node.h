@@ -51,7 +51,7 @@ public:
         {
             double dynamic_obstacle_max_speed;
             double dynamic_obstacle_duration;
-        } conservative;
+        } conservative_algorithm;
     };
     
 public:
@@ -116,6 +116,9 @@ private:
     void loadStaticObstacles();
 
     void optimizeAllTrajectories();
+    \
+    // visualization
+    void visualizePlanningScene();
 
     Eigen::Affine3d getRobotRootTransform();
 
@@ -145,6 +148,9 @@ private:
 
     // virtual human
     ros::Publisher virtual_human_arm_request_publisher_;
+
+    // visualization marker array publisher for planning scene
+    ros::Publisher planning_scene_visualization_publisher_;
 };
 
 typedef std::shared_ptr<ITOMPPlannerNode> ITOMPPlannerNodePtr;

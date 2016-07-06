@@ -41,6 +41,9 @@ void ITOMPPlannerNode::initialize()
     // initialize virtual human arm publisher
     virtual_human_arm_request_publisher_ = node_handle_.advertise<std_msgs::Float64MultiArray>("/future_obstacle_publisher/virtual_human_arm_request", 1);
 
+    // initialize planning scene visualization publisher
+    planning_scene_visualization_publisher_ = node_handle_.advertise<visualization_msgs::MarkerArray>("planning_scene", 1);
+
     // initialize robot model from moveit model
     robot_model_.reset( new BoundingSphereRobotModel );
     robot_model_->initFromMoveitRobotModel(moveit_robot_model_);
@@ -127,8 +130,8 @@ void ITOMPPlannerNode::loadParams()
     node_handle_.param("num_milestones", options_.num_milestones, 10);
     node_handle_.param("num_interpolation_samples", options_.num_interpolation_samples, 10);
     node_handle_.param("planning_timestep", options_.planning_timestep, 0.5);
-    node_handle_.param("dynamic_obstacle_max_speed", options_.conservative.dynamic_obstacle_max_speed, 0.1);
-    node_handle_.param("dynamic_obstacle_duration", options_.conservative.dynamic_obstacle_duration, 1.0);
+    node_handle_.param("dynamic_obstacle_max_speed", options_.conservative_algorithm.dynamic_obstacle_max_speed, 0.1);
+    node_handle_.param("dynamic_obstacle_duration", options_.conservative_algorithm.dynamic_obstacle_duration, 1.0);
 
     // load ITOMP algorithm
     std::string itomp_algorithm;
@@ -329,6 +332,77 @@ Eigen::Affine3d ITOMPPlannerNode::getRobotRootTransform()
     return transform;
 }
 
+void ITOMPPlannerNode::visualizePlanningScene()
+{
+    visualization_msgs::MarkerArray marker_array;
+
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = "map";
+    marker.header.stamp = ros::Time::now();
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.type = visualization_msgs::Marker::SPHERE;
+
+    marker.color.a = 1.;
+
+    marker.pose.orientation.w = 1.;
+    marker.pose.orientation.x = 0.;
+    marker.pose.orientation.y = 0.;
+    marker.pose.orientation.z = 0.;
+
+    const Spheres& static_obstacle_spheres = planning_scene_.getStaticSphereObstacles();
+    const Spheres& dynamic_obstacle_spheres = planning_scene_.getDynamicSphereObstacles();
+
+    // static obstacles as green
+    marker.ns = "planning_scene_static";
+    marker.color.r = 0.;
+    marker.color.g = 1.;
+    marker.color.b = 0.;
+    for (int i=0; i<static_obstacle_spheres.size(); i++)
+    {
+        const Sphere& sphere = static_obstacle_spheres[i];
+
+        marker.id = i;
+
+        tf::pointEigenToMsg(sphere.position, marker.pose.position);
+        marker.scale.x = marker.scale.y = marker.scale.z = sphere.radius * 2.;
+
+        marker_array.markers.push_back(marker);
+    }
+
+    // dynamic obstacles as red
+    marker.ns = "planning_scene_dynamic";
+    marker.color.r = 1.;
+    marker.color.g = 0.;
+    for (int i=0; i<dynamic_obstacle_spheres.size(); i++)
+    {
+        const Sphere& sphere = dynamic_obstacle_spheres[i];
+
+        marker.id = i;
+
+        tf::pointEigenToMsg(sphere.position, marker.pose.position);
+        marker.scale.x = marker.scale.y = marker.scale.z = sphere.radius * 2.;
+
+        marker_array.markers.push_back(marker);
+    }
+
+    // future dynamic obstacles as transparent red
+    marker.ns = "planning_scene_dynamic_future";
+    marker.color.a = 0.5;
+    for (int i=0; i<dynamic_obstacle_spheres.size(); i++)
+    {
+        const Sphere& sphere = dynamic_obstacle_spheres[i];
+
+        marker.id = i;
+
+        tf::pointEigenToMsg(sphere.position, marker.pose.position);
+        marker.scale.x = marker.scale.y = marker.scale.z = (sphere.radius + options_.conservative_algorithm.dynamic_obstacle_duration * options_.conservative_algorithm.dynamic_obstacle_max_speed) * 2.;
+
+        marker_array.markers.push_back(marker);
+    }
+
+    planning_scene_visualization_publisher_.publish(marker_array);
+}
+
 static void* optimizeSingleTrajectory(void* optimizer)
 {
     ITOMPOptimizer* casted_optimizer = (ITOMPOptimizer*)optimizer;
@@ -379,8 +453,8 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
         optimizer.setRobotModel(robot_model_);
         optimizer.setOptimizationTimeLimit(optimization_time);
         optimizer.setPlanningTimestep(options_.planning_timestep);
-        optimizer.setDynamicObstacleMaxSpeed(options_.conservative.dynamic_obstacle_max_speed);
-        optimizer.setDynamicObstacleDuration(options_.conservative.dynamic_obstacle_duration);
+        optimizer.setDynamicObstacleMaxSpeed(options_.conservative_algorithm.dynamic_obstacle_max_speed);
+        optimizer.setDynamicObstacleDuration(options_.conservative_algorithm.dynamic_obstacle_duration);
 
         // initialize trajectory only with start state
         optimizer.setPlanningRobotStartState(start_state_, trajectory_duration, options_.num_milestones);
@@ -417,7 +491,7 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
         // update dynamic environments
 
         // visualize updated planning scene
-        optimizers_[0].visualizePlanningScene();
+        visualizePlanningScene();
 
         // optimize during optimization_time
         optimizeAllTrajectories();

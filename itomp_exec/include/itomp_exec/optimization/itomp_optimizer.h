@@ -251,7 +251,6 @@ public:
     void visualizeMilestones();
     void visualizeInterpolationSamples();
     void visualizeInterpolationSamplesCollisionSpheres();
-    void visualizePlanningScene();
     
     // robot trajectory conversion
     void getRobotTrajectoryIntervalMsg(moveit_msgs::RobotTrajectory& msg, double t0, double t1, int num_states);
