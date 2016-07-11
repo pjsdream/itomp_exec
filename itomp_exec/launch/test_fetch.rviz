@@ -7,6 +7,8 @@ Panels:
         - /Global Options1
         - /Status1
         - /PlanningScene1/Scene Geometry1
+        - /itomp planning scene1
+        - /itomp trajectory1
       Splitter Ratio: 0.568571
     Tree Height: 546
   - Class: rviz/Selection
@@ -231,131 +233,6 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        bellows_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        bellows_link2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        elbow_flex_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        estop_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        forearm_roll_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        gripper_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        head_camera_depth_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        head_camera_depth_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        head_camera_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        head_camera_rgb_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        head_camera_rgb_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        head_pan_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        head_tilt_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        l_gripper_finger_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        l_wheel_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        laser_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        r_gripper_finger_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        r_wheel_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        shoulder_lift_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        shoulder_pan_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        torso_fixed_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        torso_lift_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        upperarm_roll_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        wrist_flex_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        wrist_roll_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
       Loop Animation: true
       Name: Trajectory
       Robot Alpha: 1
@@ -668,7 +545,7 @@ Visualization Manager:
       Visual Enabled: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /test_fetch/trajectory_0
+      Marker Topic: /test_fetch/planning_scene
       Name: itomp planning scene
       Namespaces:
         interpolated_0: true
@@ -692,7 +569,19 @@ Visualization Manager:
       Marker Topic: /test_fetch/trajectory_0
       Name: itomp trajectory
       Namespaces:
-        {}
+        interpolated_0: true
+        interpolated_1: true
+        interpolated_10: true
+        interpolated_11: true
+        interpolated_12: true
+        interpolated_2: true
+        interpolated_3: true
+        interpolated_4: true
+        interpolated_5: true
+        interpolated_6: true
+        interpolated_7: true
+        interpolated_8: true
+        interpolated_9: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -845,10 +734,10 @@ Visualization Manager:
         Z: 1.3675
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.189797
+      Pitch: 0.424797
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.54278
+      Yaw: 4.58778
     Saved: ~
 Window Geometry:
   Displays:
@@ -866,5 +755,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1200
-  X: 702
-  Y: 60
+  X: 694
+  Y: 52

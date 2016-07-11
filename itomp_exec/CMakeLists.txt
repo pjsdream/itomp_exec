@@ -171,6 +171,7 @@ add_library(itomp_exec
   src/util/gaussian_quadrature.cpp
   src/util/joint_state_listener.cpp
   src/cost/cost.cpp
+  src/cost/time_cost.cpp
   src/cost/goal_pose_cost.cpp
   src/cost/smoothness_cost.cpp
   src/cost/collision_cost.cpp
