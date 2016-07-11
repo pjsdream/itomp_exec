@@ -22,9 +22,9 @@ re-implemented ITOMP for Gazebo or real robot execution
  * future_obstacle_publisher  
      **Parameters**  
        input_stream_type (string, default: realtime)  
-         One of "realtime", "cad120"  
+       \* One of "realtime", "cad120"  
        joints_type (string, default: upper_body)  
-         One of "whole_body", "upper_body"  
+       \* One of "whole_body", "upper_body"  
        render (bool, default: false)  
        cad120_directory (string, required when input_stream_type = "cad120")  
      **Subscribed Topics**  
@@ -37,13 +37,13 @@ re-implemented ITOMP for Gazebo or real robot execution
      **Published Topics**  
        /future_obstacle_distributions_marker_array (visualization_msgs/MarkerArray)
 * Launches
- * test_fetch.launch use_real_robot:=(true/false) use_gazebo:=(true/false) use_rviz:=(true/false) use_benchmark1:=(true/false) use_benchmark2:=(true/false)
-  * Set either use_real_robot or use_gazebo to true
-  * Set either use_benchmark1 or use_benchmark2 to true
-  * use_rviz = true as default
+ * test_fetch.launch use_real_robot:=(true/false) use_gazebo:=(true/false) use_rviz:=(true/false) use_benchmark1:=(true/false) use_benchmark2:=(true/false)  
+  \* Set either use_real_robot or use_gazebo to true
+  \* Set either use_benchmark1 or use_benchmark2 to true
+  \* use_rviz = true as default
 
 ## Build
-* Package is organized using catkin
-  $ roscd
+* Package is organized using catkin  
+  $ roscd  
   $ catkin_make
 
