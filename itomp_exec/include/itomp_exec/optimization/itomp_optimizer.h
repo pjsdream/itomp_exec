@@ -215,6 +215,11 @@ public:
         return interpolated_variables_.col( interpolation_index );
     }
 
+    inline double getOptimizationTimeLimit() const
+    {
+        return optimization_time_limit_;
+    }
+
     // cost variables to be changed by cost functions
     inline double& cost()
     {
@@ -246,7 +251,10 @@ public:
 
     void copyTrajectory(const ITOMPOptimizer& optimizer);
 
+    // optimization functions with pthread capability
+    // optimize() must be called in a created pthread; not in the main thread
     void optimize();
+    void optimizeThreadCleanup();
 
     double trajectoryCost();
 
@@ -306,6 +314,10 @@ private:
     double planning_timestep_;
     double dynamic_obstacle_max_speed_;
     double dynamic_obstacle_duration_;
+
+    // variables and time stamp for optimization thread
+    column_vector optimization_variables_;
+    ros::Time optimization_start_time_;
 
     // TODO: ITOMP with motion prediction
 

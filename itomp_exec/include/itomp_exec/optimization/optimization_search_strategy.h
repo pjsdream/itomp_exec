@@ -1,3 +1,8 @@
+/*
+ * Refer to dlib/optimization/optimization_stop_strategies.h
+ * max_line_search_iterations was changed
+ */
+
 #ifndef ITOMP_EXEC_OPTIMIZATION_SEARCH_STRATEGY_H
 #define ITOMP_EXEC_OPTIMIZATION_SEARCH_STRATEGY_H
 

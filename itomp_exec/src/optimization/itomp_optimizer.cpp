@@ -4,6 +4,7 @@
 #include <itomp_exec/util/gaussian_quadrature.h>
 #include <itomp_exec/optimization/optimization_stop_strategy.h>
 #include <itomp_exec/optimization/optimization_search_strategy.h>
+#include <itomp_exec/optimization/find_min_box_constrained_thread_safe.h>
 #include <eigen_conversions/eigen_msg.h>
 
 #include <random>
@@ -348,7 +349,7 @@ void ITOMPOptimizer::copyTrajectory(const ITOMPOptimizer& optimizer)
 
 void ITOMPOptimizer::optimize()
 {
-    ros::Time start_time = ros::Time::now();
+    optimization_start_time_ = ros::Time::now();
 
     // update static obstacle spheres
     static_obstacle_spheres_ = planning_scene_->getStaticSphereObstacles();
@@ -356,55 +357,51 @@ void ITOMPOptimizer::optimize()
     // update dynamic obstacle spheres at current time
     dynamic_obstacle_spheres_ = planning_scene_->getDynamicSphereObstacles();
     
-    column_vector initial_variables = convertEigenToDlibVector( getOptimizationVariables() );
+    optimization_variables_ = convertEigenToDlibVector( getOptimizationVariables() );
     column_vector lower = convertEigenToDlibVector( getOptimizationVariableLowerLimits() );
     column_vector upper = convertEigenToDlibVector( getOptimizationVariableUpperLimits() );
 
     // stop strategy is both time limit and objective delta
-    coupled_stop_strategy<itomp_exec::time_limit_stop_strategy, dlib::objective_delta_stop_strategy>
-            stop_strategy(itomp_exec::time_limit_stop_strategy(optimization_time_limit_, start_time), dlib::objective_delta_stop_strategy(1e-5, 1000000));
+    //coupled_stop_strategy<itomp_exec::time_limit_stop_strategy, dlib::objective_delta_stop_strategy>
+    //        stop_strategy(itomp_exec::time_limit_stop_strategy(optimization_time_limit_, start_time), dlib::objective_delta_stop_strategy(1e-5, 1000000));
 
+    // stop strategy is just objective delta; no time constraint
+    dlib::objective_delta_stop_strategy stop_strategy(1e-5, 1000000);
+
+    // The function 'dlib::find_min_box_contrained()' updates the optimal solution ever found to its input parameter 'x',
+    // analyzing the implementation in dlib/optimization/optimization.h.
+    // The thread can be cancelled during optimization.
+    // Optimization function must be thread-safe.
     if (use_numerical_derivative_)
     {
-        dlib::find_min_box_constrained(
+        find_min_box_constrained_thread_safe(
                     itomp_exec::bfgs_search_strategy(),
                     stop_strategy,
                     std::bind(&ITOMPOptimizer::optimizationCost, this, std::placeholders::_1),
                     std::bind(&ITOMPOptimizer::optimizationCostNumericalDerivative, this, std::placeholders::_1),
-                    initial_variables,
+                    optimization_variables_,
                     lower,
                     upper
                     );
     }
     else
     {
-        dlib::find_min_box_constrained(
+        find_min_box_constrained_thread_safe(
                     itomp_exec::bfgs_search_strategy(),
                     stop_strategy,
                     std::bind(&ITOMPOptimizer::optimizationCost, this, std::placeholders::_1),
                     std::bind(&ITOMPOptimizer::optimizationCostDerivative, this, std::placeholders::_1),
-                    initial_variables,
+                    optimization_variables_,
                     lower,
                     upper
                     );
     }
+}
 
-    // derivative test
-    /*
-    const double c = optimizationCost(initial_variables);
-    column_vector d = optimizationCostNumericalDerivative(initial_variables);
-    const double cd = optimizationCost(initial_variables + d * numerical_derivative_eps_);
-    printf("%lf -> %lf, (diff: %lf)\n", c, cd, (cd - c) / numerical_derivative_eps_);
-    */
-
-    // visualize trajectory
-    //visualizeMilestones();
-    visualizeInterpolationSamples();
-    //visualizeInterpolationSamplesCollisionSpheres();
-    
-    milestoneInitializeWithDlibVector(initial_variables);
-
-    ROS_INFO("Optimization elapsed time: %lf sec", (ros::Time::now() - start_time).toSec());
+void ITOMPOptimizer::optimizeThreadCleanup()
+{
+    ROS_INFO("Optimization elapsed time: %lf sec", (ros::Time::now() - optimization_start_time_).toSec());
+    milestoneInitializeWithDlibVector(optimization_variables_);
 }
 
 double ITOMPOptimizer::trajectoryCost()

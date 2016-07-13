@@ -1077,6 +1077,7 @@ void TestFetch::detachSphere(int sphere_index)
 int main(int argc, char** argv)
 {
     setbuf(stdout, NULL);
+    setbuf(stderr, NULL);
     
     srand(time(NULL));
     
