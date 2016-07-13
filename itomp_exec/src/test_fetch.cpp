@@ -587,10 +587,10 @@ void TestFetch::runMovingArmScenario()
 
     int goal_index = 0;
     Pose start_pose;
-    start_pose.position = Eigen::Vector3d(0.7, -0.7, 1.25);
+    start_pose.position = Eigen::Vector3d(0.5, -0.7, 1.25);
     start_pose.orientation = Eigen::Quaterniond(1., 0., 0., 0.);
     Pose target_pose;
-    target_pose.position = Eigen::Vector3d(0.7, 0.7, 1.25);
+    target_pose.position = Eigen::Vector3d(0.5, 0.7, 1.25);
     target_pose.orientation = Eigen::Quaterniond(1., 0., 0., 0.);
     
     while (true)

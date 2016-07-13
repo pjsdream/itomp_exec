@@ -210,6 +210,11 @@ public:
         return interpolated_curve_bases_.row(interpolation_index).transpose();
     }
 
+    inline const Eigen::VectorXd getInterpolatedVariables(int interpolation_index) const
+    {
+        return interpolated_variables_.col( interpolation_index );
+    }
+
     // cost variables to be changed by cost functions
     inline double& cost()
     {
@@ -235,6 +240,9 @@ public:
     double clampVelocity(double value, int joint_index) const;
 
     void stepForward(double time);
+    void extend(double time);
+
+    bool reachedGoalPose(double tolerance = 1e-6);
 
     void copyTrajectory(const ITOMPOptimizer& optimizer);
 
@@ -254,6 +262,9 @@ public:
     
     // robot trajectory conversion
     void getRobotTrajectoryIntervalMsg(moveit_msgs::RobotTrajectory& msg, double t0, double t1, int num_states);
+
+    // DEBUG: test gradients numerically
+    void testGradients();
     
 private:
 
@@ -270,7 +281,7 @@ private:
     
     Eigen::VectorXd optimization_variable_lower_limits_;
     Eigen::VectorXd optimization_variable_upper_limits_;
-    
+
     // optimization objectives
     std::vector<GoalLinkPose> goal_link_poses_;
 

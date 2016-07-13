@@ -47,6 +47,9 @@ void ITOMPOptimizer::setCostWeight(const std::string& cost_type, double weight)
     
     else if (cost_type == "collision")
         cost_functions_.push_back(new CollisionCost(*this, weight));
+
+    else if (cost_type == "time")
+        cost_functions_.push_back(new TimeCost(*this, weight));
     
     else
         ROS_WARN("ITOMPOptimizer: Unknown cost type [%s]", cost_type.c_str());
@@ -244,6 +247,96 @@ void ITOMPOptimizer::stepForward(double time)
     trajectory_duration_ -= time;
 }
 
+void ITOMPOptimizer::extend(double time)
+{
+    // update milestones
+    precomputeCubicPolynomials();
+
+    int poly_index = 0;
+    for (int i=-1; i<num_milestones_; i++)
+    {
+        const double u = (double)(i+1) / num_milestones_;
+        const double t = u * (trajectory_duration_ + time);
+
+        while (poly_index < num_milestones_ && (double)(poly_index + 1) / num_milestones_ * trajectory_duration_ < t)
+            poly_index++;
+
+        for (int j=0; j<num_joints_; j++)
+        {
+            if (poly_index < num_milestones_)
+            {
+                const ecl::CubicPolynomial& poly = cubic_polynomials_[j][poly_index];
+
+                if (i==-1)
+                {
+                    start_milestone_(j) = clampPosition(poly(t), j);
+                    start_milestone_(num_joints_ + j) = clampVelocity(poly.derivative(t), j);
+                }
+                else
+                {
+                    milestones_(j, i) = clampPosition(poly(t), j);
+                    milestones_(num_joints_ + j, i) = clampVelocity(poly.derivative(t), j);
+                }
+            }
+            else
+            {
+                const ecl::CubicPolynomial& poly = cubic_polynomials_[j][num_milestones_ - 1];
+
+                double overtime = t - trajectory_duration_;
+
+                milestones_(j, i) = clampPosition(poly(trajectory_duration_) + overtime * poly.derivative(trajectory_duration_), j);
+                milestones_(num_joints_ + j, i) = clampVelocity(poly.derivative(trajectory_duration_), j);
+            }
+        }
+    }
+
+    trajectory_duration_ += time;
+}
+
+bool ITOMPOptimizer::reachedGoalPose(double tolerance)
+{
+    precomputeInterpolatedLinkTransforms();
+
+    const int num_robot_joints = getNumRobotJoints();
+
+    // the first interpolated forward kinematics matched with start milestone
+    for (int i=0; i<num_robot_joints; i++)
+    {
+        const ITOMPOptimizer::GoalLinkPose& goal_link_pose = getGoalLinkPose(i);
+
+        const double& position_weight = goal_link_pose.position_weight;
+        const double& orientation_weight = goal_link_pose.orientation_weight;
+
+        if (position_weight != 0.)
+        {
+            const Eigen::Vector3d& link_position = getInterpolatedLinkTransform(0, i).translation();
+            const Eigen::Vector3d& target_position = goal_link_pose.position;
+
+            if ((link_position - target_position).squaredNorm() * position_weight > tolerance)
+                return false;
+        }
+
+        if (orientation_weight != 0.)
+        {
+            const Eigen::Quaterniond link_orientation( getInterpolatedLinkTransform(0, i).linear() );
+            const Eigen::Quaterniond target_orientation = goal_link_pose.orientation;
+
+            if ((1 - std::abs(link_orientation.dot(target_orientation))) * orientation_weight > tolerance)
+                return false;
+        }
+    }
+
+    // velocities should be around zero
+    for (int i=0; i<num_joints_; i++)
+    {
+        const double v = milestones_(num_joints_ + i, 0);
+        if (std::abs(v) > tolerance)
+            return false;
+    }
+
+    return true;
+}
+
 void ITOMPOptimizer::copyTrajectory(const ITOMPOptimizer& optimizer)
 {
     // assuming all parameters are the same except milestones and trajectory duration
@@ -385,6 +478,56 @@ const ITOMPOptimizer::column_vector ITOMPOptimizer::optimizationCostNumericalDer
     }
     
     return derivative;
+}
+
+void ITOMPOptimizer::testGradients()
+{
+    const double eps = 1e-6;
+
+    for (int i=0; i<cost_functions_.size(); i++)
+    {
+        ROS_INFO("Testing gradient for cost type [%s]", cost_functions_[i]->getString().c_str());
+
+        // cost
+        milestoneInitializeWithDlibVector( convertEigenToDlibVector(milestones_) );
+        precomputeOptimizationResources();
+
+        cost_ = 0.;
+        milestone_derivative_.setZero();
+
+        cost_functions_[i]->addCost();
+        cost_functions_[i]->addDerivative();
+
+        const double cost = cost_;
+
+        ROS_INFO(" cost: %lf", cost);
+
+        // cost of (x + delta derivative)
+        Eigen::VectorXd milestone_derivative_vector = Eigen::Map<Eigen::VectorXd>(milestone_derivative_.data(), milestone_derivative_.rows() * milestone_derivative_.cols());
+        const double milestone_derivative_squared_norm = milestone_derivative_vector.squaredNorm();
+
+        if (milestone_derivative_squared_norm < eps)
+        {
+            ROS_INFO(" Local minimum");
+        }
+        else
+        {
+            const Eigen::MatrixXd milestone_delta = milestones_ + milestone_derivative_ / milestone_derivative_squared_norm * eps;
+
+            milestoneInitializeWithDlibVector( convertEigenToDlibVector(milestone_delta) );
+            precomputeOptimizationResources();
+
+            cost_ = 0.;
+
+            cost_functions_[i]->addCost();
+
+            const double cost_delta = cost_;
+
+            // evaluate the result
+            // (cost_delta - cost) / eps ~ 1
+            ROS_INFO(" delta / eps = %lf", (cost_delta - cost) / eps);
+        }
+    }
 }
 
 void ITOMPOptimizer::allocateOptimizationResources()

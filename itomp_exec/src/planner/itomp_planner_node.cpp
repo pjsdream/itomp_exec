@@ -125,13 +125,14 @@ void ITOMPPlannerNode::initialize()
 void ITOMPPlannerNode::loadParams()
 {
     // load options
-    node_handle_.param("num_trajectoreis", options_.num_trajectories, 8);
+    node_handle_.param("num_trajectories", options_.num_trajectories, 8);
     node_handle_.param("trajectory_duration", options_.trajectory_duration, 5.0);
     node_handle_.param("num_milestones", options_.num_milestones, 10);
     node_handle_.param("num_interpolation_samples", options_.num_interpolation_samples, 10);
     node_handle_.param("planning_timestep", options_.planning_timestep, 0.5);
     node_handle_.param("dynamic_obstacle_max_speed", options_.conservative_algorithm.dynamic_obstacle_max_speed, 0.1);
     node_handle_.param("dynamic_obstacle_duration", options_.conservative_algorithm.dynamic_obstacle_duration, 1.0);
+    node_handle_.param("goal_tolerance", options_.goal_tolerance, 1e-6);
 
     // load ITOMP algorithm
     std::string itomp_algorithm;
@@ -422,14 +423,28 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
 {
     res.trajectory_.reset(new robot_trajectory::RobotTrajectory(moveit_robot_model_, planning_group_name_));
 
+    initializeOptimizers();
+
+    switch (options_.itomp_algorithm)
+    {
+    case ITOMPFixedTrajectoryDuration:
+        return planAndExecuteFixedTrajectoryDuration();
+
+    case ITOMPFlexibleTrajectoryDuration:
+        return planAndExecuteFlexibleTrajectoryDuration();
+
+    default:
+        ROS_ERROR("Unknown ITOMP algorithm enum [%d]", options_.itomp_algorithm);
+        return false;
+    }
+}
+
+void ITOMPPlannerNode::initializeOptimizers()
+{
     const double optimization_time_fraction = 0.80;
     const double optimization_time = options_.planning_timestep * optimization_time_fraction;
-    const int states_per_second = 15;
-    const int num_states_per_planning_timestep = (int)(options_.planning_timestep * states_per_second) + 1;
     
     double trajectory_duration = options_.trajectory_duration;
-    double elapsed_time = 0.;
-    ros::Rate rate( 1. / options_.planning_timestep );
 
     // compute robot's root transformation from tf listener
     const Eigen::Affine3d robot_root_transform = getRobotRootTransform();
@@ -475,6 +490,17 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
     // trajectory 0 starts with linear path. Other start with random milestones
     for (int i=1; i<optimizers_.size(); i++)
         optimizers_[i].initializeRandomMilestones();
+}
+
+bool ITOMPPlannerNode::planAndExecuteFixedTrajectoryDuration()
+{
+    const int states_per_second = 15;
+    const int num_states_per_planning_timestep = (int)(options_.planning_timestep * states_per_second) + 1;
+
+    double elapsed_time = 0.;
+    ros::Rate rate( 1. / options_.planning_timestep );
+
+    double trajectory_duration = options_.trajectory_duration;
 
     // virtual human arm request
     const double virtual_human_arm_delay = 1.5;
@@ -487,7 +513,7 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
     while (true)
     {
         ROS_INFO("Planning trajectory of %lf sec", trajectory_duration);
-        
+
         // update dynamic environments
 
         // visualize updated planning scene
@@ -517,7 +543,7 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
         moveit_msgs::RobotTrajectory robot_trajectory_msg;
         optimizers_[best_trajectory_index].getRobotTrajectoryIntervalMsg(robot_trajectory_msg, 0, options_.planning_timestep, num_states_per_planning_timestep);
         trajectory_execution_manager_->pushAndExecute(robot_trajectory_msg);
-        
+
         // TODO: record to response
         /*
         robot_trajectory::RobotTrajectory robot_trajectory(robot_model_, planning_group_name_);
@@ -540,6 +566,100 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
             if (i != best_trajectory_index)
                 optimizers_[i].copyTrajectory( optimizers_[best_trajectory_index] );
         }
+    }
+
+    ROS_INFO("Waiting %lf sec for the last execution step", options_.planning_timestep);
+    ros::Duration(options_.planning_timestep).sleep();
+
+    return true;
+}
+
+bool ITOMPPlannerNode::planAndExecuteFlexibleTrajectoryDuration()
+{
+    const int states_per_second = 15;
+    const int num_states_per_planning_timestep = (int)(options_.planning_timestep * states_per_second) + 1;
+
+    double elapsed_trajectory_time = 0.;
+    ros::Rate rate( 1. / options_.planning_timestep );
+
+    double trajectory_duration = options_.trajectory_duration;
+
+    // virtual human arm request
+    const double virtual_human_arm_delay = 1.5;
+    const double virtual_human_arm_speed = 50.0;
+    std_msgs::Float64MultiArray msg;
+    msg.data.push_back(virtual_human_arm_delay);
+    msg.data.push_back(virtual_human_arm_speed);
+    virtual_human_arm_request_publisher_.publish(msg);
+
+    ros::Time start_time = ros::Time::now();
+
+    while (true)
+    {
+        const ros::Duration elapsed_ros_time = ros::Time::now() - start_time;
+        ROS_INFO("Planning trajectory after %lf sec (ros time: %lf, error: %lf)", elapsed_trajectory_time, elapsed_ros_time.toSec(), elapsed_ros_time.toSec() - elapsed_trajectory_time);
+        
+        // update dynamic environments
+
+        // visualize updated planning scene
+        visualizePlanningScene();
+
+        // optimize during optimization_time
+        optimizeAllTrajectories();
+
+        // find the best trajectory
+        int best_trajectory_index = 0;
+        double best_trajectory_cost = optimizers_[0].cost();
+        for (int i=1; i<optimizers_.size(); i++)
+        {
+            const double cost = optimizers_[i].trajectoryCost();
+
+            if (cost < best_trajectory_cost)
+            {
+                best_trajectory_index = i;
+                best_trajectory_cost = cost;
+            }
+        }
+
+        // DEBUG: test gradient for best trajectory
+        optimizers_[best_trajectory_index].testGradients();
+
+        // prepare the first timestep of trajectory for execution
+        moveit_msgs::RobotTrajectory robot_trajectory_msg;
+        optimizers_[best_trajectory_index].getRobotTrajectoryIntervalMsg(robot_trajectory_msg, 0, options_.planning_timestep, num_states_per_planning_timestep);
+        
+        // TODO: record to response
+        /*
+        robot_trajectory::RobotTrajectory robot_trajectory(robot_model_, planning_group_name_);
+        robot_trajectory.setRobotTrajectoryMsg(*start_state_, robot_trajectory_msg);
+        res_->trajectory_->append(robot_trajectory, options_.planning_timestep);
+        res_->error_code_.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
+        */
+
+        optimizers_[best_trajectory_index].stepForward(options_.planning_timestep);
+        optimizers_[best_trajectory_index].extend(options_.planning_timestep);
+        elapsed_trajectory_time += options_.planning_timestep;
+
+        //ROS_INFO("Best trajectory cost: %lf", best_trajectory_cost);
+
+        if (best_trajectory_cost < options_.goal_tolerance)
+            break;
+
+        /*
+        if (optimizers_[best_trajectory_index].reachedGoalPose(options_.goal_tolerance))
+            break;
+            */
+
+        // copy the best trajectory to others
+        for (int i=0; i<optimizers_.size(); i++)
+        {
+            if (i != best_trajectory_index)
+                optimizers_[i].copyTrajectory( optimizers_[best_trajectory_index] );
+        }
+
+        // sleep until next timestep then execute
+        rate.sleep();
+        trajectory_execution_manager_->pushAndExecute(robot_trajectory_msg);
     }
 
     ROS_INFO("Waiting %lf sec for the last execution step", options_.planning_timestep);

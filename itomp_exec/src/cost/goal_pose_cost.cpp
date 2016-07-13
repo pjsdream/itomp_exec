@@ -39,7 +39,7 @@ void GoalPoseCost::addCost()
             const Eigen::Vector3d& link_position = optimizer.getGoalLinkTransform(i).translation();
             const Eigen::Vector3d& target_position = goal_link_pose.position;
 
-            cost += (link_position - target_position).squaredNorm() * weight;
+            cost += (link_position - target_position).squaredNorm() * position_weight * weight;
         }
 
         if (orientation_weight != 0.)
@@ -47,7 +47,7 @@ void GoalPoseCost::addCost()
             const Eigen::Quaterniond link_orientation( optimizer.getGoalLinkTransform(i).linear() );
             const Eigen::Quaterniond target_orientation = goal_link_pose.orientation;
 
-            cost += (1 - std::abs(link_orientation.dot(target_orientation))) * ratio_cosine_to_meter_ * weight;
+            cost += (1 - std::abs(link_orientation.dot(target_orientation))) * ratio_cosine_to_meter_ * orientation_weight * weight;
         }
     }
 

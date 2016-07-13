@@ -2,6 +2,9 @@
 #define ITOMP_EXEC_COST_H
 
 
+#include <string>
+
+
 namespace itomp_exec
 {
 
@@ -23,8 +26,15 @@ public:
         return optimizer_;
     }
 
+    inline virtual std::string getString()
+    {
+        return "Cost";
+    }
+
     virtual void addCost();
     virtual void addDerivative();
+
+    void addDerivativeByInterpolationIndex(int joint_index, int interpolation_index, double derivative);
 
 private:
 

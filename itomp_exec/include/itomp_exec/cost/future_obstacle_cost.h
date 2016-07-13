@@ -15,6 +15,11 @@ public:
         
     FutureObstacleCost(ITOMPOptimizer& optimizer, double weight = 1.0);
 
+    inline virtual std::string getString()
+    {
+        return "FutureObstacleCost";
+    }
+
 private:
     
 };

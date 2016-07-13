@@ -10,9 +10,19 @@ namespace itomp_exec
 
 class TimeCost : public Cost
 {
+private:
+
+    static const double ratio_cosine_to_meter_;
+    static const double ratio_radian_per_sec_to_meter_;
+
 public:
 
     TimeCost(ITOMPOptimizer& optimizer, double weight = 1.0);
+
+    inline virtual std::string getString()
+    {
+        return "TimeCost";
+    }
 
     virtual void addCost();
     virtual void addDerivative();

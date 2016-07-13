@@ -79,8 +79,6 @@ void CollisionCost::addDerivative()
     ITOMPOptimizer& optimizer = getOptimizer();
     const double weight = getWeight();
 
-    Eigen::MatrixXd& milestone_derivative = optimizer.milestoneDerivative();
-
     const int num_joints = optimizer.getNumJoints();
     const int num_interpolated_variables = optimizer.getNumInterpolatedConfigurations();
     const int num_robot_joints = optimizer.getNumRobotJoints();
@@ -132,19 +130,7 @@ void CollisionCost::addDerivative()
                                     const Eigen::Vector3d axis = robot_model.getJointAxis(joint_index).normalized();
                                     const double curve_derivative = - 2. * (axis.cross(relative_robot_position)).dot(relative_robot_position - relative_obstacle_position);
 
-                                    const std::pair<int, int> interpolation_index_position = optimizer.getInterpolationIndexPosition(i);
-                                    const int milestone_index0 = interpolation_index_position.first - 1;
-                                    const int milestone_index1 = milestone_index0 + 1;
-                                    const int interpolation_index = interpolation_index_position.second;
-                                    const Eigen::Vector4d variable_derivative = optimizer.getInterpolatedCurveBasis(interpolation_index) * curve_derivative * trajectory_duration * weight / num_interpolation_samples;
-
-                                    if (milestone_index0 != -1)
-                                    {
-                                        milestone_derivative(m, milestone_index0) += variable_derivative(0);
-                                        milestone_derivative(m, milestone_index0) += variable_derivative(1);
-                                    }
-                                    milestone_derivative(m, milestone_index1) += variable_derivative(2);
-                                    milestone_derivative(m, milestone_index1) += variable_derivative(3);
+                                    addDerivativeByInterpolationIndex(m, i, curve_derivative * trajectory_duration * weight / num_interpolation_samples);
 
                                     break;
                                 }
@@ -186,19 +172,7 @@ void CollisionCost::addDerivative()
                                         const Eigen::Vector3d axis = robot_model.getJointAxis(joint_index).normalized();
                                         const double curve_derivative = - 2. * (axis.cross(relative_robot_position)).dot(relative_robot_position - relative_obstacle_position);
 
-                                        const std::pair<int, int> interpolation_index_position = optimizer.getInterpolationIndexPosition(i);
-                                        const int milestone_index0 = interpolation_index_position.first - 1;
-                                        const int milestone_index1 = milestone_index0 + 1;
-                                        const int interpolation_index = interpolation_index_position.second;
-                                        const Eigen::Vector4d variable_derivative = optimizer.getInterpolatedCurveBasis(interpolation_index) * curve_derivative * trajectory_duration * weight / num_interpolation_samples;
-
-                                        if (milestone_index0 != -1)
-                                        {
-                                            milestone_derivative(m, milestone_index0) += variable_derivative(0);
-                                            milestone_derivative(m, milestone_index0) += variable_derivative(1);
-                                        }
-                                        milestone_derivative(m, milestone_index1) += variable_derivative(2);
-                                        milestone_derivative(m, milestone_index1) += variable_derivative(3);
+                                        addDerivativeByInterpolationIndex(m, i, curve_derivative * trajectory_duration * weight / num_interpolation_samples);
 
                                         break;
                                     }

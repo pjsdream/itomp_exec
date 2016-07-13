@@ -40,6 +40,7 @@ public:
         int num_milestones;
         int num_interpolation_samples;
         double planning_timestep;
+        double goal_tolerance;
 
         ITOMPAlgorithm itomp_algorithm;
         
@@ -110,13 +111,18 @@ public:
 
 private:
     
+    // planning algorithms
+    void initializeOptimizers();
+    bool planAndExecuteFixedTrajectoryDuration();
+    bool planAndExecuteFlexibleTrajectoryDuration();
+
     // initialization functions
     void initialize();
     void loadParams();
     void loadStaticObstacles();
 
     void optimizeAllTrajectories();
-    \
+
     // visualization
     void visualizePlanningScene();
 
