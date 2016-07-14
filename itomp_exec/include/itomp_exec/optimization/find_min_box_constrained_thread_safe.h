@@ -1,6 +1,6 @@
 /*
  * variant of a function 'dlib::find_min_box_constrained_thread_safe' in dlib/optimization/optimization.h
- * This is a pthread cancel-safe implementation by adding pthread_setcancelstate(...)
+ * This is a pthread cancel-safe implementation using pthread wrapper class
  */
 
 #ifndef ITOMP_EXEC_FIND_MIN_BOX_CONSTRAINED_THREAD_SAFE_H
@@ -8,11 +8,86 @@
 
 
 #include <dlib/optimization/optimization.h>
-#include <pthread.h>
+#include <itomp_exec/util/thread.h>
 
 
 namespace itomp_exec
 {
+
+template <
+    typename funct
+    >
+double backtracking_line_search (
+    const funct& f,
+    double f0,
+    double d0,
+    double alpha,
+    double rho,
+    unsigned long max_iter
+)
+{
+    DLIB_ASSERT (
+        0 < rho && rho < 1 && max_iter > 0,
+        "\tdouble backtracking_line_search()"
+        << "\n\tYou have given invalid arguments to this function"
+        << "\n\t rho:      " << rho
+        << "\n\t max_iter: " << max_iter
+    );
+
+    // make sure alpha is going in the right direction.  That is, it should be opposite
+    // the direction of the gradient.
+    if ((d0 > 0 && alpha > 0) ||
+        (d0 < 0 && alpha < 0))
+    {
+        alpha *= -1;
+    }
+
+    // current thread
+    Thread* thread = Thread::self();
+
+    bool have_prev_alpha = false;
+    double prev_alpha = 0;
+    double prev_val = 0;
+    unsigned long iter = 0;
+    while (true)
+    {
+        // cancel thread if requested
+        thread->testCancel();
+
+        ++iter;
+        const double val = f(alpha);
+        if (val <= f0 + alpha*rho*d0 || iter >= max_iter)
+        {
+            return alpha;
+        }
+        else
+        {
+            // Interpolate a new alpha.  We also make sure the step by which we
+            // reduce alpha is not super small.
+            double step;
+            if (!have_prev_alpha)
+            {
+                if (d0 < 0)
+                    step = alpha*dlib::put_in_range(0.1,0.9, dlib::poly_min_extrap(f0, d0, val));
+                else
+                    step = alpha*dlib::put_in_range(0.1,0.9, dlib::poly_min_extrap(f0, -d0, val));
+                have_prev_alpha = true;
+            }
+            else
+            {
+                if (d0 < 0)
+                    step = dlib::put_in_range(0.1*alpha,0.9*alpha, dlib::poly_min_extrap(f0, d0, alpha, val, prev_alpha, prev_val));
+                else
+                    step = dlib::put_in_range(0.1*alpha,0.9*alpha, -dlib::poly_min_extrap(f0, -d0, -alpha, val, -prev_alpha, prev_val));
+            }
+
+            prev_alpha = alpha;
+            prev_val = val;
+
+            alpha = step;
+        }
+    }
+}
 
 template <
     typename search_strategy_type,
@@ -83,7 +158,7 @@ double find_min_box_constrained_thread_safe (
         s = search_strategy.get_next_direction(x, f_value, zero_bounded_variables(gap_eps, g, x, g, x_lower, x_upper));
         s = gap_step_assign_bounded_variables(gap_eps, s, x, g, x_lower, x_upper);
 
-        double alpha = backtracking_line_search(
+        double alpha = itomp_exec::backtracking_line_search(
                     make_line_search_function(clamp_function(f,x_lower,x_upper), x, s, f_value),
                     f_value,
                     dot(g,s), // compute gradient for the line search
@@ -101,10 +176,7 @@ double find_min_box_constrained_thread_safe (
             last_alpha = alpha;
 
         // Take the search step indicated by the above line search
-        // Defer pthread cancellation request until updating x is done
-        pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
         x = dlib::clamp(x + alpha*s, x_lower, x_upper);
-        pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 
         g = der(x);
 

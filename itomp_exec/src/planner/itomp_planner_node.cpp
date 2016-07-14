@@ -412,14 +412,10 @@ static void optimizeSingleTrajectoryCleanup(void* optimizer)
 
 static void* optimizeSingleTrajectory(void* optimizer)
 {
-    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
-
-    pthread_cleanup_push(optimizeSingleTrajectoryCleanup, optimizer);
+    Thread::self()->cleanupPush(optimizeSingleTrajectoryCleanup, optimizer);
 
     ITOMPOptimizer* casted_optimizer = (ITOMPOptimizer*)optimizer;
     casted_optimizer->optimize();
-
-    pthread_cleanup_pop(1);
 
     return NULL;
 }
@@ -436,86 +432,19 @@ void ITOMPPlannerNode::optimizeAllTrajectories()
     }
 
     for (int i=0; i<optimizers_.size(); i++)
-    {
-        const int error_number = pthread_create(&optimizer_threads_[i], NULL, optimizeSingleTrajectory, (void *)&optimizers_[i]);
-
-        if (error_number != 0)
-        {
-            ROS_ERROR("Error occurred creating a thread for trajectory %d", i);
-
-            switch (error_number)
-            {
-            case EAGAIN:
-                ROS_ERROR("Insufficient resources to create another thread.");
-                break;
-
-            case EINVAL:
-                ROS_ERROR("Invalid settings in attr.");
-                break;
-
-            case EPERM:
-                ROS_ERROR("No permission to set the scheduling policy and parameters specified in attr.");
-                break;
-            }
-        }
-
-        else
-        {
-            ROS_INFO("Thread %lu for trajectory %d is created", optimizer_threads_[i], i);
-        }
-    }
+        optimizer_threads_[i] = new Thread(&optimizeSingleTrajectory, &optimizers_[i]);
 
     // cancel all threads after optimization
-    // the created threads are canceled asynchronously
+    // the created threads are canceled
     ros::Duration(optimization_time_limit).sleep();
 
     for (int i=0; i<optimizers_.size(); i++)
-    {
-        const int error_number = pthread_cancel(optimizer_threads_[i]);
-
-        if (error_number != 0)
-        {
-            ROS_ERROR("Error occurred cancelling a thread for trajectory %d", i);
-            ROS_ERROR("No thread with the ID %lu could be found.", optimizer_threads_[i]);
-        }
-
-        else
-        {
-            ROS_INFO("Thread for trajectory %d is cancelled successfully", i);
-        }
-    }
-
-    // wait for a little amount of time so that cleanup function call can be done
-    ros::Duration(0.01).sleep();
+        optimizer_threads_[i]->cancel();
 
     for (int i=0; i<optimizers_.size(); i++)
     {
-        const int error_number = pthread_join(optimizer_threads_[i], NULL);
-
-        if (error_number != 0)
-        {
-            ROS_ERROR("Error occurred joining a thread for trajectory %d", i);
-
-            switch (error_number)
-            {
-            case EDEADLK:
-                ROS_ERROR("A deadlock was detected (e.g., two threads tried to join with each other); or thread %lu specifies the calling thread.", optimizer_threads_[i]);
-                break;
-
-            case EINVAL:
-                ROS_ERROR("thread %lu is not a joinable thread. Or another thread is already waiting to join with this thread.", optimizer_threads_[i]);
-                break;
-
-            case ESRCH:
-                ROS_ERROR("No thread with the ID %lu could be found.", optimizer_threads_[i]);
-                break;
-            }
-        }
-
-        else
-        {
-            ROS_INFO("Thread for trajectory %d is joined successfully", i);
-        }
+        optimizer_threads_[i]->join();
+        delete optimizer_threads_[i];
     }
 }
 

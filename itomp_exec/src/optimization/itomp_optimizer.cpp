@@ -402,6 +402,10 @@ void ITOMPOptimizer::optimizeThreadCleanup()
 {
     ROS_INFO("Optimization elapsed time: %lf sec", (ros::Time::now() - optimization_start_time_).toSec());
     milestoneInitializeWithDlibVector(optimization_variables_);
+
+    // visualization
+    precomputeInterpolatedLinkTransforms();
+    visualizeInterpolationSamples();
 }
 
 double ITOMPOptimizer::trajectoryCost()
@@ -697,7 +701,19 @@ void ITOMPOptimizer::visualizeInterpolationSamples()
     visualization_msgs::MarkerArray marker_array;
 
     for (int i=0; i<interpolated_link_transforms_.size(); i++)
+    {
+        int size = marker_array.markers.size();
         robot_model_->pushVisualLinkVisualizationMarkers(interpolated_link_transforms_[i], "interpolated_" + std::to_string(i), marker_array);
+
+        const double t = (double)i / ((int)interpolated_link_transforms_.size() - 1);
+        for (int j=size; j<marker_array.markers.size(); j++)
+        {
+            marker_array.markers[j].color.r = 1.;
+            marker_array.markers[j].color.g = 1.;
+            marker_array.markers[j].color.b = 1.;
+            marker_array.markers[j].color.a = 1. - t;
+        }
+    }
 
     // link transforms are w.r.t "map"
     for (int i=0; i<marker_array.markers.size(); i++)

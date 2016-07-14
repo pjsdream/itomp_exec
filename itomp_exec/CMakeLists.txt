@@ -170,6 +170,7 @@ add_library(itomp_exec
   src/util/conversions.cpp
   src/util/gaussian_quadrature.cpp
   src/util/joint_state_listener.cpp
+  src/util/thread.cpp
   src/cost/cost.cpp
   src/cost/time_cost.cpp
   src/cost/goal_pose_cost.cpp

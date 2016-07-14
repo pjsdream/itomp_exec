@@ -17,6 +17,9 @@
 
 #include <ros/ros.h>
 
+// pthread wrapper
+#include <itomp_exec/util/thread.h>
+
 
 namespace itomp_exec
 {
@@ -140,7 +143,7 @@ private:
 
     // multithreaded optimizers
     std::vector<ITOMPOptimizer> optimizers_;
-    std::vector<pthread_t> optimizer_threads_;
+    std::vector<Thread*> optimizer_threads_;
     
     std::vector<std::pair<std::string, Eigen::Vector3d> > goal_link_positions_;
     std::vector<std::pair<std::string, Eigen::Quaterniond> > goal_link_orientations_;

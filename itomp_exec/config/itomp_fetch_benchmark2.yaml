@@ -48,6 +48,6 @@ collision_sphere_links:
 cost_weights:
   #goal_pose: 1.0
   time: 1.0
-  smoothness: 0.003
+  smoothness: 0.00
   collision: 10.0
   future_obstacle: 1.0
