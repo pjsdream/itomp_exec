@@ -5,8 +5,7 @@
 namespace itomp_exec
 {
 
-const double TimeCost::ratio_cosine_to_meter_ = 1.0;
-const double TimeCost::ratio_radian_per_sec_to_meter_ = 10.;
+const double TimeCost::ratio_cosine_to_meter_ = 1.;
 
 TimeCost::TimeCost(ITOMPOptimizer& optimizer, double weight)
     : Cost(optimizer, weight)

@@ -217,7 +217,7 @@ void ITOMPOptimizer::stepForward(double time)
     }
     
     // update milestones
-    precomputeCubicPolynomials();
+    precomputeOptimizationResources();
     
     int poly_index = 0;
     for (int i=-1; i<num_milestones_; i++)
@@ -402,10 +402,6 @@ void ITOMPOptimizer::optimizeThreadCleanup()
 {
     ROS_INFO("Optimization elapsed time: %lf sec", (ros::Time::now() - optimization_start_time_).toSec());
     milestoneInitializeWithDlibVector(optimization_variables_);
-
-    // visualization
-    precomputeInterpolatedLinkTransforms();
-    visualizeInterpolationSamples();
 }
 
 double ITOMPOptimizer::trajectoryCost()

@@ -1,11 +1,11 @@
 num_trajectories: 8
-trajectory_duration: 5.0
+trajectory_duration: 3.0
 planning_timestep: 0.5
 num_milestones: 3
 num_interpolation_samples: 3
 dynamic_obstacle_max_speed: 0.00 # m/s
 dynamic_obstacle_duration: 5.0   # s
-goal_tolerance: 0.001  # cost function tolerance
+goal_tolerance: 0.03  # cost function tolerance
 
 #itomp_algorithm: "fixed_trajectory_duration"
 itomp_algorithm: "flexible_trajectory_duration"
@@ -19,19 +19,19 @@ static_obstacles:
   #- {type: "sphere", position: [1.40,  0.00, 1.00], radius: 0.25}
   #- {type: "sphere", position: [1.40,  0.00, 1.10], radius: 0.25}
   #near
-  - {type: "sphere", position: [1.00,  0.00, 0.20], radius: 0.25}
-  - {type: "sphere", position: [1.00,  0.00, 0.30], radius: 0.25}
-  - {type: "sphere", position: [1.00,  0.00, 0.40], radius: 0.25}
-  - {type: "sphere", position: [1.00,  0.00, 0.50], radius: 0.25}
-  - {type: "sphere", position: [1.00,  0.00, 0.60], radius: 0.25}
-  - {type: "sphere", position: [1.00,  0.00, 0.70], radius: 0.25}
-  - {type: "sphere", position: [1.00,  0.00, 0.80], radius: 0.25}
-  - {type: "sphere", position: [1.00,  0.00, 0.90], radius: 0.25}
-  - {type: "sphere", position: [1.00,  0.00, 1.00], radius: 0.25}
-  - {type: "sphere", position: [1.00,  0.00, 1.10], radius: 0.25}
+  #- {type: "sphere", position: [1.00,  0.00, 0.20], radius: 0.25}
+  #- {type: "sphere", position: [1.00,  0.00, 0.30], radius: 0.25}
+  #- {type: "sphere", position: [1.00,  0.00, 0.40], radius: 0.25}
+  #- {type: "sphere", position: [1.00,  0.00, 0.50], radius: 0.25}
+  #- {type: "sphere", position: [1.00,  0.00, 0.60], radius: 0.25}
+  #- {type: "sphere", position: [1.00,  0.00, 0.70], radius: 0.25}
+  #- {type: "sphere", position: [1.00,  0.00, 0.80], radius: 0.25}
+  #- {type: "sphere", position: [1.00,  0.00, 0.90], radius: 0.25}
+  #- {type: "sphere", position: [1.00,  0.00, 1.00], radius: 0.25}
+  #- {type: "sphere", position: [1.00,  0.00, 1.10], radius: 0.25}
   - {type: "sphere", position: [1.00,  0.00, 1.20], radius: 0.25}
-  - {type: "sphere", position: [1.00,  0.00, 1.30], radius: 0.25}
-  - {type: "sphere", position: [1.00,  0.00, 1.40], radius: 0.25}
+  #- {type: "sphere", position: [1.00,  0.00, 1.30], radius: 0.25}
+  #- {type: "sphere", position: [1.00,  0.00, 1.40], radius: 0.25}
 
 collision_sphere_links:
   - shoulder_pan_link
@@ -48,6 +48,6 @@ collision_sphere_links:
 cost_weights:
   #goal_pose: 1.0
   time: 1.0
-  smoothness: 0.00
+  smoothness: 0.3
   collision: 10.0
   future_obstacle: 1.0

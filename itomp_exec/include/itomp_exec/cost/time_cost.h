@@ -13,7 +13,6 @@ class TimeCost : public Cost
 private:
 
     static const double ratio_cosine_to_meter_;
-    static const double ratio_radian_per_sec_to_meter_;
 
 public:
 

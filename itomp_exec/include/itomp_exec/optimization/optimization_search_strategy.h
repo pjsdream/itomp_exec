@@ -26,7 +26,7 @@ public:
     ) const { return 0.9; }
 
     unsigned long get_max_line_search_iterations (
-    ) const { return 10; }
+    ) const { return 5; }
 
     template <typename T>
     const dlib::matrix<double,0,1>& get_next_direction (

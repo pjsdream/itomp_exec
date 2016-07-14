@@ -44,6 +44,8 @@ void ITOMPPlannerNode::initialize()
     // initialize planning scene visualization publisher
     planning_scene_visualization_publisher_ = node_handle_.advertise<visualization_msgs::MarkerArray>("planning_scene", 1);
 
+    goal_constraint_visualization_publisher_ = node_handle_.advertise<visualization_msgs::MarkerArray>("goal_constraint", 1);
+
     // initialize robot model from moveit model
     robot_model_.reset( new BoundingSphereRobotModel );
     robot_model_->initFromMoveitRobotModel(moveit_robot_model_);
@@ -404,6 +406,49 @@ void ITOMPPlannerNode::visualizePlanningScene()
     planning_scene_visualization_publisher_.publish(marker_array);
 }
 
+void ITOMPPlannerNode::visualizeGoalConstraints()
+{
+    const double radius = 0.05;
+    visualization_msgs::MarkerArray marker_array;
+    visualization_msgs::Marker marker;
+
+    marker.header.frame_id = robot_model_->getFrameId();
+    marker.header.stamp = ros::Time::now();
+
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.ns = "goal_positions";
+
+    marker.color.r = 1.;
+    marker.color.g = 1.;
+    marker.color.b = 0.;
+    marker.color.a = 1.;
+
+    marker.scale.x = radius * 2.;
+    marker.scale.y = radius * 2.;
+    marker.scale.z = radius * 2.;
+
+    marker.pose.orientation.w = 1.;
+    marker.pose.orientation.x = 0.;
+    marker.pose.orientation.y = 0.;
+    marker.pose.orientation.z = 0.;
+
+    marker.type = visualization_msgs::Marker::SPHERE;
+
+    for (int i=0; i<goal_link_positions_.size(); i++)
+    {
+        const std::string& link_name = goal_link_positions_[i].first;
+        const Eigen::Vector3d& target_position = goal_link_positions_[i].second;
+
+        tf::pointEigenToMsg(target_position, marker.pose.position);
+
+        marker.id = i;
+
+        marker_array.markers.push_back(marker);
+    }
+
+    goal_constraint_visualization_publisher_.publish(marker_array);
+}
+
 static void optimizeSingleTrajectoryCleanup(void* optimizer)
 {
     ITOMPOptimizer* casted_optimizer = (ITOMPOptimizer*)optimizer;
@@ -432,7 +477,9 @@ void ITOMPPlannerNode::optimizeAllTrajectories()
     }
 
     for (int i=0; i<optimizers_.size(); i++)
+    {
         optimizer_threads_[i] = new Thread(&optimizeSingleTrajectory, &optimizers_[i]);
+    }
 
     // cancel all threads after optimization
     // the created threads are canceled
@@ -633,6 +680,9 @@ bool ITOMPPlannerNode::planAndExecuteFlexibleTrajectoryDuration()
         // visualize updated planning scene
         visualizePlanningScene();
 
+        // visualize goal constraint (the base link may be changed)
+        visualizeGoalConstraints();
+
         // optimize during optimization_time
         optimizeAllTrajectories();
 
@@ -651,7 +701,7 @@ bool ITOMPPlannerNode::planAndExecuteFlexibleTrajectoryDuration()
         }
 
         // DEBUG: test gradient for best trajectory
-        optimizers_[best_trajectory_index].testGradients();
+        //optimizers_[best_trajectory_index].testGradients();
 
         // prepare the first timestep of trajectory for execution
         moveit_msgs::RobotTrajectory robot_trajectory_msg;

@@ -152,9 +152,15 @@ double find_min_box_constrained_thread_safe (
     // active constraint.
     const double gap_eps = 1e-8;
 
+    // current thread
+    Thread* thread = Thread::self();
+
     double last_alpha = 1;
     while(stop_strategy.should_continue_search(x, f_value, g))
     {
+        // cancel thread if requested
+        thread->testCancel();
+
         s = search_strategy.get_next_direction(x, f_value, zero_bounded_variables(gap_eps, g, x, g, x_lower, x_upper));
         s = gap_step_assign_bounded_variables(gap_eps, s, x, g, x_lower, x_upper);
 
@@ -177,7 +183,6 @@ double find_min_box_constrained_thread_safe (
 
         // Take the search step indicated by the above line search
         x = dlib::clamp(x + alpha*s, x_lower, x_upper);
-
         g = der(x);
 
         if (!dlib::is_finite(f_value))

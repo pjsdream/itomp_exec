@@ -128,6 +128,7 @@ private:
 
     // visualization
     void visualizePlanningScene();
+    void visualizeGoalConstraints();
 
     Eigen::Affine3d getRobotRootTransform();
 
@@ -160,6 +161,7 @@ private:
 
     // visualization marker array publisher for planning scene
     ros::Publisher planning_scene_visualization_publisher_;
+    ros::Publisher goal_constraint_visualization_publisher_;
 };
 
 typedef std::shared_ptr<ITOMPPlannerNode> ITOMPPlannerNodePtr;
