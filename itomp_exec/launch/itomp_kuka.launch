@@ -1,40 +1,17 @@
 <launch>
 
-  <!-- By default, real robot is not used. -->
-  <arg name="use_real_robot" default="false"/>
+  <!-- No real robot -->
 
-  <arg name="use_gazebo" unless="$(arg use_real_robot)" default="false"/>
-  <arg name="use_gazebo"     if="$(arg use_real_robot)" value="false"/>
-  
   <arg name="allow_trajectory_execution" default="true"/>
   <arg name="allow_active_sensing" default="true"/>
 
-  <arg name="use_rviz" unless="$(arg use_real_robot)" value="true"/>
-  <arg name="use_rviz"     if="$(arg use_real_robot)" value="true"/>
-  
-  <arg name="benchmark1" default="false"/>
-  <arg name="benchmark2" default="false"/>
-  
   <!-- static tf publishers for camera -->
   <!-- <node name="camera_link_publisher" pkg="tf" type="static_transform_publisher" args="0 -1 1 0.2 0 0 odom camera_link 100" /> -->
   <!-- <node name="camera_link_publisher" pkg="tf" type="static_transform_publisher" args="-0.1 0 1.2 0 0 0 map camera_link 100" /> -->
   <node name="camera_link_publisher" pkg="tf" type="static_transform_publisher" args="-0.1 0 1.2 1.570796 0 1.570796 map camera_link 100" />
   <node name="camera_depth_frame_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 camera_link camera_depth_frame 100" />
   <node name="openni_depth_frame_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 camera_depth_frame openni_depth_frame 100" />
-  
-  <!-- future obstacle prediction -->
-  <node name="future_obstacle_publisher" pkg="pcml" type="future_obstacle_publisher">
-    <param name="input_stream_type" value="realtime"/>
-    <param name="joints_type" value="upper_body"/>
-    <param name="render" value="true"/>
 
-    <!-- CAD120 parameters-->
-    <!-- <param name="cad120_directory" value="/playpen/jaesungp/dataset/CAD120"/> -->
-  </node>
-  
-  <!-- future obstacle visualizer -->
-  <node name="future_obstacle_visualizer" pkg="pcml" type="future_obstacle_visualizer"/>
-  
   <!-- Broadcast static tf from map to odom -->
   <node name="odom_tf_broadcaster" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 map odom 100" />
     

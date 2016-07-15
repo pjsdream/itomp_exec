@@ -115,7 +115,7 @@ private:
 
 
 const std::string TestFetch::planning_group_ = "arm";
-const std::string TestFetch::endeffector_name_ = "wrist_roll_link";
+const std::string TestFetch::endeffector_name_ = "gripper_link";
 const double TestFetch::endeffector_vertical_moving_distance_ = 0.10;
 const double TestFetch::gripper_picking_distance_ = 0.060;
 
@@ -785,10 +785,10 @@ void TestFetch::runMovingArmScenarioOMPL()
 
     int goal_index = 0;
     Pose start_pose;
-    start_pose.position = Eigen::Vector3d(0.7, -0.7, 1.15);
+    start_pose.position = Eigen::Vector3d(0.8, -0.7, 1.15);
     start_pose.orientation = Eigen::Quaterniond(1., 0., 0., 0.);
     Pose target_pose;
-    target_pose.position = Eigen::Vector3d(0.7, 0.7, 1.15);
+    target_pose.position = Eigen::Vector3d(0.8, 0.7, 1.15);
     target_pose.orientation = Eigen::Quaterniond(1., 0., 0., 0.);
 
     while (true)
@@ -1081,7 +1081,7 @@ int main(int argc, char** argv)
     
     srand(time(NULL));
     
-    ros::init(argc, argv, "test_fetch");
+    ros::init(argc, argv, "itomp_fetch");
     
     TestFetch test_fetch;
 
