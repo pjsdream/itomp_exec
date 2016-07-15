@@ -82,7 +82,7 @@ Spheres PlanningScene::getStaticSphereObstacles() const
 
 Spheres PlanningScene::getDynamicSphereObstacles() const
 {
-    pcml::FutureObstacleDistributions obstacles = future_obstacle_listener_.getObstaclesAtCurrentTime();
+    pcml::FutureObstacleDistributions obstacles = future_obstacle_listener_.getFutureObstacleDistributions();
     std::string frame_id = future_obstacle_listener_.getFrameId();
 
     Eigen::Affine3d transform;
@@ -118,7 +118,11 @@ Spheres PlanningScene::getDynamicSphereObstacles() const
         Eigen::Vector3d position;
         tf::pointMsgToEigen(obstacle.obstacle_point, position);
 
-        const double radius = obstacle.radius;
+        // TODO: need exact description about future obstacle probability of position, not average of covariance
+        //const double average_covariance = (obstacle.obstacle_covariance[0] + obstacle.obstacle_covariance[4] + obstacle.obstacle_covariance[8]) / 3.;
+        //const double radius = obstacle.radius + 7.82 * std::sqrt(average_covariance);
+
+        const double radius = 0.2;
 
         spheres.push_back(Sphere(radius, transform * position));
     }

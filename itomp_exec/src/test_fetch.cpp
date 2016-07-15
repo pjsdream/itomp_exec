@@ -627,7 +627,7 @@ void TestFetch::runMovingArmScenario()
         
         moveit_msgs::Constraints goal_constraints;
         goal_constraints.position_constraints.push_back(goal_position_constraint);
-        goal_constraints.orientation_constraints.push_back(goal_orientation_constraint);
+        //goal_constraints.orientation_constraints.push_back(goal_orientation_constraint);
         req.goal_constraints.push_back(goal_constraints);
         
         planner_.setMotionPlanRequest(req);

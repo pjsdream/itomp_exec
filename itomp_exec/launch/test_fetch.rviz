@@ -7,6 +7,10 @@ Panels:
         - /Global Options1
         - /Status1
         - /PlanningScene1/Scene Geometry1
+        - /itomp planning scene1/Status1
+        - /future1/Status1
+        - /future1/Namespaces1
+        - /kinect2 skeleton1/Namespaces1
       Splitter Ratio: 0.568571
     Tree Height: 546
   - Class: rviz/Selection
@@ -35,7 +39,7 @@ Visualization Manager:
       Cell Size: 1
       Class: rviz/Grid
       Color: 160; 160; 164
-      Enabled: true
+      Enabled: false
       Line Style:
         Line Width: 0.03
         Value: Lines
@@ -48,14 +52,14 @@ Visualization Manager:
       Plane: XY
       Plane Cell Count: 200
       Reference Frame: <Fixed Frame>
-      Value: true
+      Value: false
     - Class: rviz/Axes
-      Enabled: true
+      Enabled: false
       Length: 1
       Name: Axes
       Radius: 0.01
       Reference Frame: <Fixed Frame>
-      Value: true
+      Value: false
     - Alpha: 1
       Class: rviz/RobotModel
       Collision Enabled: false
@@ -242,121 +246,19 @@ Visualization Manager:
       Trajectory Topic: /move_itomp/display_planned_path
       Value: false
     - Class: rviz/TF
-      Enabled: true
+      Enabled: false
       Frame Timeout: 15
       Frames:
-        All Enabled: false
-        base_link:
-          Value: true
-        bellows_link:
-          Value: true
-        bellows_link2:
-          Value: true
-        camera_depth_frame:
-          Value: true
-        camera_link:
-          Value: true
-        elbow_flex_link:
-          Value: true
-        estop_link:
-          Value: true
-        forearm_roll_link:
-          Value: true
-        gripper_link:
-          Value: true
-        head_camera_depth_frame:
-          Value: true
-        head_camera_depth_optical_frame:
-          Value: true
-        head_camera_link:
-          Value: true
-        head_camera_rgb_frame:
-          Value: true
-        head_camera_rgb_optical_frame:
-          Value: true
-        head_pan_link:
-          Value: true
-        head_tilt_link:
-          Value: true
-        l_gripper_finger_link:
-          Value: true
-        l_wheel_link:
-          Value: true
-        laser_link:
-          Value: true
-        map:
-          Value: true
-        odom:
-          Value: true
-        openni_depth_frame:
-          Value: true
-        r_gripper_finger_link:
-          Value: true
-        r_wheel_link:
-          Value: true
-        shoulder_lift_link:
-          Value: true
-        shoulder_pan_link:
-          Value: true
-        torso_fixed_link:
-          Value: true
-        torso_lift_link:
-          Value: true
-        upperarm_roll_link:
-          Value: true
-        wrist_flex_link:
-          Value: true
-        wrist_roll_link:
-          Value: true
+        All Enabled: true
       Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        map:
-          camera_link:
-            {}
-          odom:
-            base_link:
-              estop_link:
-                {}
-              l_wheel_link:
-                {}
-              laser_link:
-                {}
-              r_wheel_link:
-                {}
-              torso_fixed_link:
-                {}
-              torso_lift_link:
-                bellows_link:
-                  {}
-                bellows_link2:
-                  {}
-                head_pan_link:
-                  head_tilt_link:
-                    head_camera_link:
-                      head_camera_depth_frame:
-                        head_camera_depth_optical_frame:
-                          {}
-                      head_camera_rgb_frame:
-                        head_camera_rgb_optical_frame:
-                          {}
-                shoulder_pan_link:
-                  shoulder_lift_link:
-                    upperarm_roll_link:
-                      elbow_flex_link:
-                        forearm_roll_link:
-                          wrist_flex_link:
-                            wrist_roll_link:
-                              gripper_link:
-                                l_gripper_finger_link:
-                                  {}
-                                r_gripper_finger_link:
-                                  {}
+        {}
       Update Interval: 0
-      Value: true
+      Value: false
     - Attached Body Color: 150; 50; 150
       Class: moveit_rviz_plugin/RobotState
       Collision Enabled: false
@@ -645,14 +547,6 @@ Visualization Manager:
       Visual Enabled: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /test_fetch/planning_scene
-      Name: itomp planning scene
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
       Marker Topic: /test_fetch/trajectory_0
       Name: itomp trajectory
       Namespaces:
@@ -661,10 +555,19 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
+      Marker Topic: /test_fetch/planning_scene
+      Name: itomp planning scene
+      Namespaces:
+        planning_scene_dynamic: true
+        planning_scene_dynamic_future: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
       Marker Topic: /test_fetch/goal_constraint
       Name: itomp goal constraints
       Namespaces:
-        {}
+        goal_positions: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -781,6 +684,14 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: false
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /skeleton_visualizer/skeleton
+      Name: kinect2 skeleton
+      Namespaces:
+        body_0: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -805,22 +716,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 4.10233
+      Distance: 4.51655
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.769926
-        Y: 0.338541
-        Z: 1.02771
+        X: 0.970561
+        Y: 0.438019
+        Z: 0.928271
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.449797
+      Pitch: 0.989795
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.48853
+      Yaw: 0.63776
     Saved: ~
 Window Geometry:
   Displays:
@@ -838,5 +749,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1200
-  X: 608
+  X: 592
   Y: 10
