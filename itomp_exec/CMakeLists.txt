@@ -189,7 +189,8 @@ add_library(itomp_exec
 ## Declare a C++ executable
 # add_executable(itomp_exec_node src/itomp_exec_node.cpp)
 add_executable(itomp_fetch src/itomp_fetch.cpp)
-add_executable(itomp_kuka src/itomp_kuka.cpp)
+add_executable(itomp_ur5 src/itomp_ur5.cpp)
+add_executable(itomp_lbr_iiwa src/itomp_lbr_iiwa.cpp)
 add_executable(test_fcl src/test_fcl.cpp)
 
 ## Add cmake target dependencies of the executable
@@ -206,7 +207,10 @@ target_link_libraries(itomp_exec
 target_link_libraries(itomp_fetch
   itomp_exec
 )
-target_link_libraries(itomp_kuka
+target_link_libraries(itomp_ur5
+  itomp_exec
+)
+target_link_libraries(itomp_lbr_iiwa
   itomp_exec
 )
 target_link_libraries(test_fcl

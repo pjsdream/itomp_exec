@@ -57,9 +57,12 @@ void RobotModel::initFromMoveitRobotModel(robot_model::RobotModelConstPtr robot_
         for (int j=0; j<joint_models.size(); j++)
         {
             const robot_model::JointModel* joint_model = joint_models[j];
-            const std::string& joint_name = joint_model->getName();
+            if (joint_model->getType() != robot_model::JointModel::FIXED)
+            {
+                const std::string& joint_name = joint_model->getName();
 
-            planning_group_joint_indices_[i].push_back( joint_index_map_[joint_name] );
+                planning_group_joint_indices_[i].push_back( joint_index_map_[joint_name] );
+            }
         }
     }
 }

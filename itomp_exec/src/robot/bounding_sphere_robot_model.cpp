@@ -38,6 +38,20 @@ BoundingSphereRobotModel::AABB BoundingSphereRobotModel::getAABB(const shapes::M
     return aabb;
 }
 
+BoundingSphereRobotModel::AABB BoundingSphereRobotModel::getAABB(const shapes::Box* box)
+{
+    AABB aabb;
+
+    aabb.x[0] = -box->size[0]/2.;
+    aabb.x[1] =  box->size[0]/2.;
+    aabb.y[0] = -box->size[1]/2.;
+    aabb.y[1] =  box->size[1]/2.;
+    aabb.z[0] = -box->size[2]/2.;
+    aabb.z[1] =  box->size[2]/2.;
+
+    return aabb;
+}
+
 BoundingSphereRobotModel::BoundingSphereRobotModel()
 {
 }
@@ -60,6 +74,14 @@ void BoundingSphereRobotModel::initFromMoveitRobotModel(robot_model::RobotModelC
             {
                 const shapes::Mesh* mesh = dynamic_cast<const shapes::Mesh*>(shape.get());
                 AABB aabb = getAABB(mesh);
+                addCollisionSpheresFromAABB(aabb, link_collision_transforms_[i][j], link_collision_spheres_[i]);
+            }
+                break;
+
+            case shapes::BOX:
+            {
+                const shapes::Box* box = dynamic_cast<const shapes::Box*>(shape.get());
+                AABB aabb = getAABB(box);
                 addCollisionSpheresFromAABB(aabb, link_collision_transforms_[i][j], link_collision_spheres_[i]);
             }
                 break;

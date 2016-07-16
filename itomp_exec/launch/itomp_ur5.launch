@@ -1,0 +1,37 @@
+<launch>
+
+  <arg name="allow_active_sensing" default="true"/>
+
+  <!-- static tf publishers for camera -->
+  <!-- <node name="camera_link_publisher" pkg="tf" type="static_transform_publisher" args="0 -1 1 0.2 0 0 odom camera_link 100" /> -->
+  <!-- <node name="camera_link_publisher" pkg="tf" type="static_transform_publisher" args="-0.1 0 1.2 0 0 0 map camera_link 100" /> -->
+  <node name="camera_link_publisher" pkg="tf" type="static_transform_publisher" args="-0.1 0 1.2 1.570796 0 1.570796 map camera_link 100" />
+  <node name="camera_depth_frame_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 camera_link camera_depth_frame 100" />
+  <node name="openni_depth_frame_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 camera_depth_frame openni_depth_frame 100" />
+
+  <!-- Broadcast static tf from map to robot's root (world) -->
+  <node name="world_tf_broadcaster" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 map world 100" />
+
+  <!-- Gazebo -->
+  <include file="$(find ur_gazebo)/launch/ur5.launch" />
+
+  <!-- moveit -->
+  <!--
+  <include file="$(find ur5_moveit_config)/launch/move_group.launch">
+    <remap from="/follow_joint_trajectory" to="/arm_controller/follow_joint_trajectory"/>
+    <arg name="fake_execution" value="false"/>
+  </include>
+  -->
+  <include file="$(find ur5_moveit_config)/launch/ur5_moveit_planning_execution.launch">
+    <arg name="sim" value="true"/>
+  </include>
+
+  <!-- Run Rviz and load the default config to see the state of the move_group node -->
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" args="-d $(find itomp_exec)/launch/itomp_ur5.rviz"> <!-- output="screen" -->
+    <rosparam command="load" file="$(find ur5_moveit_config)/config/kinematics.yaml"/>
+  </node>
+
+  <!-- ITOMP parameters -->
+  <rosparam ns="itomp_ur5" command="load" file="$(find itomp_exec)/config/itomp_ur5.yaml"/>
+  
+</launch>

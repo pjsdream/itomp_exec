@@ -20,7 +20,7 @@
 #include <time.h>
 
 
-class TestFetch
+class ITOMPFetch
 {
 private:
     
@@ -56,7 +56,7 @@ private:
     
 public:
     
-    TestFetch(const ros::NodeHandle& nh = ros::NodeHandle("~"));
+    ITOMPFetch(const ros::NodeHandle& nh = ros::NodeHandle("~"));
 
     void moveGripper(double gap, bool wait_for_execution = true);
     void openGripper(bool wait_for_execution = true);
@@ -114,14 +114,14 @@ private:
 
 
 
-const std::string TestFetch::planning_group_ = "arm";
-const std::string TestFetch::endeffector_name_ = "gripper_link";
-const double TestFetch::endeffector_vertical_moving_distance_ = 0.10;
-const double TestFetch::gripper_picking_distance_ = 0.060;
+const std::string ITOMPFetch::planning_group_ = "arm";
+const std::string ITOMPFetch::endeffector_name_ = "gripper_link";
+const double ITOMPFetch::endeffector_vertical_moving_distance_ = 0.10;
+const double ITOMPFetch::gripper_picking_distance_ = 0.060;
 
 
 
-TestFetch::TestFetch(const ros::NodeHandle& nh)
+ITOMPFetch::ITOMPFetch(const ros::NodeHandle& nh)
     : nh_(nh)
     , planner_(nh)
     , gripper_client_("gripper_controller/gripper_action")
@@ -150,7 +150,7 @@ TestFetch::TestFetch(const ros::NodeHandle& nh)
     loadTablePoses();
 }
 
-void TestFetch::moveGripper(double gap, bool wait_for_execution)
+void ITOMPFetch::moveGripper(double gap, bool wait_for_execution)
 {
     control_msgs::GripperCommandGoal goal;
     goal.command.position = gap;
@@ -161,17 +161,17 @@ void TestFetch::moveGripper(double gap, bool wait_for_execution)
         gripper_client_.waitForResult();
 }
 
-void TestFetch::closeGripper(bool wait_for_execution)
+void ITOMPFetch::closeGripper(bool wait_for_execution)
 {
     moveGripper(0.00, wait_for_execution);
 }
 
-void TestFetch::openGripper(bool wait_for_execution)
+void ITOMPFetch::openGripper(bool wait_for_execution)
 {
     moveGripper(0.10, wait_for_execution);
 }
 
-void TestFetch::moveTorso(double position, bool wait_for_execution)
+void ITOMPFetch::moveTorso(double position, bool wait_for_execution)
 {
     const double time = 1.0;
     
@@ -192,7 +192,7 @@ void TestFetch::moveTorso(double position, bool wait_for_execution)
     }
 }
 
-void TestFetch::initializeTuckState(moveit_msgs::RobotState& start_state)
+void ITOMPFetch::initializeTuckState(moveit_msgs::RobotState& start_state)
 {
     start_state.joint_state.name.push_back("shoulder_pan_joint");
     start_state.joint_state.name.push_back("shoulder_lift_joint");
@@ -213,7 +213,7 @@ void TestFetch::initializeTuckState(moveit_msgs::RobotState& start_state)
     start_state.is_diff = true;
 }
 
-void TestFetch::initializeDefaultState(moveit_msgs::RobotState& start_state)
+void ITOMPFetch::initializeDefaultState(moveit_msgs::RobotState& start_state)
 {
     start_state.joint_state.name.push_back("shoulder_pan_joint");
     start_state.joint_state.name.push_back("shoulder_lift_joint");
@@ -234,7 +234,7 @@ void TestFetch::initializeDefaultState(moveit_msgs::RobotState& start_state)
     start_state.is_diff = true;
 }
 
-void TestFetch::loadTablePoses()
+void ITOMPFetch::loadTablePoses()
 {
     XmlRpc::XmlRpcValue poses;
     
@@ -388,7 +388,7 @@ void TestFetch::loadTablePoses()
     target_positions_publisher_.publish(marker_array);
 }
 
-void TestFetch::initializeCurrentState(robot_state::RobotState& state)
+void ITOMPFetch::initializeCurrentState(robot_state::RobotState& state)
 {
     // /joint_states topic is publishing one of controller group
     // one is a group of two fingers, and the other one has others
@@ -429,14 +429,14 @@ void TestFetch::initializeCurrentState(robot_state::RobotState& state)
     state.update();
 }
 
-void TestFetch::initializeCurrentState(moveit_msgs::RobotState& start_state)
+void ITOMPFetch::initializeCurrentState(moveit_msgs::RobotState& start_state)
 {
     robot_state::RobotState state( moveit_robot_model_ );
     initializeCurrentState(state);
     moveit::core::robotStateToRobotStateMsg(state, start_state, false);
 }
 
-void TestFetch::runScenario()
+void ITOMPFetch::runScenario()
 {
     int goal_type = 0;
     int goal_index = 0;
@@ -577,7 +577,7 @@ void TestFetch::runScenario()
     }
 }
 
-void TestFetch::runMovingArmScenario()
+void ITOMPFetch::runMovingArmScenario()
 {
     // open, then close the gripper to grip an object
     openGripper();
@@ -658,7 +658,7 @@ void TestFetch::runMovingArmScenario()
     }
 }
 
-void TestFetch::runMovingArmScenarioOMPL()
+void ITOMPFetch::runMovingArmScenarioOMPL()
 {
     // prepare for OMPL
     planning_scene::PlanningScenePtr planning_scene(new planning_scene::PlanningScene(moveit_robot_model_));
@@ -901,7 +901,7 @@ void TestFetch::runMovingArmScenarioOMPL()
     }
 }
 
-void TestFetch::moveEndeffectorVertically(double distance)
+void ITOMPFetch::moveEndeffectorVertically(double distance)
 {
     const double trajectory_duration = 1.0;
     const double planning_timestep = 0.1;
@@ -962,7 +962,7 @@ void TestFetch::moveEndeffectorVertically(double distance)
     res.getMessage(response_msg);
 }
 
-void TestFetch::moveEndeffectorVerticallyTarget(double distance, const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation, bool wait_for_execution)
+void ITOMPFetch::moveEndeffectorVerticallyTarget(double distance, const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation, bool wait_for_execution)
 {
     const double trajectory_duration = 1.0;
     const double planning_timestep = 0.1;
@@ -1010,7 +1010,7 @@ void TestFetch::moveEndeffectorVerticallyTarget(double distance, const Eigen::Ve
     planner_.setPlanningTimestep(original_planning_timestep);
 }
 
-void TestFetch::moveEndeffectorVerticallyIK(double distance, bool wait_for_execution)
+void ITOMPFetch::moveEndeffectorVerticallyIK(double distance, bool wait_for_execution)
 {
     robot_state::RobotState current_state( moveit_robot_model_ );
     initializeCurrentState(current_state);
@@ -1056,7 +1056,7 @@ void TestFetch::moveEndeffectorVerticallyIK(double distance, bool wait_for_execu
         arm_client_.waitForResult();
 }
 
-void TestFetch::attachSphere(int sphere_index)
+void ITOMPFetch::attachSphere(int sphere_index)
 {
     const AttachingSphere& sphere = attaching_spheres_[sphere_index];
     const std::string attaching_link_name = sphere.attaching_link;
@@ -1065,7 +1065,7 @@ void TestFetch::attachSphere(int sphere_index)
     robot_model_->attachSphere(attaching_link, sphere.attaching_position, sphere.radius);
 }
 
-void TestFetch::detachSphere(int sphere_index)
+void ITOMPFetch::detachSphere(int sphere_index)
 {
     const AttachingSphere& sphere = attaching_spheres_[sphere_index];
     const std::string attaching_link_name = sphere.attaching_link;
@@ -1083,7 +1083,7 @@ int main(int argc, char** argv)
     
     ros::init(argc, argv, "itomp_fetch");
     
-    TestFetch test_fetch;
+    ITOMPFetch test_fetch;
 
     // initialize with highest torso position
     test_fetch.moveTorso(0.35);

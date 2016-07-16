@@ -1,0 +1,42 @@
+<launch>
+
+  <!-- No real robot -->
+
+  <arg name="allow_trajectory_execution" default="true"/>
+  <arg name="allow_active_sensing" default="true"/>
+
+  <!-- static tf publishers for camera -->
+  <!-- <node name="camera_link_publisher" pkg="tf" type="static_transform_publisher" args="0 -1 1 0.2 0 0 odom camera_link 100" /> -->
+  <!-- <node name="camera_link_publisher" pkg="tf" type="static_transform_publisher" args="-0.1 0 1.2 0 0 0 map camera_link 100" /> -->
+  <node name="camera_link_publisher" pkg="tf" type="static_transform_publisher" args="-0.1 0 1.2 1.570796 0 1.570796 map camera_link 100" />
+  <node name="camera_depth_frame_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 camera_link camera_depth_frame 100" />
+  <node name="openni_depth_frame_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 camera_depth_frame openni_depth_frame 100" />
+
+  <!-- Broadcast static tf from map to robot's root (segment0) -->
+  <node name="robot_root_tf_broadcaster" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 map segment_0 100" />
+
+  <!-- URDF and TF support -->
+  <param name="robot_description" textfile="$(find lbr_iiwa_description)/urdf/lbr_iiwa.urdf" />
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" >
+    <param name="publish_frequency" value="100.0"/>
+  </node>
+
+  <arg name="debug" default="false"/>
+  <arg name="gui" default="true"/>
+  <arg name="headless" default="false"/>
+
+  <!-- move group -->
+  <arg name="pipeline" default="$(optenv PLANNING_PIPELINE ompl)" />
+  <include file="$(find lbr_iiwa_generated)/launch/move_group.launch">
+    <arg name="fake_execution" value="false"/>
+  </include>
+
+  <!-- Run Rviz and load the default config to see the state of the move_group node -->
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" args="-d $(find itomp_exec)/launch/itomp_lbr_iiwa.rviz">
+    <rosparam command="load" file="$(find lbr_iiwa_generated)/config/kinematics.yaml"/>
+  </node>
+
+  <!-- ITOMP parameters -->
+  <rosparam ns="itomp_lbr_iiwa" command="load" file="$(find itomp_exec)/config/itomp_lbr_iiwa.yaml"/>
+  
+</launch>

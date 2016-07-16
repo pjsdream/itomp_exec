@@ -5,20 +5,12 @@ num_milestones: 3
 num_interpolation_samples: 6
 dynamic_obstacle_max_speed: 0.00 # m/s
 dynamic_obstacle_duration: 5.0   # s
-goal_tolerance: 0.1  # cost function tolerance
+goal_tolerance: 0.03  # cost function tolerance
 
 #itomp_algorithm: "fixed_trajectory_duration"
 itomp_algorithm: "flexible_trajectory_duration"
 
 #static_obstacles:
-  #- {type: "mesh", file: "package://itomp_exec/env/table_collision_rotated.dae", position: [0.7, 0.0, 0.0]}
-  #obstacle test
-  #- {type: "sphere", position: [1.40,  0.00, 0.70], radius: 0.25}
-  #- {type: "sphere", position: [1.40,  0.00, 0.80], radius: 0.25}
-  #- {type: "sphere", position: [1.40,  0.00, 0.90], radius: 0.25}
-  #- {type: "sphere", position: [1.40,  0.00, 1.00], radius: 0.25}
-  #- {type: "sphere", position: [1.40,  0.00, 1.10], radius: 0.25}
-  #near
   #- {type: "sphere", position: [1.00,  0.00, 0.20], radius: 0.25}
   #- {type: "sphere", position: [1.00,  0.00, 0.30], radius: 0.25}
   #- {type: "sphere", position: [1.00,  0.00, 0.40], radius: 0.25}
@@ -29,21 +21,12 @@ itomp_algorithm: "flexible_trajectory_duration"
   #- {type: "sphere", position: [1.00,  0.00, 0.90], radius: 0.25}
   #- {type: "sphere", position: [1.00,  0.00, 1.00], radius: 0.25}
   #- {type: "sphere", position: [1.00,  0.00, 1.10], radius: 0.25}
-  #- {type: "sphere", position: [0.60,  0.70, 1.20], radius: 0.25}
+  #- {type: "sphere", position: [1.00,  0.70, 1.20], radius: 0.25}
   #- {type: "sphere", position: [1.00,  0.00, 1.30], radius: 0.25}
   #- {type: "sphere", position: [1.00,  0.00, 1.40], radius: 0.25}
 
-collision_sphere_links:
-  - shoulder_pan_link
-  - shoulder_lift_link
-  - upperarm_roll_link
-  - elbow_flex_link
-  - forearm_roll_link
-  - wrist_flex_link
-  - wrist_roll_link
-  - gripper_link
-  - r_gripper_finger_link
-  - l_gripper_finger_link
+#collision_sphere_links:
+#  - shoulder_pan_link
 
 cost_weights:
   #goal_pose: 1.0

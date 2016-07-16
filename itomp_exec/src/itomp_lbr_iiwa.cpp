@@ -20,7 +20,7 @@
 #include <time.h>
 
 
-class ITOMPKuka
+class ITOMPLbriiwa
 {
 private:
     
@@ -56,7 +56,7 @@ private:
     
 public:
     
-    ITOMPKuka(const ros::NodeHandle& nh = ros::NodeHandle("~"));
+    ITOMPLbriiwa(const ros::NodeHandle& nh = ros::NodeHandle("~"));
 
     void moveGripper(double gap, bool wait_for_execution = true);
     void openGripper(bool wait_for_execution = true);
@@ -114,14 +114,14 @@ private:
 
 
 
-const std::string ITOMPKuka::planning_group_ = "arm";
-const std::string ITOMPKuka::endeffector_name_ = "wrist_roll_link";
-const double ITOMPKuka::endeffector_vertical_moving_distance_ = 0.10;
-const double ITOMPKuka::gripper_picking_distance_ = 0.060;
+const std::string ITOMPLbriiwa::planning_group_ = "arm";
+const std::string ITOMPLbriiwa::endeffector_name_ = "wrist_roll_link";
+const double ITOMPLbriiwa::endeffector_vertical_moving_distance_ = 0.10;
+const double ITOMPLbriiwa::gripper_picking_distance_ = 0.060;
 
 
 
-ITOMPKuka::ITOMPKuka(const ros::NodeHandle& nh)
+ITOMPLbriiwa::ITOMPLbriiwa(const ros::NodeHandle& nh)
     : nh_(nh)
     , planner_(nh)
     , gripper_client_("gripper_controller/gripper_action")
@@ -150,7 +150,7 @@ ITOMPKuka::ITOMPKuka(const ros::NodeHandle& nh)
     loadTablePoses();
 }
 
-void ITOMPKuka::moveGripper(double gap, bool wait_for_execution)
+void ITOMPLbriiwa::moveGripper(double gap, bool wait_for_execution)
 {
     control_msgs::GripperCommandGoal goal;
     goal.command.position = gap;
@@ -161,17 +161,17 @@ void ITOMPKuka::moveGripper(double gap, bool wait_for_execution)
         gripper_client_.waitForResult();
 }
 
-void ITOMPKuka::closeGripper(bool wait_for_execution)
+void ITOMPLbriiwa::closeGripper(bool wait_for_execution)
 {
     moveGripper(0.00, wait_for_execution);
 }
 
-void ITOMPKuka::openGripper(bool wait_for_execution)
+void ITOMPLbriiwa::openGripper(bool wait_for_execution)
 {
     moveGripper(0.10, wait_for_execution);
 }
 
-void ITOMPKuka::moveTorso(double position, bool wait_for_execution)
+void ITOMPLbriiwa::moveTorso(double position, bool wait_for_execution)
 {
     const double time = 1.0;
     
@@ -192,7 +192,7 @@ void ITOMPKuka::moveTorso(double position, bool wait_for_execution)
     }
 }
 
-void ITOMPKuka::initializeTuckState(moveit_msgs::RobotState& start_state)
+void ITOMPLbriiwa::initializeTuckState(moveit_msgs::RobotState& start_state)
 {
     start_state.joint_state.name.push_back("shoulder_pan_joint");
     start_state.joint_state.name.push_back("shoulder_lift_joint");
@@ -213,7 +213,7 @@ void ITOMPKuka::initializeTuckState(moveit_msgs::RobotState& start_state)
     start_state.is_diff = true;
 }
 
-void ITOMPKuka::initializeDefaultState(moveit_msgs::RobotState& start_state)
+void ITOMPLbriiwa::initializeDefaultState(moveit_msgs::RobotState& start_state)
 {
     start_state.joint_state.name.push_back("shoulder_pan_joint");
     start_state.joint_state.name.push_back("shoulder_lift_joint");
@@ -234,7 +234,7 @@ void ITOMPKuka::initializeDefaultState(moveit_msgs::RobotState& start_state)
     start_state.is_diff = true;
 }
 
-void ITOMPKuka::loadTablePoses()
+void ITOMPLbriiwa::loadTablePoses()
 {
     XmlRpc::XmlRpcValue poses;
     
@@ -388,7 +388,7 @@ void ITOMPKuka::loadTablePoses()
     target_positions_publisher_.publish(marker_array);
 }
 
-void ITOMPKuka::initializeCurrentState(robot_state::RobotState& state)
+void ITOMPLbriiwa::initializeCurrentState(robot_state::RobotState& state)
 {
     // /joint_states topic is publishing one of controller group
     // one is a group of two fingers, and the other one has others
@@ -429,14 +429,14 @@ void ITOMPKuka::initializeCurrentState(robot_state::RobotState& state)
     state.update();
 }
 
-void ITOMPKuka::initializeCurrentState(moveit_msgs::RobotState& start_state)
+void ITOMPLbriiwa::initializeCurrentState(moveit_msgs::RobotState& start_state)
 {
     robot_state::RobotState state( moveit_robot_model_ );
     initializeCurrentState(state);
     moveit::core::robotStateToRobotStateMsg(state, start_state, false);
 }
 
-void ITOMPKuka::runScenario()
+void ITOMPLbriiwa::runScenario()
 {
     int goal_type = 0;
     int goal_index = 0;
@@ -577,7 +577,7 @@ void ITOMPKuka::runScenario()
     }
 }
 
-void ITOMPKuka::runMovingArmScenario()
+void ITOMPLbriiwa::runMovingArmScenario()
 {
     // open, then close the gripper to grip an object
     openGripper();
@@ -658,7 +658,7 @@ void ITOMPKuka::runMovingArmScenario()
     }
 }
 
-void ITOMPKuka::runMovingArmScenarioOMPL()
+void ITOMPLbriiwa::runMovingArmScenarioOMPL()
 {
     // prepare for OMPL
     planning_scene::PlanningScenePtr planning_scene(new planning_scene::PlanningScene(moveit_robot_model_));
@@ -901,7 +901,7 @@ void ITOMPKuka::runMovingArmScenarioOMPL()
     }
 }
 
-void ITOMPKuka::moveEndeffectorVertically(double distance)
+void ITOMPLbriiwa::moveEndeffectorVertically(double distance)
 {
     const double trajectory_duration = 1.0;
     const double planning_timestep = 0.1;
@@ -962,7 +962,7 @@ void ITOMPKuka::moveEndeffectorVertically(double distance)
     res.getMessage(response_msg);
 }
 
-void ITOMPKuka::moveEndeffectorVerticallyTarget(double distance, const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation, bool wait_for_execution)
+void ITOMPLbriiwa::moveEndeffectorVerticallyTarget(double distance, const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation, bool wait_for_execution)
 {
     const double trajectory_duration = 1.0;
     const double planning_timestep = 0.1;
@@ -1010,7 +1010,7 @@ void ITOMPKuka::moveEndeffectorVerticallyTarget(double distance, const Eigen::Ve
     planner_.setPlanningTimestep(original_planning_timestep);
 }
 
-void ITOMPKuka::moveEndeffectorVerticallyIK(double distance, bool wait_for_execution)
+void ITOMPLbriiwa::moveEndeffectorVerticallyIK(double distance, bool wait_for_execution)
 {
     robot_state::RobotState current_state( moveit_robot_model_ );
     initializeCurrentState(current_state);
@@ -1056,7 +1056,7 @@ void ITOMPKuka::moveEndeffectorVerticallyIK(double distance, bool wait_for_execu
         arm_client_.waitForResult();
 }
 
-void ITOMPKuka::attachSphere(int sphere_index)
+void ITOMPLbriiwa::attachSphere(int sphere_index)
 {
     const AttachingSphere& sphere = attaching_spheres_[sphere_index];
     const std::string attaching_link_name = sphere.attaching_link;
@@ -1065,7 +1065,7 @@ void ITOMPKuka::attachSphere(int sphere_index)
     robot_model_->attachSphere(attaching_link, sphere.attaching_position, sphere.radius);
 }
 
-void ITOMPKuka::detachSphere(int sphere_index)
+void ITOMPLbriiwa::detachSphere(int sphere_index)
 {
     const AttachingSphere& sphere = attaching_spheres_[sphere_index];
     const std::string attaching_link_name = sphere.attaching_link;
@@ -1081,9 +1081,9 @@ int main(int argc, char** argv)
     
     srand(time(NULL));
     
-    ros::init(argc, argv, "test_fetch");
+    ros::init(argc, argv, "itomp_lbr_iiwa");
     
-    ITOMPKuka test_fetch;
+    ITOMPLbriiwa test_fetch;
 
     // initialize with highest torso position
     test_fetch.moveTorso(0.35);

@@ -22,6 +22,7 @@ private:
     };
 
     static AABB getAABB(const shapes::Mesh* mesh);
+    static AABB getAABB(const shapes::Box* mesh);
 
 public:
 

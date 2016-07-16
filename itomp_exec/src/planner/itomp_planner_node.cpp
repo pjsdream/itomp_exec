@@ -55,7 +55,7 @@ void ITOMPPlannerNode::initialize()
     std::string controller;
     if (node_handle_.getParam("moveit_controller_manager", controller))
     {
-        trajectory_execution_manager_.reset(new trajectory_execution_manager::TrajectoryExecutionManager(moveit_robot_model_));
+        trajectory_execution_manager_.reset(new trajectory_execution_manager::TrajectoryExecutionManager(moveit_robot_model_, true));
     }
     else if (node_handle_.getParam("/move_group/moveit_controller_manager", controller))
     {
@@ -66,46 +66,46 @@ void ITOMPPlannerNode::initialize()
         bool controller_list_declared = false;
         XmlRpc::XmlRpcValue controller_list;
         double value;
-        
+
         node_handle_.setParam("moveit_controller_manager", controller);
-        
+
         if (node_handle_.getParam("/move_group/controller_list", controller_list))
         {
             controller_list_declared = true;
             node_handle_.setParam("controller_list", controller_list);
         }
-        
+
         if (node_handle_.getParam("/move_group/moveit_manage_controllers", value))
         {
             moveit_manage_controllers = true;
             node_handle_.setParam("moveit_manage_controllers", value);
         }
-        
+
         if (node_handle_.getParam("/move_group/allowed_execution_duration_scaling", value))
         {
             allowed_execution_duration_scaling = true;
             node_handle_.setParam("allowed_execution_duration_scaling", value);
         }
-        
+
         if (node_handle_.getParam("/move_group/allowed_goal_duration_margin", value))
         {
             allowed_goal_duration_margin = true;
             node_handle_.setParam("allowed_goal_duration_margin", value);
         }
-        
+
         trajectory_execution_manager_.reset(new trajectory_execution_manager::TrajectoryExecutionManager(moveit_robot_model_));
-        
+
         node_handle_.deleteParam("moveit_controller_manager");
-        
+
         if (controller_list_declared)
             node_handle_.deleteParam("controller_list");
-        
+
         if (moveit_manage_controllers)
             node_handle_.deleteParam("moveit_manage_controllers");
-        
+
         if (allowed_execution_duration_scaling)
             node_handle_.deleteParam("allowed_execution_duration_scaling");
-        
+
         if (allowed_goal_duration_margin)
             node_handle_.deleteParam("allowed_goal_duration_margin");
     }
