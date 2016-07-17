@@ -10,6 +10,9 @@ goal_tolerance: 0.03  # cost function tolerance
 #itomp_algorithm: "fixed_trajectory_duration"
 itomp_algorithm: "flexible_trajectory_duration"
 
+static_obstacles:
+  - {type: "sphere", position: [0.10,  0.05, 0.70], radius: 0.30}
+
 #collision_sphere_links:
 #  - shoulder_pan_link
 

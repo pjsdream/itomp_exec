@@ -219,7 +219,7 @@ void ITOMPUr5::initializeCurrentState(moveit_msgs::RobotState& start_state)
 
 void ITOMPUr5::runScenario()
 {
-    int goal_type = 0;
+    int goal_type = 1;
     int goal_index = 0;
     
     while (true)

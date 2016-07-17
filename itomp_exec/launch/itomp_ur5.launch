@@ -2,25 +2,42 @@
 
   <arg name="allow_active_sensing" default="true"/>
 
+  <arg name="sequence" default="1"/>
+
   <!-- static tf publishers for camera -->
   <!-- <node name="camera_link_publisher" pkg="tf" type="static_transform_publisher" args="0 -1 1 0.2 0 0 odom camera_link 100" /> -->
   <!-- <node name="camera_link_publisher" pkg="tf" type="static_transform_publisher" args="-0.1 0 1.2 0 0 0 map camera_link 100" /> -->
-  <node name="camera_link_publisher" pkg="tf" type="static_transform_publisher" args="-0.1 0 1.2 1.570796 0 1.570796 map camera_link 100" />
+  <!-- <node name="camera_link_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0.8 3.141592 0 1.570796 map camera_link 100" /> -->
+
+  <!-- sequence 3 -->
+  <!--
+  <node name="camera_link_publisher" pkg="tf" type="static_transform_publisher" args="0.7 2.0 -0.7 -1.57 0 0 map camera_link 100" />
+  -->
+
+  <!-- sequence 4 -->
+  <node name="camera_link_publisher" pkg="tf" type="static_transform_publisher" args="0.7 1.0 -0.7 -1.57 0 0 map camera_link 100" />
+
   <node name="camera_depth_frame_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 camera_link camera_depth_frame 100" />
   <node name="openni_depth_frame_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 camera_depth_frame openni_depth_frame 100" />
+
+  <!-- future obstacle -->
+  <!-- <include file="$(find pcml)/launch/kinect2_obstacle_publisher.launch"/> -->
+  <include file="$(find pcml)/launch/recorded_obstacle_publisher.launch">
+    <arg name="sequence" value="$(arg sequence)"/>
+  </include>
 
   <!-- Broadcast static tf from map to robot's root (world) -->
   <node name="world_tf_broadcaster" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 map world 100" />
 
   <!-- Gazebo -->
   <include file="$(find itomp_exec)/launch/ur5/ur5.launch">
-    <arg name="limited" value="false"/>
+    <arg name="limited" value="true"/>
   </include>
 
   <!-- moveit -->
   <include file="$(find itomp_exec)/launch/ur5/ur5_moveit_planning_execution.launch">
     <arg name="sim" value="true"/>
-    <arg name="limited" value="false"/>
+    <arg name="limited" value="true"/>
   </include>
 
   <!-- Run Rviz and load the default config to see the state of the move_group node -->

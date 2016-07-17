@@ -7,6 +7,7 @@ Panels:
         - /Global Options1
         - /Status1
         - /PlanningScene1/Scene Geometry1
+        - /itomp environment1
         - /future1/Namespaces1
         - /kinect2 skeleton1/Namespaces1
       Splitter Ratio: 0.568571
@@ -168,6 +169,79 @@ Visualization Manager:
           Expand Link Details: false
           Expand Tree: false
           Link Tree Style: Links in Alphabetic Order
+          revetting_tcp:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          revetting_tool:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          revetting_tool_1:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          revetting_tool_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          revetting_tool_3:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          revetting_tool_4:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          segment_0:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          segment_1:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          segment_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          segment_3:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          segment_4:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          segment_5:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          segment_6:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          segment_7:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          world:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
         Robot Alpha: 1
         Show Robot Collision: false
         Show Robot Visual: false
@@ -420,13 +494,13 @@ Visualization Manager:
       Queue Size: 100
       Value: false
     - Class: rviz/MarkerArray
-      Enabled: false
+      Enabled: true
       Marker Topic: /itomp_lbr_iiwa/environments
       Name: itomp environment
       Namespaces:
-        {}
+        environment: true
       Queue Size: 100
-      Value: false
+      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -565,22 +639,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 2.72588
+      Distance: 3.74397
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.95094
-        Y: -0.114237
-        Z: 1.03351
+        X: -0.0117515
+        Y: 0.00633253
+        Z: -0.000639905
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: -0.100203
+      Pitch: 0.460204
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.51092
+      Yaw: 3.72091
     Saved: ~
 Window Geometry:
   Displays:
@@ -598,5 +672,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1200
-  X: 229
-  Y: 460
+  X: 221
+  Y: 325
