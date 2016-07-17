@@ -95,9 +95,9 @@ void BoundingSphereRobotModel::initFromMoveitRobotModel(robot_model::RobotModelC
     attached_spheres_.resize(num_joints_);
 }
 
-void BoundingSphereRobotModel::addCollisionSpheresFromAABB(const AABB& aabb, const Eigen::Affine3d& transform, Spheres& spheres)
+void BoundingSphereRobotModel::addCollisionSpheresFromAABBAlongXAxis(const AABB& aabb, const Eigen::Affine3d& transform, Spheres& spheres)
 {
-    double lengths[3] =
+    const double lengths[3] =
     {
         aabb.x[1] - aabb.x[0],
         aabb.y[1] - aabb.y[0],
@@ -105,14 +105,97 @@ void BoundingSphereRobotModel::addCollisionSpheresFromAABB(const AABB& aabb, con
     };
 
     Sphere sphere;
+    sphere.radius = std::sqrt(lengths[1] * lengths[1] + lengths[2] * lengths[2]) / 2.;
+
+    const double y = (aabb.y[0] + aabb.y[1]) / 2.;
+    const double z = (aabb.z[0] + aabb.z[1]) / 2.;
+
+    const int cnt = lengths[0] / (2. * sphere.radius) + 1;
+
+    if (cnt == 1)
+    {
+        sphere.position = Eigen::Vector3d((aabb.x[0] + aabb.x[1]) / 2., y, z);
+        spheres.push_back(sphere);
+    }
+    else
+    {
+        const double x0 = aabb.x[0] + sphere.radius;
+        const double x1 = aabb.x[1] - sphere.radius;
+
+        for (int i=0; i<cnt; i++)
+        {
+            const double t = (double)i / (cnt - 1);
+            const double x = (1. - t) * x0 + t * x1;
+
+            sphere.position = Eigen::Vector3d(x, y, z);
+            spheres.push_back(sphere);
+        }
+    }
+}
+
+void BoundingSphereRobotModel::addCollisionSpheresFromAABB(const AABB& aabb, const Eigen::Affine3d& transform, Spheres& spheres)
+{
+    const double lengths[3] =
+    {
+        aabb.x[1] - aabb.x[0],
+        aabb.y[1] - aabb.y[0],
+        aabb.z[1] - aabb.z[0],
+    };
+
+    // bounding sphere with one sphere
+    /*
+    Sphere sphere;
     sphere.radius = std::sqrt(lengths[0] * lengths[0] + lengths[1] * lengths[1] + lengths[2] * lengths[2]) / 2.;
     sphere.position = transform * Eigen::Vector3d(
                 (aabb.x[0] + aabb.x[1]) / 2.0,
                 (aabb.y[0] + aabb.y[1]) / 2.0,
                 (aabb.z[0] + aabb.z[1]) / 2.0
             );
+            */
 
-    spheres.push_back(sphere);
+    // bounding sphere with multiple sphere
+    if (lengths[0] >= lengths[1] && lengths[0] >= lengths[2])
+    {
+        addCollisionSpheresFromAABBAlongXAxis(aabb, transform, spheres);
+    }
+    else if (lengths[1] >= lengths[0] && lengths[1] >= lengths[2])
+    {
+        AABB rotated_aabb;
+        rotated_aabb.x[0] = aabb.y[0];
+        rotated_aabb.x[1] = aabb.y[1];
+        rotated_aabb.y[0] = aabb.z[0];
+        rotated_aabb.y[1] = aabb.z[1];
+        rotated_aabb.z[0] = aabb.x[0];
+        rotated_aabb.z[1] = aabb.x[1];
+
+        const int num_spheres = spheres.size();
+        addCollisionSpheresFromAABBAlongXAxis(rotated_aabb, transform, spheres);
+
+        for (int i=num_spheres; i<spheres.size(); i++)
+        {
+            const Eigen::Vector3d position = spheres[i].position;
+            spheres[i].position = Eigen::Vector3d(position(2), position(0), position(1));
+        }
+    }
+    else
+    {
+        AABB rotated_aabb;
+        rotated_aabb.x[0] = aabb.z[0];
+        rotated_aabb.x[1] = aabb.z[1];
+        rotated_aabb.y[0] = aabb.x[0];
+        rotated_aabb.y[1] = aabb.x[1];
+        rotated_aabb.z[0] = aabb.y[0];
+        rotated_aabb.z[1] = aabb.y[1];
+
+        const int num_spheres = spheres.size();
+        addCollisionSpheresFromAABBAlongXAxis(rotated_aabb, transform, spheres);
+
+        for (int i=num_spheres; i<spheres.size(); i++)
+        {
+            const Eigen::Vector3d position = spheres[i].position;
+            spheres[i].position = Eigen::Vector3d(position(1), position(2), position(0));
+        }
+    }
 }
 
 void BoundingSphereRobotModel::attachSphere(int link_index, const Eigen::Vector3d& position, double radius)

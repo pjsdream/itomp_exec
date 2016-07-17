@@ -68,6 +68,79 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        revetting_tcp:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        revetting_tool:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        revetting_tool_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        revetting_tool_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        revetting_tool_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        revetting_tool_4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_5:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_6:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_7:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        world:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
       Name: RobotModel
       Robot Description: robot_description
       TF Prefix: ""
@@ -142,6 +215,79 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        revetting_tcp:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        revetting_tool:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        revetting_tool_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        revetting_tool_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        revetting_tool_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        revetting_tool_4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_5:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_6:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_7:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        world:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
       Name: itomp start state
       Robot Alpha: 1
       Robot Description: robot_description
@@ -160,6 +306,79 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        revetting_tcp:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        revetting_tool:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        revetting_tool_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        revetting_tool_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        revetting_tool_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        revetting_tool_4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_5:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_6:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_7:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        world:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
       Name: itomp goal state
       Robot Alpha: 1
       Robot Description: robot_description
@@ -170,7 +389,7 @@ Visualization Manager:
       Visual Enabled: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /test_fetch/trajectory_0
+      Marker Topic: /itomp_lbr_iiwa/trajectory_0
       Name: itomp trajectory
       Namespaces:
         {}
@@ -178,7 +397,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /test_fetch/planning_scene
+      Marker Topic: /itomp_lbr_iiwa/planning_scene
       Name: itomp planning scene
       Namespaces:
         {}
@@ -186,16 +405,24 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /test_fetch/goal_constraint
+      Marker Topic: /itomp_lbr_iiwa/goal_constraint
       Name: itomp goal constraints
       Namespaces:
-        {}
+        goal_positions: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
       Enabled: false
       Marker Topic: /test_fetch/target_positions
       Name: itomp target positions
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /itomp_lbr_iiwa/environments
+      Name: itomp environment
       Namespaces:
         {}
       Queue Size: 100
@@ -338,22 +565,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 8.51218
+      Distance: 2.72588
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.263038
-        Y: 0.592463
-        Z: 0.0571586
+        X: 0.95094
+        Y: -0.114237
+        Z: 1.03351
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.389795
+      Pitch: -0.100203
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 6.15094
+      Yaw: 4.51092
     Saved: ~
 Window Geometry:
   Displays:
@@ -371,5 +598,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1200
-  X: 584
-  Y: 10
+  X: 229
+  Y: 460

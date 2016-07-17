@@ -18,6 +18,30 @@
 #include <time.h>
 
 
+/*
+ * target locations from apc_demo/src/apc_demo_m2_move_group.cpp
+
+   setPose(x, y, z, qx, qy, qz, qw)
+
+    geometry_msgs::Pose observe_pose[13];
+    setPose(observe_pose[1], 0.551, 0.585, 0.940,0.689, 0.176, -0.131, 0.691);
+    setPose(observe_pose[3], 0.550, 0.062, 0.963,0.678, 0.154, -0.187, 0.694);
+    setPose(observe_pose[5], 0.506, 0.333, 0.698,0.687, 0.145, -0.170, 0.692);
+    setPose(observe_pose[7], 0.539, 0.604, 0.478,0.685, 0.174, -0.175, 0.685);
+    setPose(observe_pose[10], 0.524, 0.591, 0.427,-0.700, -0.084, 0.050, 0.707);
+    //setPose(observe_pose[12], 0.553, 0.028, 0.426,-0.737, -0.086, 0.006, 0.670);
+    setPose(observe_pose[12],0.553, 0.028, 0.428,-0.738, -0.087, 0.003, 0.669);
+    //setPose(observe_pose[5], 0.470, 0.320, 0.942,0.652, 0.072, -0.236, 0.717);
+
+    geometry_msgs::Pose pre_dropping_pose[13];
+    setPose(pre_dropping_pose[1],-0.35,0.15,0.25,-0.500, 0.500, 0.500, 0.500);
+    setPose(pre_dropping_pose[3],-0.35,0.15,0.25,-0.500, 0.500, 0.500, 0.500);
+    setPose(pre_dropping_pose[5],-0.35,0.15,0.25,-0.500, 0.500, 0.500, 0.500);
+    setPose(pre_dropping_pose[7],-0.35,0.35,0.25,-0.500, 0.500, 0.500, 0.500);
+    setPose(pre_dropping_pose[10],-0.35,0.35,0.25,-0.500, 0.500, 0.500, 0.500);
+    setPose(pre_dropping_pose[12],-0.35,0.35,0.25,-0.500, 0.500, 0.500, 0.500);
+ */
+
 class ITOMPUr5
 {
 private:
@@ -34,6 +58,8 @@ private:
 public:
     
     ITOMPUr5(const ros::NodeHandle& nh = ros::NodeHandle("~"));
+
+    void loadTargetPoses();
 
     void moveTorso(double position, bool wait_for_execution = true);
 
@@ -52,6 +78,10 @@ private:
     itomp_exec::BoundingSphereRobotModelPtr robot_model_;
 
     ros::Publisher display_trajectory_publisher_;
+
+    // target poess
+    std::vector<Pose> bin_poses_;
+    std::vector<Pose> drop_poses_;
 
     // joint state listener
     itomp_exec::JointStateListener joint_state_listener_;
@@ -80,6 +110,63 @@ ITOMPUr5::ITOMPUr5(const ros::NodeHandle& nh)
     // publisher initialization
     display_trajectory_publisher_ = nh_.advertise<moveit_msgs::DisplayTrajectory>("display_planned_path", 1);
     ros::Duration(0.5).sleep();
+
+    loadTargetPoses();
+}
+
+void ITOMPUr5::loadTargetPoses()
+{
+    XmlRpc::XmlRpcValue poses;
+
+    if (nh_.getParam("poses", poses))
+    {
+        for (int i=0; i<poses.size(); i++)
+        {
+            XmlRpc::XmlRpcValue xml_pose = poses[i];
+
+            std::string type_string;
+            Eigen::Vector3d position;
+            Eigen::Quaterniond orientation;
+
+            for (XmlRpc::XmlRpcValue::iterator it = xml_pose.begin(); it != xml_pose.end(); it++)
+            {
+                const std::string key = static_cast<std::string>(it->first);
+
+                if (key == "type")
+                    type_string = static_cast<std::string>(it->second);
+
+                else if (key == "position")
+                {
+                    XmlRpc::XmlRpcValue value = it->second;
+                    for (int i=0; i<3; i++)
+                        position(i) = static_cast<double>(value[i]);
+                }
+
+                else if (key == "orientation")
+                {
+                    XmlRpc::XmlRpcValue value = it->second;
+                    orientation.w() = static_cast<double>(value[0]);
+                    orientation.x() = static_cast<double>(value[1]);
+                    orientation.y() = static_cast<double>(value[2]);
+                    orientation.z() = static_cast<double>(value[3]);
+                }
+            }
+
+            Pose pose;
+            pose.position = position;
+            pose.orientation = orientation;
+
+            if (type_string == "bin")
+            {
+                bin_poses_.push_back(pose);
+            }
+            else if (type_string == "drop")
+            {
+                pose.orientation = Eigen::Quaterniond(0, 0, 0, 1) * pose.orientation;
+                drop_poses_.push_back(pose);
+            }
+        }
+    }
 }
 
 void ITOMPUr5::initializeCurrentState(robot_state::RobotState& state)
@@ -132,7 +219,6 @@ void ITOMPUr5::initializeCurrentState(moveit_msgs::RobotState& start_state)
 
 void ITOMPUr5::runScenario()
 {
-#if 0
     int goal_type = 0;
     int goal_index = 0;
     
@@ -173,17 +259,19 @@ void ITOMPUr5::runScenario()
         */
         moveit_msgs::PositionConstraint goal_position_constraint;
         goal_position_constraint.link_name = endeffector_name_;
+        goal_position_constraint.weight = 1.;
         if (goal_type == 0)
-            tf::vectorEigenToMsg(start_poses_[goal_index].position, goal_position_constraint.target_point_offset);
+            tf::vectorEigenToMsg(drop_poses_[goal_index].position, goal_position_constraint.target_point_offset);
         else
-            tf::vectorEigenToMsg(target_poses_[goal_index].position, goal_position_constraint.target_point_offset);
+            tf::vectorEigenToMsg(bin_poses_[goal_index].position, goal_position_constraint.target_point_offset);
         
         moveit_msgs::OrientationConstraint goal_orientation_constraint;
         goal_orientation_constraint.link_name = endeffector_name_;
+        goal_orientation_constraint.weight = 1.0;
         if (goal_type == 0)
-            tf::quaternionEigenToMsg(start_poses_[goal_index].orientation, goal_orientation_constraint.orientation);
+            tf::quaternionEigenToMsg(drop_poses_[goal_index].orientation, goal_orientation_constraint.orientation);
         else
-            tf::quaternionEigenToMsg(target_poses_[goal_index].orientation, goal_orientation_constraint.orientation);
+            tf::quaternionEigenToMsg(bin_poses_[goal_index].orientation, goal_orientation_constraint.orientation);
         
         moveit_msgs::Constraints goal_constraints;
         goal_constraints.position_constraints.push_back(goal_position_constraint);
@@ -191,17 +279,9 @@ void ITOMPUr5::runScenario()
         req.goal_constraints.push_back(goal_constraints);
         
         planner_.setMotionPlanRequest(req);
-        
-        // trajectory duration
-        double trajectory_duration;
-        if (goal_type == 0 && goal_index == 0)
-            trajectory_duration = 5.0;
-        else
-            trajectory_duration = 2.0 + goal_index;
 
         // plan and execute
         planning_interface::MotionPlanResponse res;
-        planner_.setTrajectoryDuration(trajectory_duration);
         planner_.planAndExecute(res);
 
         // visualize robot trajectory
@@ -214,10 +294,41 @@ void ITOMPUr5::runScenario()
         display_trajectory_msg.model_id = "model";
         //display_trajectory_publisher_.publish(display_trajectory_msg);
 
+        if (goal_type == 0)
+        {
+            goal_type = 1;
+        }
+        else
+        {
+            goal_type = 0;
+
+            // goal index random assignment
+            /*
+            goal_achieved[goal_index] = true;
+
+            std::vector<int> indices;
+            for (int i=0; i<start_poses_.size(); i++)
+            {
+                if (!goal_achieved[i])
+                    indices.push_back(i);
+            }
+
+            if (indices.empty())
+                break;
+
+            goal_index = indices[ rand() % indices.size() ];
+            */
+
+            // goal index assignment in order
+            if (goal_index == bin_poses_.size() - 1)
+                goal_index = 0;
+            else
+                goal_index++;
+        }
+
         // once
-        break;
+        //break;
     }
-#endif
 }
 
 void ITOMPUr5::runMovingArmScenario()
@@ -250,6 +361,7 @@ void ITOMPUr5::runMovingArmScenario()
         // goal pose setting
         moveit_msgs::PositionConstraint goal_position_constraint;
         goal_position_constraint.link_name = endeffector_name_;
+        goal_position_constraint.weight = 1.;
         if (goal_index == 0)
             tf::vectorEigenToMsg(start_pose.position, goal_position_constraint.target_point_offset);
         else
@@ -257,6 +369,7 @@ void ITOMPUr5::runMovingArmScenario()
         
         moveit_msgs::OrientationConstraint goal_orientation_constraint;
         goal_orientation_constraint.link_name = endeffector_name_;
+        goal_orientation_constraint.weight = 0.1;
         if (goal_index == 0)
             tf::quaternionEigenToMsg(start_pose.orientation, goal_orientation_constraint.orientation);
         else
@@ -264,7 +377,7 @@ void ITOMPUr5::runMovingArmScenario()
         
         moveit_msgs::Constraints goal_constraints;
         goal_constraints.position_constraints.push_back(goal_position_constraint);
-        //goal_constraints.orientation_constraints.push_back(goal_orientation_constraint);
+        goal_constraints.orientation_constraints.push_back(goal_orientation_constraint);
         req.goal_constraints.push_back(goal_constraints);
         
         planner_.setMotionPlanRequest(req);
@@ -306,7 +419,8 @@ int main(int argc, char** argv)
     
     ITOMPUr5 itomp_ur5;
 
-    itomp_ur5.runMovingArmScenario();
+    itomp_ur5.runScenario();
+    //itomp_ur5.runMovingArmScenario();
 
     return 0;
 }

@@ -22,6 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   moveit_core
   moveit_ros_planning
+  resource_retriever
   ecl_geometry
   fcl
   actionlib
@@ -31,6 +32,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS
   system
+  serialization
 )
 
 # cmake_modules
@@ -212,6 +214,7 @@ target_link_libraries(itomp_ur5
 )
 target_link_libraries(itomp_lbr_iiwa
   itomp_exec
+  ${Boost_LIBRARIES}
 )
 target_link_libraries(test_fcl
   ${catkin_LIBRARIES}

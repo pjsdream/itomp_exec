@@ -292,7 +292,8 @@ void ITOMPPlannerNode::setMotionPlanRequest(const planning_interface::MotionPlan
         const std::string& name = req.goal_constraints[0].position_constraints[i].link_name;
         Eigen::Vector3d position;
         tf::vectorMsgToEigen(req.goal_constraints[0].position_constraints[i].target_point_offset, position);
-        goal_link_positions_.push_back(std::make_pair(name, position));
+        const double weight = req.goal_constraints[0].position_constraints[i].weight;
+        goal_link_positions_.push_back(GoalPositionConstraint(name, position, weight));
     }
     
     goal_link_orientations_.clear();
@@ -301,7 +302,8 @@ void ITOMPPlannerNode::setMotionPlanRequest(const planning_interface::MotionPlan
         const std::string& name = req.goal_constraints[0].orientation_constraints[i].link_name;
         Eigen::Quaterniond orientation;
         tf::quaternionMsgToEigen(req.goal_constraints[0].orientation_constraints[i].orientation, orientation);
-        goal_link_orientations_.push_back(std::make_pair(name, orientation));
+        const double weight = req.goal_constraints[0].orientation_constraints[i].weight;
+        goal_link_orientations_.push_back(GoalOrientationConstraint(name, orientation, weight));
     }
 }
 
@@ -436,8 +438,8 @@ void ITOMPPlannerNode::visualizeGoalConstraints()
 
     for (int i=0; i<goal_link_positions_.size(); i++)
     {
-        const std::string& link_name = goal_link_positions_[i].first;
-        const Eigen::Vector3d& target_position = goal_link_positions_[i].second;
+        const std::string& link_name = goal_link_positions_[i].link_name;
+        const Eigen::Vector3d& target_position = goal_link_positions_[i].position;
 
         tf::pointEigenToMsg(target_position, marker.pose.position);
 
@@ -553,9 +555,9 @@ void ITOMPPlannerNode::initializeOptimizers()
         // initialize goal poses
         optimizer.clearGoalLinkPoses();
         for (int i=0; i<goal_link_positions_.size(); i++)
-            optimizer.addGoalLinkPosition(goal_link_positions_[i].first, goal_link_positions_[i].second);
+            optimizer.addGoalLinkPosition(goal_link_positions_[i].link_name, goal_link_positions_[i].position, goal_link_positions_[i].weight);
         for (int i=0; i<goal_link_orientations_.size(); i++)
-            optimizer.addGoalLinkOrientation(goal_link_orientations_[i].first, goal_link_orientations_[i].second);
+            optimizer.addGoalLinkOrientation(goal_link_orientations_[i].link_name, goal_link_orientations_[i].orientation, goal_link_orientations_[i].weight);
 
         // initialize cost weights
         optimizer.clearCostWeights();
@@ -652,7 +654,7 @@ bool ITOMPPlannerNode::planAndExecuteFixedTrajectoryDuration()
 
 bool ITOMPPlannerNode::planAndExecuteFlexibleTrajectoryDuration()
 {
-    const int states_per_second = 15;
+    const int states_per_second = 10;
     const int num_states_per_planning_timestep = (int)(options_.planning_timestep * states_per_second) + 1;
 
     double elapsed_trajectory_time = 0.;
@@ -687,13 +689,13 @@ bool ITOMPPlannerNode::planAndExecuteFlexibleTrajectoryDuration()
         optimizeAllTrajectories();
 
         // find the best trajectory
-        int best_trajectory_index = 0;
-        double best_trajectory_cost = optimizers_[0].cost();
-        for (int i=1; i<optimizers_.size(); i++)
+        int best_trajectory_index = -1;
+        double best_trajectory_cost = 0.;
+        for (int i=0; i<optimizers_.size(); i++)
         {
             const double cost = optimizers_[i].trajectoryCost();
 
-            if (cost < best_trajectory_cost)
+            if (best_trajectory_index == -1 || cost < best_trajectory_cost)
             {
                 best_trajectory_index = i;
                 best_trajectory_cost = cost;
@@ -706,7 +708,7 @@ bool ITOMPPlannerNode::planAndExecuteFlexibleTrajectoryDuration()
         // prepare the first timestep of trajectory for execution
         moveit_msgs::RobotTrajectory robot_trajectory_msg;
         optimizers_[best_trajectory_index].getRobotTrajectoryIntervalMsg(robot_trajectory_msg, 0, options_.planning_timestep, num_states_per_planning_timestep);
-        
+
         // TODO: record to response
         /*
         robot_trajectory::RobotTrajectory robot_trajectory(robot_model_, planning_group_name_);
@@ -721,9 +723,6 @@ bool ITOMPPlannerNode::planAndExecuteFlexibleTrajectoryDuration()
 
         //ROS_INFO("Best trajectory cost: %lf", best_trajectory_cost);
 
-        if (best_trajectory_cost < options_.goal_tolerance)
-            break;
-
         /*
         if (optimizers_[best_trajectory_index].reachedGoalPose(options_.goal_tolerance))
             break;
@@ -736,14 +735,24 @@ bool ITOMPPlannerNode::planAndExecuteFlexibleTrajectoryDuration()
                 optimizers_[i].copyTrajectory( optimizers_[best_trajectory_index] );
         }
 
+        // initialize with random milestones except one
+        for (int i=1; i<optimizers_.size(); i++)
+        {
+            optimizers_[i].initializeRandomMilestones();
+        }
+
         // sleep until next timestep then execute
         rate.sleep();
+
+        robot_trajectory_msg.joint_trajectory.header.stamp = ros::Time::now();
         trajectory_execution_manager_->pushAndExecute(robot_trajectory_msg);
+
+        if (best_trajectory_cost < options_.goal_tolerance)
+            break;
     }
 
     ROS_INFO("Waiting %lf sec for the last execution step", options_.planning_timestep);
     ros::Duration(options_.planning_timestep).sleep();
-
     return true;
 }
 

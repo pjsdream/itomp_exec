@@ -6,6 +6,7 @@ namespace itomp_exec
 {
 
 const double TimeCost::ratio_cosine_to_meter_ = 1.;
+const double TimeCost::ratio_radian_per_sec_to_meter_ = 1.;
 
 TimeCost::TimeCost(ITOMPOptimizer& optimizer, double weight)
     : Cost(optimizer, weight)
@@ -22,7 +23,9 @@ void TimeCost::addCost()
     const int num_interpolated_variables = optimizer.getNumInterpolatedConfigurations();
     const int num_robot_joints = optimizer.getNumRobotJoints();
     const int num_interpolation_samples = optimizer.getNumInterpolationSamples();
-    const double trajectory_duration = optimizer.getTrajectoryDuration();
+    const Eigen::MatrixXd& milestones = optimizer.getMilestones();
+    const int num_joints = optimizer.getNumJoints();
+    const int num_milestones = optimizer.getNumMilestones();
 
     for (int i=0; i<num_interpolated_variables; i++)
     {
@@ -52,6 +55,13 @@ void TimeCost::addCost()
             }
         }
     }
+
+    // penalize velocities at last state
+    for (int i=0; i<num_joints; i++)
+    {
+        const double v = milestones(num_joints + i, num_milestones - 1);
+        cost += (v * v) * ratio_radian_per_sec_to_meter_ * weight;
+    }
 }
 
 void TimeCost::addDerivative()
@@ -59,12 +69,15 @@ void TimeCost::addDerivative()
     ITOMPOptimizer& optimizer = getOptimizer();
     const double weight = getWeight();
 
+    const Eigen::MatrixXd& milestones = optimizer.getMilestones();
+    Eigen::MatrixXd& milestone_derivative = optimizer.milestoneDerivative();
+
     const int num_interpolated_variables = optimizer.getNumInterpolatedConfigurations();
     const int num_joints = optimizer.getNumJoints();
     const int num_robot_joints = optimizer.getNumRobotJoints();
     const int num_interpolation_samples = optimizer.getNumInterpolationSamples();
     const RobotModel& robot_model = optimizer.getRobotModel();
-    const double trajectory_duration = optimizer.getTrajectoryDuration();
+    const int num_milestones = optimizer.getNumMilestones();
 
     for (int i=0; i<num_interpolated_variables; i++)
     {
@@ -156,6 +169,13 @@ void TimeCost::addDerivative()
                 }
             }
         }
+    }
+
+    // penalize velocities at last state
+    for (int i=0; i<num_joints; i++)
+    {
+        const double v = milestones(num_joints + i, num_milestones - 1);
+        milestone_derivative(num_joints + i, num_milestones - 1) += 2. * v * ratio_radian_per_sec_to_meter_ * weight;
     }
 }
 

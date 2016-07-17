@@ -44,6 +44,7 @@ public:
 private:
 
     void addCollisionSpheresFromAABB(const AABB& aabb, const Eigen::Affine3d& transform, Spheres& spheres);
+    void addCollisionSpheresFromAABBAlongXAxis(const AABB& aabb, const Eigen::Affine3d& transform, Spheres& spheres);
     std::vector<Spheres> link_collision_spheres_; //!< collision spheres in link local coordinates
 
     // attached bodies

@@ -143,6 +143,27 @@ void ITOMPOptimizer::initializeRandomMilestones()
     }
 }
 
+void ITOMPOptimizer::initializeLastMilestoneFromIK(const robot_model::RobotModel& moveit_robot_model, const robot_model::JointModelGroup *group)
+{
+    const std::string& endeffector_name = group->getEndEffectorName();
+    const int endeffector_index = robot_model_->getJointIndexByLinkName(endeffector_name);
+
+    if (goal_link_poses_[endeffector_index].position_weight != 0. && goal_link_poses_[endeffector_index].orientation_weight != 0.)
+    {
+        geometry_msgs::Pose pose;
+        tf::pointEigenToMsg(goal_link_poses_[endeffector_index].position, pose.position);
+        tf::quaternionEigenToMsg(goal_link_poses_[endeffector_index].orientation, pose.orientation);
+
+        // TODO
+        /*
+        robot_model::RobotState state(moveit_robot_model);
+        if (state.setFromIK(group, pose))
+        {
+        }
+        */
+    }
+}
+
 void ITOMPOptimizer::setPlanningRobotStartGoalStates(const RobotState& start_state, const RobotState& goal_state, double trajectory_duration, int num_milestones)
 {
     setPlanningRobotStartState(start_state, trajectory_duration, num_milestones);
@@ -172,17 +193,17 @@ void ITOMPOptimizer::clearGoalLinkPoses()
     }
 }
 
-void ITOMPOptimizer::addGoalLinkPosition(const std::string& link_name, const Eigen::Vector3d& goal_position)
+void ITOMPOptimizer::addGoalLinkPosition(const std::string& link_name, const Eigen::Vector3d& goal_position, double weight)
 {
     const int joint_index = robot_model_->getJointIndexByLinkName(link_name);
     goal_link_poses_[joint_index].position_weight = 1.0;
     goal_link_poses_[joint_index].position = root_link_transform_ * goal_position;
 }
 
-void ITOMPOptimizer::addGoalLinkOrientation(const std::string& link_name, const Eigen::Quaterniond& goal_orientation)
+void ITOMPOptimizer::addGoalLinkOrientation(const std::string& link_name, const Eigen::Quaterniond& goal_orientation, double weight)
 {
     const int joint_index = robot_model_->getJointIndexByLinkName(link_name);
-    goal_link_poses_[joint_index].orientation_weight = 1.0;
+    goal_link_poses_[joint_index].orientation_weight = weight;
     goal_link_poses_[joint_index].orientation = root_link_transform_.linear() * goal_orientation;
 }
 
@@ -735,19 +756,19 @@ void ITOMPOptimizer::visualizeInterpolationSamplesCollisionSpheres()
 void ITOMPOptimizer::getRobotTrajectoryIntervalMsg(moveit_msgs::RobotTrajectory& msg, double t0, double t1, int num_states)
 {
     precomputeCubicPolynomials();
-    
+
     msg.joint_trajectory.joint_names = start_state_.getPlanningJointNames();
     
-    int state_index = 0;
+    int state_index = 1;
     
     for (int i=0; i<num_milestones_; i++)
     {
         const double milestone_t0 = (double)i / num_milestones_ * trajectory_duration_;
         const double milestone_t1 = (double)(i + 1) / num_milestones_ * trajectory_duration_;
         
-        while (state_index < num_states)
+        while (state_index <= num_states)
         {
-            const double u = (double)state_index / (num_states - 1);
+            const double u = (double)state_index / num_states;
             const double t = (1.-u) * t0 + u * t1;
             
             if (milestone_t0 <= t && t<= milestone_t1)
@@ -758,8 +779,8 @@ void ITOMPOptimizer::getRobotTrajectoryIntervalMsg(moveit_msgs::RobotTrajectory&
                 {
                     const ecl::CubicPolynomial& poly = cubic_polynomials_[j][i];
                     
-                    point.positions.push_back( poly(t) );
-                    point.velocities.push_back( poly.derivative(t) );
+                    point.positions.push_back( clampPosition(poly(t), j) );
+                    point.velocities.push_back( clampVelocity(poly.derivative(t), j) );
                 }
                 msg.joint_trajectory.points.push_back(point);
                 
@@ -768,7 +789,7 @@ void ITOMPOptimizer::getRobotTrajectoryIntervalMsg(moveit_msgs::RobotTrajectory&
             else break;
         }
         
-        if (state_index == num_states)
+        if (state_index == num_states + 1)
             break;
     }
 }

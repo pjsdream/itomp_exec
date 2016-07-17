@@ -13,23 +13,23 @@
   <node name="world_tf_broadcaster" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 map world 100" />
 
   <!-- Gazebo -->
-  <include file="$(find ur_gazebo)/launch/ur5.launch" />
+  <include file="$(find itomp_exec)/launch/ur5/ur5.launch">
+    <arg name="limited" value="false"/>
+  </include>
 
   <!-- moveit -->
-  <!--
-  <include file="$(find ur5_moveit_config)/launch/move_group.launch">
-    <remap from="/follow_joint_trajectory" to="/arm_controller/follow_joint_trajectory"/>
-    <arg name="fake_execution" value="false"/>
-  </include>
-  -->
-  <include file="$(find ur5_moveit_config)/launch/ur5_moveit_planning_execution.launch">
+  <include file="$(find itomp_exec)/launch/ur5/ur5_moveit_planning_execution.launch">
     <arg name="sim" value="true"/>
+    <arg name="limited" value="false"/>
   </include>
 
   <!-- Run Rviz and load the default config to see the state of the move_group node -->
   <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" args="-d $(find itomp_exec)/launch/itomp_ur5.rviz"> <!-- output="screen" -->
     <rosparam command="load" file="$(find ur5_moveit_config)/config/kinematics.yaml"/>
   </node>
+
+  <!-- apc demo target poses -->
+  <rosparam ns="itomp_ur5" command="load" file="$(find itomp_exec)/config/apc_poses.yaml"/>
 
   <!-- ITOMP parameters -->
   <rosparam ns="itomp_ur5" command="load" file="$(find itomp_exec)/config/itomp_ur5.yaml"/>

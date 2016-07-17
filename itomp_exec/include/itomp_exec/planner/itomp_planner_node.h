@@ -36,6 +36,30 @@ public:
         ITOMPFlexibleTrajectoryDuration,
     };
 
+    struct GoalPositionConstraint
+    {
+        std::string link_name;
+        Eigen::Vector3d position;
+        double weight;
+
+        GoalPositionConstraint(){}
+        GoalPositionConstraint(const std::string link_name, const Eigen::Vector3d& position, double weight = 1.)
+            : link_name(link_name), position(position), weight(weight)
+        {}
+    };
+
+    struct GoalOrientationConstraint
+    {
+        std::string link_name;
+        Eigen::Quaterniond orientation;
+        double weight;
+
+        GoalOrientationConstraint(){}
+        GoalOrientationConstraint(const std::string link_name, const Eigen::Quaterniond& orientation, double weight = 1.)
+            : link_name(link_name), orientation(orientation), weight(weight)
+        {}
+    };
+
     struct ITOMPPlannerOptions
     {
         int num_trajectories;
@@ -146,8 +170,8 @@ private:
     std::vector<ITOMPOptimizer> optimizers_;
     std::vector<Thread*> optimizer_threads_;
     
-    std::vector<std::pair<std::string, Eigen::Vector3d> > goal_link_positions_;
-    std::vector<std::pair<std::string, Eigen::Quaterniond> > goal_link_orientations_;
+    std::vector<GoalPositionConstraint> goal_link_positions_;
+    std::vector<GoalOrientationConstraint> goal_link_orientations_;
     
     // planning environment
     std::string planning_group_name_;

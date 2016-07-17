@@ -5,7 +5,7 @@ num_milestones: 3
 num_interpolation_samples: 6
 dynamic_obstacle_max_speed: 0.00 # m/s
 dynamic_obstacle_duration: 5.0   # s
-goal_tolerance: 0.1  # cost function tolerance
+goal_tolerance: 0.01  # cost function tolerance
 
 #itomp_algorithm: "fixed_trajectory_duration"
 itomp_algorithm: "flexible_trajectory_duration"
@@ -36,9 +36,12 @@ itomp_algorithm: "flexible_trajectory_duration"
 #collision_sphere_links:
 #  - shoulder_pan_link
 
+environment:
+  - {type: "mesh", file: "package://itomp_exec/env/lbr_iiwa_shelf.dae", position: [0.0, 0.0, 0.0]}
+
 cost_weights:
   #goal_pose: 1.0
   time: 1.0
-  smoothness: 1.0
+  smoothness: 0.01
   collision: 3.0
   future_obstacle: 1.0

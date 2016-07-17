@@ -12,23 +12,16 @@
   <node name="camera_depth_frame_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 camera_link camera_depth_frame 100" />
   <node name="openni_depth_frame_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 camera_depth_frame openni_depth_frame 100" />
 
-  <!-- Broadcast static tf from map to robot's root (segment0) -->
-  <node name="robot_root_tf_broadcaster" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 map segment_0 100" />
+  <!-- Broadcast static tf from map to robot's root (world) -->
+  <node name="world_tf_broadcaster" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 map world 100" />
 
-  <!-- URDF and TF support -->
-  <param name="robot_description" textfile="$(find lbr_iiwa_description)/urdf/lbr_iiwa.urdf" />
-  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" >
-    <param name="publish_frequency" value="100.0"/>
-  </node>
+  <!-- Gazebo -->
+  <include file="$(find lbr_iiwa_gazebo)/launch/lbr_iiwa.launch">
+  </include>
 
-  <arg name="debug" default="false"/>
-  <arg name="gui" default="true"/>
-  <arg name="headless" default="false"/>
-
-  <!-- move group -->
-  <arg name="pipeline" default="$(optenv PLANNING_PIPELINE ompl)" />
-  <include file="$(find lbr_iiwa_generated)/launch/move_group.launch">
-    <arg name="fake_execution" value="false"/>
+  <!-- moveit -->
+  <include file="$(find lbr_iiwa_generated)/launch/lbr_iiwa_moveit_planning_execution.launch">
+    <arg name="sim" value="true"/>
   </include>
 
   <!-- Run Rviz and load the default config to see the state of the move_group node -->
