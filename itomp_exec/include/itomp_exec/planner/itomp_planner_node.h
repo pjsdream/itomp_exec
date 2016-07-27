@@ -129,7 +129,14 @@ public:
     
     void setMotionPlanRequest(const planning_interface::MotionPlanRequest& req);
 
-    bool planAndExecute(planning_interface::MotionPlanResponse& res);
+    bool planAndExecute(moveit_msgs::RobotTrajectory& robot_trajectory);
+
+    void visualizeTrajectory(const std::string& endeffector_link_name, int step = 1);
+    void clearTrajectoryVisualization();
+
+    void measureCostComputationTime();
+
+    double getMinimumDistanceToHuman();
     
     // DEBUG
     void printParams();
@@ -180,12 +187,14 @@ private:
     // ITOMP options
     ITOMPPlannerOptions options_;
 
-    // virtual human
-    ros::Publisher virtual_human_arm_request_publisher_;
-
     // visualization marker array publisher for planning scene
     ros::Publisher planning_scene_visualization_publisher_;
     ros::Publisher goal_constraint_visualization_publisher_;
+    ros::Publisher trajectory_visualization_publisher_;
+
+    // response
+    moveit_msgs::RobotTrajectory* response_robot_trajectory_;
+    std::vector<std::pair<std::string, int> > marker_array_ns_id_;
 };
 
 typedef std::shared_ptr<ITOMPPlannerNode> ITOMPPlannerNodePtr;

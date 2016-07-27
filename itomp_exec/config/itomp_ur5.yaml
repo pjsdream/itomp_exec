@@ -1,17 +1,36 @@
 num_trajectories: 8
 trajectory_duration: 3.0
 planning_timestep: 0.1
-num_milestones: 5
+num_milestones: 3
 num_interpolation_samples: 6
 dynamic_obstacle_max_speed: 0.00 # m/s
 dynamic_obstacle_duration: 5.0   # s
-goal_tolerance: 0.03  # cost function tolerance
+goal_tolerance: 0.01  # cost function tolerance
 
 #itomp_algorithm: "fixed_trajectory_duration"
 itomp_algorithm: "flexible_trajectory_duration"
 
 static_obstacles:
-  - {type: "sphere", position: [0.10,  0.05, 0.70], radius: 0.30}
+  - {type: "sphere", position: [0.10,  0.12, 0.70], radius: 0.25}
+  # 4
+  - {type: "sphere", position: [0.17,  0.70, 0.75], radius: 0.07}
+  - {type: "sphere", position: [0.17,  0.80, 0.75], radius: 0.07}
+  - {type: "sphere", position: [0.17,  0.90, 0.75], radius: 0.07}
+  - {type: "sphere", position: [0.17,  0.70, 0.65], radius: 0.07}
+  - {type: "sphere", position: [0.17,  0.80, 0.65], radius: 0.07}
+  - {type: "sphere", position: [0.17,  0.90, 0.65], radius: 0.07}
+  - {type: "sphere", position: [0.17,  0.70, 0.55], radius: 0.07}
+  - {type: "sphere", position: [0.17,  0.80, 0.55], radius: 0.07}
+  - {type: "sphere", position: [0.17,  0.90, 0.55], radius: 0.07}
+  - {type: "sphere", position: [0.17,  0.70, 0.45], radius: 0.07}
+  - {type: "sphere", position: [0.17,  0.80, 0.45], radius: 0.07}
+  - {type: "sphere", position: [0.17,  0.90, 0.45], radius: 0.07}
+  - {type: "sphere", position: [0.17,  0.70, 0.35], radius: 0.07}
+  - {type: "sphere", position: [0.17,  0.80, 0.35], radius: 0.07}
+  - {type: "sphere", position: [0.17,  0.90, 0.35], radius: 0.07}
+  - {type: "sphere", position: [0.17,  0.70, 0.25], radius: 0.07}
+  - {type: "sphere", position: [0.17,  0.80, 0.25], radius: 0.07}
+  - {type: "sphere", position: [0.17,  0.90, 0.25], radius: 0.07}
 
 #collision_sphere_links:
 #  - shoulder_pan_link
@@ -20,5 +39,8 @@ cost_weights:
   #goal_pose: 1.0
   time: 1.0
   smoothness: 0.1
-  collision: 3.0
+  collision: 100.0
   future_obstacle: 1.0
+
+# initial joints
+# 1.1564712318588484, -0.8455920788462121, 1.8721197353946515, 1.165594409580394, 1.631607473390405, -1.8292292291682006

@@ -14,6 +14,8 @@
 #include <Eigen/Dense>
 #include <ros/ros.h>
 
+#include <std_msgs/Bool.h>
+
 #include <stdlib.h>
 #include <time.h>
 
@@ -85,6 +87,9 @@ private:
 
     // joint state listener
     itomp_exec::JointStateListener joint_state_listener_;
+
+    // demo
+    ros::Publisher demo_request_publisher_;
 };
 
 
@@ -109,6 +114,7 @@ ITOMPUr5::ITOMPUr5(const ros::NodeHandle& nh)
 
     // publisher initialization
     display_trajectory_publisher_ = nh_.advertise<moveit_msgs::DisplayTrajectory>("display_planned_path", 1);
+    demo_request_publisher_ = nh_.advertise<std_msgs::Bool>("/demo/demo_request", 1);
     ros::Duration(0.5).sleep();
 
     loadTargetPoses();
@@ -219,7 +225,7 @@ void ITOMPUr5::initializeCurrentState(moveit_msgs::RobotState& start_state)
 
 void ITOMPUr5::runScenario()
 {
-    int goal_type = 1;
+    int goal_type = 0;
     int goal_index = 0;
     
     while (true)
@@ -281,22 +287,22 @@ void ITOMPUr5::runScenario()
         planner_.setMotionPlanRequest(req);
 
         // plan and execute
-        planning_interface::MotionPlanResponse res;
+        moveit_msgs::RobotTrajectory res;
         planner_.planAndExecute(res);
 
-        // visualize robot trajectory
-        moveit_msgs::MotionPlanResponse response_msg;
-        res.getMessage(response_msg);
-
-        moveit_msgs::DisplayTrajectory display_trajectory_msg;
-        display_trajectory_msg.trajectory_start = response_msg.trajectory_start;
-        display_trajectory_msg.trajectory.push_back( response_msg.trajectory );
-        display_trajectory_msg.model_id = "model";
-        //display_trajectory_publisher_.publish(display_trajectory_msg);
+        planner_.visualizeTrajectory(endeffector_name_, 10);
 
         if (goal_type == 0)
         {
+            //planner_.measureCostComputationTime();
+
             goal_type = 1;
+
+            std_msgs::Bool request;
+            request.data = true;
+            demo_request_publisher_.publish(request);
+            planner_.clearTrajectoryVisualization();
+            ros::Duration(1.7).sleep();
         }
         else
         {
@@ -320,10 +326,7 @@ void ITOMPUr5::runScenario()
             */
 
             // goal index assignment in order
-            if (goal_index == bin_poses_.size() - 1)
-                goal_index = 0;
-            else
-                goal_index++;
+            //break;
         }
 
         // once
@@ -383,19 +386,9 @@ void ITOMPUr5::runMovingArmScenario()
         planner_.setMotionPlanRequest(req);
 
         // plan and execute
-        planning_interface::MotionPlanResponse res;
+        moveit_msgs::RobotTrajectory res;
         planner_.planAndExecute(res);
 
-        // visualize robot trajectory
-        moveit_msgs::MotionPlanResponse response_msg;
-        res.getMessage(response_msg);
-
-        moveit_msgs::DisplayTrajectory display_trajectory_msg;
-        display_trajectory_msg.trajectory_start = response_msg.trajectory_start;
-        display_trajectory_msg.trajectory.push_back( response_msg.trajectory );
-        display_trajectory_msg.model_id = "model";
-        display_trajectory_publisher_.publish(display_trajectory_msg);
-        
         // move endeffector vertically using IK to pick or place
         if (goal_index == 0)
         {

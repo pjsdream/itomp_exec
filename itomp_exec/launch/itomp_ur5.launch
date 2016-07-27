@@ -22,12 +22,15 @@
 
   <!-- future obstacle -->
   <!-- <include file="$(find pcml)/launch/kinect2_obstacle_publisher.launch"/> -->
+  <!--
   <include file="$(find pcml)/launch/recorded_obstacle_publisher.launch">
     <arg name="sequence" value="$(arg sequence)"/>
   </include>
+  -->
 
   <!-- Broadcast static tf from map to robot's root (world) -->
   <node name="world_tf_broadcaster" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 map world 100" />
+  <node name="segment_0_tf_broadcaster" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 map segment_0 100" />
 
   <!-- Gazebo -->
   <include file="$(find itomp_exec)/launch/ur5/ur5.launch">

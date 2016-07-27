@@ -9,6 +9,7 @@ namespace itomp_exec
 {
 
 class ITOMPOptimizer;
+class Numerical;
 
 class Cost
 {

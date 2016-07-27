@@ -507,20 +507,10 @@ void ITOMPFetch::runScenario()
             trajectory_duration = 2.0 + goal_index;
 
         // plan and execute
-        planning_interface::MotionPlanResponse res;
+        moveit_msgs::RobotTrajectory res;
         planner_.setTrajectoryDuration(trajectory_duration);
         planner_.planAndExecute(res);
 
-        // visualize robot trajectory
-        moveit_msgs::MotionPlanResponse response_msg;
-        res.getMessage(response_msg);
-
-        moveit_msgs::DisplayTrajectory display_trajectory_msg;
-        display_trajectory_msg.trajectory_start = response_msg.trajectory_start;
-        display_trajectory_msg.trajectory.push_back( response_msg.trajectory );
-        display_trajectory_msg.model_id = "model";
-        display_trajectory_publisher_.publish(display_trajectory_msg);
-        
         // move endeffector vertically using IK to pick or place
         if (goal_type == 0)
         {
@@ -633,23 +623,14 @@ void ITOMPFetch::runMovingArmScenario()
         planner_.setMotionPlanRequest(req);
 
         // plan and execute
-        planning_interface::MotionPlanResponse res;
+        moveit_msgs::RobotTrajectory res;
         planner_.planAndExecute(res);
 
-        // visualize robot trajectory
-        moveit_msgs::MotionPlanResponse response_msg;
-        res.getMessage(response_msg);
-
-        moveit_msgs::DisplayTrajectory display_trajectory_msg;
-        display_trajectory_msg.trajectory_start = response_msg.trajectory_start;
-        display_trajectory_msg.trajectory.push_back( response_msg.trajectory );
-        display_trajectory_msg.model_id = "model";
-        display_trajectory_publisher_.publish(display_trajectory_msg);
-        
         // move endeffector vertically using IK to pick or place
         if (goal_index == 0)
         {
             goal_index = 1;
+            planner_.measureCostComputationTime();
         }
         else
         {
@@ -950,16 +931,12 @@ void ITOMPFetch::moveEndeffectorVertically(double distance)
     planner_.setMotionPlanRequest(req);
     
     // plan and execute
-    planning_interface::MotionPlanResponse res;
+    moveit_msgs::RobotTrajectory res;
     planner_.planAndExecute(res);
     
     // ITOMP parameter restore
     planner_.setTrajectoryDuration(original_trajectory_duration);
     planner_.setPlanningTimestep(original_planning_timestep);
-    
-    // visualize robot trajectory
-    moveit_msgs::MotionPlanResponse response_msg;
-    res.getMessage(response_msg);
 }
 
 void ITOMPFetch::moveEndeffectorVerticallyTarget(double distance, const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation, bool wait_for_execution)
@@ -1002,7 +979,7 @@ void ITOMPFetch::moveEndeffectorVerticallyTarget(double distance, const Eigen::V
     planner_.setMotionPlanRequest(req);
     
     // plan and execute
-    planning_interface::MotionPlanResponse res;
+    moveit_msgs::RobotTrajectory res;
     planner_.planAndExecute(res);
     
     // ITOMP parameter restore

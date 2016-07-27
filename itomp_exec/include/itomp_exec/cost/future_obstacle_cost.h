@@ -20,6 +20,9 @@ public:
         return "FutureObstacleCost";
     }
 
+    virtual void addCost();
+    virtual void addDerivative();
+
 private:
     
 };

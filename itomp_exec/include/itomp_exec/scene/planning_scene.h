@@ -31,6 +31,16 @@ public:
         use_future_dynamic_obstacles_ = false;
     }
 
+    inline void enable()
+    {
+        disabled_ = false;
+    }
+
+    inline void disable()
+    {
+        disabled_ = true;
+    }
+
     void addStaticObstacle(const std::string& mesh_filename, const Eigen::Affine3d& transformation);
     void addStaticObstacles(const std::vector<std::string>& mesh_filenames, const std::vector<Eigen::Affine3d>& transformations);
     void addStaticSphereObstacle(const Eigen::Vector3d& position, double radius);
@@ -58,6 +68,8 @@ private:
     // for visualization
     ros::NodeHandle node_handle_;
     ros::Publisher static_scene_publisher_;
+
+    bool disabled_;
 };
 
 typedef std::shared_ptr<PlanningScene> PlanningScenePtr;

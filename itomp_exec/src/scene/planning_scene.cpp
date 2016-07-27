@@ -12,6 +12,7 @@ namespace itomp_exec
 PlanningScene::PlanningScene(const ros::NodeHandle& node_handle)
     : node_handle_(node_handle)
     , transform_listener_(node_handle)
+    , disabled_(false)
 {
     disableFutureDynamicObstacles();
 }
@@ -59,7 +60,10 @@ Spheres PlanningScene::getStaticSphereObstacles() const
 {
     std::vector<Sphere> spheres;
     Sphere sphere;
-    
+
+    if (disabled_)
+        return spheres;
+
     for (int i=0; i<shapes_.size(); i++)
     {
         const shapes::Shape* shape = shapes_[i];
@@ -82,6 +86,11 @@ Spheres PlanningScene::getStaticSphereObstacles() const
 
 Spheres PlanningScene::getDynamicSphereObstacles() const
 {
+    Spheres spheres;
+
+    if (disabled_)
+        return spheres;
+
     pcml::FutureObstacleDistributions obstacles = future_obstacle_listener_.getFutureObstacleDistributions();
     std::string frame_id = future_obstacle_listener_.getFrameId();
 
@@ -110,7 +119,6 @@ Spheres PlanningScene::getDynamicSphereObstacles() const
         transform.translate(translation).rotate(quaternion);
     }
 
-    Spheres spheres;
     for (int i=0; i<obstacles.obstacles.size(); i++)
     {
         const pcml::FutureObstacleDistribution& obstacle = obstacles.obstacles[i];

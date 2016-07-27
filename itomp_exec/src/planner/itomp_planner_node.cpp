@@ -38,13 +38,11 @@ void ITOMPPlannerNode::initialize()
 {
     ros::Rate rate(0.5);
 
-    // initialize virtual human arm publisher
-    virtual_human_arm_request_publisher_ = node_handle_.advertise<std_msgs::Float64MultiArray>("/future_obstacle_publisher/virtual_human_arm_request", 1);
-
     // initialize planning scene visualization publisher
     planning_scene_visualization_publisher_ = node_handle_.advertise<visualization_msgs::MarkerArray>("planning_scene", 1);
 
     goal_constraint_visualization_publisher_ = node_handle_.advertise<visualization_msgs::MarkerArray>("goal_constraint", 1);
+    trajectory_visualization_publisher_ = node_handle_.advertise<visualization_msgs::MarkerArray>("trajectory", 1);
 
     // initialize robot model from moveit model
     robot_model_.reset( new BoundingSphereRobotModel );
@@ -497,9 +495,10 @@ void ITOMPPlannerNode::optimizeAllTrajectories()
     }
 }
 
-bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& res)
+bool ITOMPPlannerNode::planAndExecute(moveit_msgs::RobotTrajectory& robot_trajectory)
 {
-    res.trajectory_.reset(new robot_trajectory::RobotTrajectory(moveit_robot_model_, planning_group_name_));
+    response_robot_trajectory_ = &robot_trajectory;
+    response_robot_trajectory_->joint_trajectory.points.clear();
 
     initializeOptimizers();
 
@@ -580,14 +579,6 @@ bool ITOMPPlannerNode::planAndExecuteFixedTrajectoryDuration()
 
     double trajectory_duration = options_.trajectory_duration;
 
-    // virtual human arm request
-    const double virtual_human_arm_delay = 1.5;
-    const double virtual_human_arm_speed = 50.0;
-    std_msgs::Float64MultiArray msg;
-    msg.data.push_back(virtual_human_arm_delay);
-    msg.data.push_back(virtual_human_arm_speed);
-    virtual_human_arm_request_publisher_.publish(msg);
-
     while (true)
     {
         ROS_INFO("Planning trajectory of %lf sec", trajectory_duration);
@@ -660,23 +651,14 @@ bool ITOMPPlannerNode::planAndExecuteFlexibleTrajectoryDuration()
     double elapsed_trajectory_time = 0.;
     ros::Rate rate( 1. / options_.planning_timestep );
 
-    double trajectory_duration = options_.trajectory_duration;
-
-    // virtual human arm request
-    const double virtual_human_arm_delay = 1.5;
-    const double virtual_human_arm_speed = 50.0;
-    std_msgs::Float64MultiArray msg;
-    msg.data.push_back(virtual_human_arm_delay);
-    msg.data.push_back(virtual_human_arm_speed);
-    virtual_human_arm_request_publisher_.publish(msg);
-
     ros::Time start_time = ros::Time::now();
 
+    planning_scene_.enable();
     while (true)
     {
         const ros::Duration elapsed_ros_time = ros::Time::now() - start_time;
         ROS_INFO("Planning trajectory after %lf sec (ros time: %lf, error: %lf)", elapsed_trajectory_time, elapsed_ros_time.toSec(), elapsed_ros_time.toSec() - elapsed_trajectory_time);
-        
+
         // update dynamic environments
 
         // visualize updated planning scene
@@ -687,6 +669,11 @@ bool ITOMPPlannerNode::planAndExecuteFlexibleTrajectoryDuration()
 
         // optimize during optimization_time
         optimizeAllTrajectories();
+
+        if (elapsed_trajectory_time >= 5. || elapsed_trajectory_time <= 1.)
+            planning_scene_.disable();
+        else
+            planning_scene_.enable();
 
         // find the best trajectory
         int best_trajectory_index = -1;
@@ -711,11 +698,19 @@ bool ITOMPPlannerNode::planAndExecuteFlexibleTrajectoryDuration()
 
         // TODO: record to response
         /*
-        robot_trajectory::RobotTrajectory robot_trajectory(robot_model_, planning_group_name_);
+        robot_trajectory::RobotTrajectory robot_trajectory(moveit_robot_model_, planning_group_name_);
         robot_trajectory.setRobotTrajectoryMsg(*start_state_, robot_trajectory_msg);
         res_->trajectory_->append(robot_trajectory, options_.planning_timestep);
         res_->error_code_.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
         */
+
+        // response
+        response_robot_trajectory_->joint_trajectory.joint_names = robot_trajectory_msg.joint_trajectory.joint_names;
+        response_robot_trajectory_->joint_trajectory.points.insert(
+                    response_robot_trajectory_->joint_trajectory.points.end(),
+                    robot_trajectory_msg.joint_trajectory.points.begin(),
+                    robot_trajectory_msg.joint_trajectory.points.end()
+                    );
 
         optimizers_[best_trajectory_index].stepForward(options_.planning_timestep);
         optimizers_[best_trajectory_index].extend(options_.planning_timestep);
@@ -741,6 +736,9 @@ bool ITOMPPlannerNode::planAndExecuteFlexibleTrajectoryDuration()
             optimizers_[i].initializeRandomMilestones();
         }
 
+        // visualize endeffector trajectory
+        visualizeTrajectory("ee_link", 10000);
+
         // sleep until next timestep then execute
         rate.sleep();
 
@@ -753,7 +751,187 @@ bool ITOMPPlannerNode::planAndExecuteFlexibleTrajectoryDuration()
 
     ROS_INFO("Waiting %lf sec for the last execution step", options_.planning_timestep);
     ros::Duration(options_.planning_timestep).sleep();
+
     return true;
+}
+
+void ITOMPPlannerNode::visualizeTrajectory(const std::string& endeffector_link_name, int step)
+{
+    visualization_msgs::MarkerArray marker_array;
+    visualization_msgs::Marker marker;
+
+    marker.header.frame_id = robot_model_->getFrameId();
+    marker.header.stamp = ros::Time::now();
+    marker.action = visualization_msgs::Marker::DELETE;
+
+    for (int i=0; i<marker_array_ns_id_.size(); i++)
+    {
+        marker.ns = marker_array_ns_id_[i].first;
+        marker.id = marker_array_ns_id_[i].second;
+        marker_array.markers.push_back(marker);
+    }
+
+    trajectory_visualization_publisher_.publish(marker_array);
+
+    marker_array_ns_id_.clear();
+    marker_array.markers.clear();
+
+    // add robots
+    marker.ns = "endeffector";
+    marker.id = 0;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.type = visualization_msgs::Marker::LINE_STRIP;
+    marker.scale.x = 0.03;
+
+    std_msgs::ColorRGBA color0;
+    color0.r = 1.0;
+    color0.g = 0.5;
+    color0.b = 0.0;
+    color0.a = 1.0;
+
+    std_msgs::ColorRGBA color1;
+    color1.r = 0.0;
+    color1.g = 0.0;
+    color1.b = 1.0;
+    color1.a = 1.0;
+
+    const std::vector<std::string>& joint_names = response_robot_trajectory_->joint_trajectory.joint_names;
+    const int endeffector_index = robot_model_->getJointIndexByLinkName(endeffector_link_name);
+
+    geometry_msgs::Point previous_point;
+
+    double ee_length = 0.;
+
+    for (int i=0; i<response_robot_trajectory_->joint_trajectory.points.size(); i++)
+    {
+        const double t = (double)i / (response_robot_trajectory_->joint_trajectory.points.size() - 1);
+
+        const std::vector<double>& positions = response_robot_trajectory_->joint_trajectory.points[i].positions;
+
+        Eigen::VectorXd joint_positions = start_state_.getDefaultJointPositions();
+
+        for (int j=0; j<joint_names.size(); j++)
+            joint_positions( robot_model_->getJointIndexByName(joint_names[j]) ) = positions[j];
+
+        std::vector<Eigen::Affine3d> transforms;
+
+        robot_model_->getLinkTransforms(joint_positions, transforms);
+
+        if (i % step == 0 && step < 1000)
+        {
+            const int last_index = marker_array.markers.size();
+            robot_model_->pushVisualLinkVisualizationMarkers(transforms, "trajectory_" + std::to_string(i), marker_array);
+
+            for (int j=last_index; j<marker_array.markers.size(); j++)
+            {
+                marker_array.markers[j].color.r = 0.5;
+                marker_array.markers[j].color.g = 0.5;
+                marker_array.markers[j].color.b = 0.5;
+                marker_array.markers[j].color.a = 0.5;
+            }
+        }
+
+        // endeffector trajectory
+        geometry_msgs::Point point;
+        tf::pointEigenToMsg(transforms[endeffector_index].translation(), point);
+
+        std_msgs::ColorRGBA color;
+        color.r = (1. - t) * color0.r + t * color1.r;
+        color.g = (1. - t) * color0.g + t * color1.g;
+        color.b = (1. - t) * color0.b + t * color1.b;
+        color.a = (1. - t) * color0.a + t * color1.a;
+
+        marker.points.push_back(point);
+        marker.colors.push_back(color);
+
+        if (i)
+            ee_length += (Eigen::Vector3d(point.x, point.y, point.z) - Eigen::Vector3d(previous_point.x, previous_point.y, previous_point.z)).norm();
+
+        previous_point = point;
+    }
+
+    ROS_INFO("ee length: %lf", ee_length);
+    ROS_INFO("minimum distance to human: %lf", getMinimumDistanceToHuman());
+
+    marker_array.markers.push_back(marker);
+
+    trajectory_visualization_publisher_.publish(marker_array);
+
+    for (int i=0; i<marker_array.markers.size(); i++)
+        marker_array_ns_id_.push_back( std::make_pair(marker_array.markers[i].ns, marker_array.markers[i].id) );
+}
+
+double ITOMPPlannerNode::getMinimumDistanceToHuman()
+{
+    ITOMPOptimizer& optimizer = optimizers_[0];
+
+    const int num_interpolated_variables = optimizer.getNumInterpolatedConfigurations();
+    const int num_robot_joints = optimizer.getNumRobotJoints();
+    const Spheres& dynamic_obstacle_spheres = optimizer.getDynamicObstacleSpheres();
+
+    double result = 100.;
+
+    for (int i=0; i<num_interpolated_variables; i++)
+    {
+        for (int j=0; j<num_robot_joints; j++)
+        {
+            const Spheres& robot_spheres = optimizer.getInterpolatedLinkCollisionSpheres(i, j);
+
+            for (int k=0; k<robot_spheres.size(); k++)
+            {
+                const Sphere& robot_sphere = robot_spheres[k];
+
+                for (int l=0; l<dynamic_obstacle_spheres.size(); l++)
+                {
+                    const Sphere& obstacle_sphere = dynamic_obstacle_spheres[l];
+
+                    const double r = robot_sphere.radius + obstacle_sphere.radius;
+                    const double d_squared = (robot_sphere.position - obstacle_sphere.position).squaredNorm();
+
+                    result = std::min(result, std::sqrt(d_squared) - r);
+                }
+            }
+        }
+    }
+
+    return result;
+}
+
+void ITOMPPlannerNode::clearTrajectoryVisualization()
+{
+    visualization_msgs::MarkerArray marker_array;
+    visualization_msgs::Marker marker;
+
+    marker.header.frame_id = robot_model_->getFrameId();
+    marker.header.stamp = ros::Time::now();
+    marker.action = visualization_msgs::Marker::DELETE;
+
+    for (int i=0; i<marker_array_ns_id_.size(); i++)
+    {
+        marker.ns = marker_array_ns_id_[i].first;
+        marker.id = marker_array_ns_id_[i].second;
+        marker_array.markers.push_back(marker);
+    }
+
+    trajectory_visualization_publisher_.publish(marker_array);
+
+    marker_array_ns_id_.clear();
+    marker_array.markers.clear();
+}
+
+void ITOMPPlannerNode::measureCostComputationTime()
+{
+    const int num_evaluations = 1000000;
+
+    ros::Time start_time = ros::Time::now();
+    ITOMPOptimizer& optimizer = optimizers_[0];
+    CollisionCost* cost_function = optimizer.getCollisionCostFunction();
+    for (int i=0; i<num_evaluations; i++)
+        cost_function->addCost();
+
+    double one_evaluation_time = (ros::Time::now() - start_time).toSec() / num_evaluations / options_.num_interpolation_samples / options_.num_milestones;
+
+    ROS_INFO("one evaluation time: %lf ms", one_evaluation_time * 1000. * 112 * robot_model_->getNumBoundingSpheres());
 }
 
 }

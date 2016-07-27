@@ -51,6 +51,10 @@ void ITOMPOptimizer::setCostWeight(const std::string& cost_type, double weight)
 
     else if (cost_type == "time")
         cost_functions_.push_back(new TimeCost(*this, weight));
+
+    else if (cost_type == "center_approx_collision")
+        cost_functions_.push_back(new CollisionCost(*this, weight));
+        //cost_functions_.push_back(new CenterApproxCollisionCost(*this, weight));
     
     else
         ROS_WARN("ITOMPOptimizer: Unknown cost type [%s]", cost_type.c_str());
@@ -421,7 +425,7 @@ void ITOMPOptimizer::optimize()
 
 void ITOMPOptimizer::optimizeThreadCleanup()
 {
-    ROS_INFO("Optimization elapsed time: %lf sec", (ros::Time::now() - optimization_start_time_).toSec());
+    //ROS_INFO("Optimization elapsed time: %lf sec", (ros::Time::now() - optimization_start_time_).toSec());
     milestoneInitializeWithDlibVector(optimization_variables_);
 }
 
@@ -792,6 +796,51 @@ void ITOMPOptimizer::getRobotTrajectoryIntervalMsg(moveit_msgs::RobotTrajectory&
         if (state_index == num_states + 1)
             break;
     }
+}
+
+double ITOMPOptimizer::getEndeffectorLengthFromMsg(moveit_msgs::RobotTrajectory& msg, const std::string& link_name)
+{
+    const std::vector<int>& planning_joint_indices = start_state_.getPlanningJointIndices();
+    const int link_index = robot_model_->getJointIndexByLinkName(link_name);
+
+    Eigen::Vector3d prev;
+    double length = 0.;
+
+    for (int i=0; i<msg.joint_trajectory.points.size(); i++)
+    {
+        const std::vector<double>& positions = msg.joint_trajectory.points[i].positions;
+
+        Eigen::VectorXd joint_positions = start_state_.getDefaultJointPositions();
+        for (int j=0; j<num_joints_; j++)
+        {
+            const int joint_index = planning_joint_indices[j];
+            joint_positions(joint_index) = positions[j];
+        }
+
+        std::vector<Eigen::Affine3d> transforms;
+        robot_model_->getLinkTransforms(joint_positions, transforms);
+
+        const Eigen::Vector3d p = transforms[link_index].translation();
+
+        if (i)
+            length += (p - prev).norm();
+        prev = p;
+    }
+
+    return length;
+}
+
+CollisionCost* ITOMPOptimizer::getCollisionCostFunction()
+{
+    for (int i=0; i<cost_functions_.size(); i++)
+    {
+        CollisionCost* c = dynamic_cast<CollisionCost*>(cost_functions_[i]);
+
+        if (c != 0)
+            return c;
+    }
+
+    return 0;
 }
 
 }

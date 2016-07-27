@@ -14,6 +14,8 @@
 #include <Eigen/Dense>
 #include <ros/ros.h>
 
+#include <std_msgs/Bool.h>
+
 // serialization
 #include <resource_retriever/retriever.h>
 #include <boost/serialization/nvp.hpp>
@@ -121,6 +123,9 @@ private:
     std::vector<std::vector<Eigen::Affine3d> > mat_task_frames_0_;
     std::vector<std::vector<Eigen::Affine3d> > mat_task_frames_78_;
     Eigen::Affine3d mat_rivet_magazine_;
+
+    // demo
+    ros::Publisher demo_request_publisher_;
 };
 
 
@@ -148,6 +153,7 @@ ITOMPLbriiwa::ITOMPLbriiwa(const ros::NodeHandle& nh)
     // publisher initialization
     display_trajectory_publisher_ = nh_.advertise<moveit_msgs::DisplayTrajectory>("display_planned_path", 1);
     display_environments_ = nh_.advertise<visualization_msgs::MarkerArray>("environments", 1);
+    demo_request_publisher_ = nh_.advertise<std_msgs::Bool>("/demo/demo_request", 1);
     ros::Duration(0.5).sleep();
 
     loadFrames();
@@ -165,9 +171,9 @@ ITOMPLbriiwa::ITOMPLbriiwa(const ros::NodeHandle& nh)
     marker.type = visualization_msgs::Marker::MESH_RESOURCE;
 
     marker.color.r = 0.;
-    marker.color.g = 0.;
+    marker.color.g = 1.;
     marker.color.b = 0.;
-    marker.color.a = 0.;
+    marker.color.a = 1.;
 
     marker.mesh_use_embedded_materials = true;
 
@@ -181,9 +187,6 @@ ITOMPLbriiwa::ITOMPLbriiwa(const ros::NodeHandle& nh)
 
         marker.mesh_resource = visual_meshes_[i].first;
         tf::poseEigenToMsg(visual_meshes_[i].second, marker.pose);
-
-        // identity
-        tf::poseEigenToMsg(Eigen::Affine3d::Identity(), marker.pose);
 
         marker_array.markers.push_back(marker);
     }
@@ -232,7 +235,11 @@ void ITOMPLbriiwa::loadVisualEnvironments()
                             // TODO
                         }
 
-                        visual_meshes_.push_back(std::make_pair(filename, transformation));
+                        Eigen::Affine3d pre = mat_shelf_frame_;
+                        pre.matrix().block(0, 3, 3, 1) /= 1000;
+
+                        ROS_INFO("%s", filename.c_str());
+                        visual_meshes_.push_back(std::make_pair(filename, transformation * pre));
                     }
                     else
                     {
@@ -476,26 +483,27 @@ void ITOMPLbriiwa::runScenario()
         planner_.setMotionPlanRequest(req);
 
         // plan and execute
-        planning_interface::MotionPlanResponse res;
+        moveit_msgs::RobotTrajectory res;
         planner_.planAndExecute(res);
 
-        // visualize robot trajectory
-        moveit_msgs::MotionPlanResponse response_msg;
-        res.getMessage(response_msg);
-
-        moveit_msgs::DisplayTrajectory display_trajectory_msg;
-        display_trajectory_msg.trajectory_start = response_msg.trajectory_start;
-        display_trajectory_msg.trajectory.push_back( response_msg.trajectory );
-        display_trajectory_msg.model_id = "model";
-        //display_trajectory_publisher_.publish(display_trajectory_msg);
+        // visualize
+        //planner_.visualizeTrajectory(endeffector_name_, 10);
 
         if (goal_type == 0)
         {
+            planner_.measureCostComputationTime();
             goal_type = 1;
+
+            std_msgs::Bool request;
+            request.data = true;
+            demo_request_publisher_.publish(request);
+            //planner_.clearTrajectoryVisualization();
+            //ros::Duration(1.5).sleep();
         }
         else
         {
             goal_type = 0;
+            break;
         }
 
         // once
@@ -555,18 +563,8 @@ void ITOMPLbriiwa::runMovingArmScenario()
         planner_.setMotionPlanRequest(req);
 
         // plan and execute
-        planning_interface::MotionPlanResponse res;
+        moveit_msgs::RobotTrajectory res;
         planner_.planAndExecute(res);
-
-        // visualize robot trajectory
-        moveit_msgs::MotionPlanResponse response_msg;
-        res.getMessage(response_msg);
-
-        moveit_msgs::DisplayTrajectory display_trajectory_msg;
-        display_trajectory_msg.trajectory_start = response_msg.trajectory_start;
-        display_trajectory_msg.trajectory.push_back( response_msg.trajectory );
-        display_trajectory_msg.model_id = "model";
-        //display_trajectory_publisher_.publish(display_trajectory_msg);
 
         // move endeffector vertically using IK to pick or place
         if (goal_index == 0)

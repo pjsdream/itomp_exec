@@ -33,6 +33,11 @@ public:
     void attachSphere(int link_index, const Eigen::Vector3d& position, double radius);
     void detachSpheres(int link_index);
 
+    inline int getNumBoundingSpheres() const
+    {
+        return num_bounding_spheres_;
+    }
+
     /// returns all spheres
     void getCollisionSpheres(const std::vector<Eigen::Affine3d>& link_transforms, std::vector<Spheres>& spheres) const;
 
@@ -49,6 +54,8 @@ private:
 
     // attached bodies
     std::vector<std::vector<Sphere> > attached_spheres_;
+
+    int num_bounding_spheres_;
 };
 
 typedef std::shared_ptr<BoundingSphereRobotModel> BoundingSphereRobotModelPtr;

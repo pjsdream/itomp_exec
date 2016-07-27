@@ -17,6 +17,7 @@ void Cost::addCost()
 
 void Cost::addDerivative()
 {
+    //Numerical::addNumericalDerivative(&addCost);
 }
 
 void Cost::addDerivativeByInterpolationIndex(int joint_index, int interpolation_index, double derivative)

@@ -5,43 +5,115 @@ num_milestones: 3
 num_interpolation_samples: 6
 dynamic_obstacle_max_speed: 0.00 # m/s
 dynamic_obstacle_duration: 5.0   # s
-goal_tolerance: 0.01  # cost function tolerance
+goal_tolerance: 0.05 # cost function tolerance
 
 #itomp_algorithm: "fixed_trajectory_duration"
 itomp_algorithm: "flexible_trajectory_duration"
 
-#static_obstacles:
-  #- {type: "mesh", file: "package://itomp_exec/env/table_collision_rotated.dae", position: [0.7, 0.0, 0.0]}
-  #obstacle test
-  #- {type: "sphere", position: [1.40,  0.00, 0.70], radius: 0.25}
-  #- {type: "sphere", position: [1.40,  0.00, 0.80], radius: 0.25}
-  #- {type: "sphere", position: [1.40,  0.00, 0.90], radius: 0.25}
-  #- {type: "sphere", position: [1.40,  0.00, 1.00], radius: 0.25}
-  #- {type: "sphere", position: [1.40,  0.00, 1.10], radius: 0.25}
-  #near
-  #- {type: "sphere", position: [1.00,  0.00, 0.20], radius: 0.25}
-  #- {type: "sphere", position: [1.00,  0.00, 0.30], radius: 0.25}
-  #- {type: "sphere", position: [1.00,  0.00, 0.40], radius: 0.25}
-  #- {type: "sphere", position: [1.00,  0.00, 0.50], radius: 0.25}
-  #- {type: "sphere", position: [1.00,  0.00, 0.60], radius: 0.25}
-  #- {type: "sphere", position: [1.00,  0.00, 0.70], radius: 0.25}
-  #- {type: "sphere", position: [1.00,  0.00, 0.80], radius: 0.25}
-  #- {type: "sphere", position: [1.00,  0.00, 0.90], radius: 0.25}
-  #- {type: "sphere", position: [1.00,  0.00, 1.00], radius: 0.25}
-  #- {type: "sphere", position: [1.00,  0.00, 1.10], radius: 0.25}
-  #- {type: "sphere", position: [0.60,  0.70, 1.20], radius: 0.25}
-  #- {type: "sphere", position: [1.00,  0.00, 1.30], radius: 0.25}
-  #- {type: "sphere", position: [1.00,  0.00, 1.40], radius: 0.25}
+static_obstacles:
+  - {type: "sphere", position: [0.70, -0.00, 0.00], radius: 0.12}
+  - {type: "sphere", position: [0.70, -0.10, 0.00], radius: 0.12}
+  - {type: "sphere", position: [0.70, -0.20, 0.00], radius: 0.12}
+  - {type: "sphere", position: [0.70, -0.30, 0.00], radius: 0.12}
+  - {type: "sphere", position: [0.70, -0.40, 0.00], radius: 0.12}
+  - {type: "sphere", position: [0.70, -0.50, 0.00], radius: 0.12}
+  - {type: "sphere", position: [0.70, -0.60, 0.00], radius: 0.12}
+  - {type: "sphere", position: [0.70, -0.70, 0.00], radius: 0.12}
+  - {type: "sphere", position: [0.70, -0.80, 0.00], radius: 0.12}
+  - {type: "sphere", position: [0.70, -0.90, 0.00], radius: 0.12}
+  #
+  - {type: "sphere", position: [0.73, -0.00, 0.10], radius: 0.12}
+  - {type: "sphere", position: [0.73, -0.10, 0.10], radius: 0.12}
+  - {type: "sphere", position: [0.73, -0.20, 0.10], radius: 0.12}
+  - {type: "sphere", position: [0.73, -0.30, 0.10], radius: 0.12}
+  - {type: "sphere", position: [0.73, -0.40, 0.10], radius: 0.12}
+  - {type: "sphere", position: [0.73, -0.50, 0.10], radius: 0.12}
+  - {type: "sphere", position: [0.73, -0.60, 0.10], radius: 0.12}
+  - {type: "sphere", position: [0.73, -0.70, 0.10], radius: 0.12}
+  - {type: "sphere", position: [0.73, -0.80, 0.10], radius: 0.12}
+  - {type: "sphere", position: [0.73, -0.90, 0.10], radius: 0.12}
+  #
+  - {type: "sphere", position: [0.76, -0.00, 0.20], radius: 0.12}
+  - {type: "sphere", position: [0.76, -0.10, 0.20], radius: 0.12}
+  - {type: "sphere", position: [0.76, -0.20, 0.20], radius: 0.12}
+  - {type: "sphere", position: [0.76, -0.30, 0.20], radius: 0.12}
+  - {type: "sphere", position: [0.76, -0.40, 0.20], radius: 0.12}
+  - {type: "sphere", position: [0.76, -0.50, 0.20], radius: 0.12}
+  - {type: "sphere", position: [0.76, -0.60, 0.20], radius: 0.12}
+  - {type: "sphere", position: [0.76, -0.70, 0.20], radius: 0.12}
+  - {type: "sphere", position: [0.76, -0.80, 0.20], radius: 0.12}
+  - {type: "sphere", position: [0.76, -0.90, 0.20], radius: 0.12}
+  #
+  - {type: "sphere", position: [0.79, -0.00, 0.30], radius: 0.12}
+  - {type: "sphere", position: [0.79, -0.10, 0.30], radius: 0.12}
+  - {type: "sphere", position: [0.79, -0.20, 0.30], radius: 0.12}
+  - {type: "sphere", position: [0.79, -0.30, 0.30], radius: 0.12}
+  - {type: "sphere", position: [0.79, -0.40, 0.30], radius: 0.12}
+  - {type: "sphere", position: [0.79, -0.50, 0.30], radius: 0.12}
+  - {type: "sphere", position: [0.79, -0.60, 0.30], radius: 0.12}
+  - {type: "sphere", position: [0.79, -0.70, 0.30], radius: 0.12}
+  - {type: "sphere", position: [0.79, -0.80, 0.30], radius: 0.12}
+  - {type: "sphere", position: [0.79, -0.90, 0.30], radius: 0.12}
+  #
+  - {type: "sphere", position: [0.82, -0.00, 0.40], radius: 0.12}
+  - {type: "sphere", position: [0.82, -0.10, 0.40], radius: 0.12}
+  - {type: "sphere", position: [0.82, -0.20, 0.40], radius: 0.12}
+  - {type: "sphere", position: [0.82, -0.30, 0.40], radius: 0.12}
+  - {type: "sphere", position: [0.82, -0.40, 0.40], radius: 0.12}
+  - {type: "sphere", position: [0.82, -0.50, 0.40], radius: 0.12}
+  - {type: "sphere", position: [0.82, -0.60, 0.40], radius: 0.12}
+  - {type: "sphere", position: [0.82, -0.70, 0.40], radius: 0.12}
+  - {type: "sphere", position: [0.82, -0.80, 0.40], radius: 0.12}
+  - {type: "sphere", position: [0.82, -0.90, 0.40], radius: 0.12}
+  #
+  - {type: "sphere", position: [0.85, -0.00, 0.50], radius: 0.12}
+  - {type: "sphere", position: [0.85, -0.10, 0.50], radius: 0.12}
+  - {type: "sphere", position: [0.85, -0.20, 0.50], radius: 0.12}
+  - {type: "sphere", position: [0.85, -0.30, 0.50], radius: 0.12}
+  - {type: "sphere", position: [0.85, -0.40, 0.50], radius: 0.12}
+  - {type: "sphere", position: [0.85, -0.50, 0.50], radius: 0.12}
+  - {type: "sphere", position: [0.85, -0.60, 0.50], radius: 0.12}
+  - {type: "sphere", position: [0.85, -0.70, 0.50], radius: 0.12}
+  - {type: "sphere", position: [0.85, -0.80, 0.50], radius: 0.12}
+  - {type: "sphere", position: [0.85, -0.90, 0.50], radius: 0.12}
+  # body
+  - {type: "sphere", position: [0.40, -1.10, 0.100], radius: 0.40}
+  - {type: "sphere", position: [0.40, -1.10, 0.200], radius: 0.40}
+  - {type: "sphere", position: [0.40, -1.10, 0.300], radius: 0.40}
+  - {type: "sphere", position: [0.40, -1.10, 0.400], radius: 0.40}
+  - {type: "sphere", position: [0.40, -1.10, 0.500], radius: 0.40}
+  - {type: "sphere", position: [0.20, -1.10, 0.100], radius: 0.40}
+  - {type: "sphere", position: [0.20, -1.10, 0.200], radius: 0.40}
+  - {type: "sphere", position: [0.20, -1.10, 0.300], radius: 0.40}
+  - {type: "sphere", position: [0.20, -1.10, 0.400], radius: 0.40}
+  - {type: "sphere", position: [0.20, -1.10, 0.500], radius: 0.40}
+  # arm
+  # 0.4, 0.3
+  - {type: "sphere", position: [0.60, -0.50, 0.275], radius: 0.55}
+  - {type: "sphere", position: [0.60, -0.60, 0.250], radius: 0.55}
+  - {type: "sphere", position: [0.60, -0.70, 0.225], radius: 0.55}
+  - {type: "sphere", position: [0.60, -0.80, 0.200], radius: 0.55}
+  - {type: "sphere", position: [0.60, -0.90, 0.175], radius: 0.55}
+  - {type: "sphere", position: [0.60, -1.00, 0.150], radius: 0.55}
+  # arm2
+  #- {type: "sphere", position: [0.50, -0.50, 0.275], radius: 0.10}
+  #- {type: "sphere", position: [0.50, -0.60, 0.250], radius: 0.10}
+  #- {type: "sphere", position: [0.50, -0.70, 0.225], radius: 0.10}
+  #- {type: "sphere", position: [0.50, -0.80, 0.200], radius: 0.10}
+  #- {type: "sphere", position: [0.50, -0.90, 0.175], radius: 0.10}
+  #- {type: "sphere", position: [0.50, -1.00, 0.150], radius: 0.10}
 
 #collision_sphere_links:
 #  - shoulder_pan_link
 
 environment:
-  - {type: "mesh", file: "package://itomp_exec/env/lbr_iiwa_shelf.dae", position: [0.0, 0.0, 0.0]}
+  - {type: "mesh", file: "package://itomp_exec/env/lbr_iiwa_base.dae", position: [0.0, 0.0, 0.0]}
+  - {type: "mesh", file: "package://itomp_exec/env/lbr_iiwa_shelf.dae", position: [0.0, 0.3, 0.0]}
 
 cost_weights:
   #goal_pose: 1.0
   time: 1.0
-  smoothness: 0.01
+  smoothness: 0.18
   collision: 3.0
-  future_obstacle: 1.0
+  #future_obstacle: 1.0
+  center_approx_obstacle: 1.0

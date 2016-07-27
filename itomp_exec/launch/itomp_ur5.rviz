@@ -6,13 +6,15 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /Grid1
         - /PlanningScene1/Scene Geometry1
+        - /human1
+        - /human1/Namespaces1
         - /future1/Namespaces1
         - /kinect2 skeleton1/Namespaces1
-        - /MotionPlanning1
-        - /MotionPlanning1/Scene Geometry1
+        - /MotionPlanning1/Planning Request1
       Splitter Ratio: 0.568571
-    Tree Height: 546
+    Tree Height: 882
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -36,10 +38,10 @@ Visualization Manager:
   Class: ""
   Displays:
     - Alpha: 0.5
-      Cell Size: 1
+      Cell Size: 0.1
       Class: rviz/Grid
       Color: 160; 160; 164
-      Enabled: false
+      Enabled: true
       Line Style:
         Line Width: 0.03
         Value: Lines
@@ -52,14 +54,14 @@ Visualization Manager:
       Plane: XY
       Plane Cell Count: 200
       Reference Frame: <Fixed Frame>
-      Value: false
+      Value: true
     - Class: rviz/Axes
-      Enabled: true
+      Enabled: false
       Length: 1
       Name: Axes
       Radius: 0.01
       Reference Frame: <Fixed Frame>
-      Value: true
+      Value: false
     - Alpha: 1
       Class: rviz/RobotModel
       Collision Enabled: false
@@ -448,28 +450,70 @@ Visualization Manager:
       Visual Enabled: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /itomp_ur5/trajectory_0
+      Marker Topic: /itomp_ur5/trajectory
       Name: itomp trajectory
       Namespaces:
-        {}
+        endeffector: true
+        trajectory_0: false
+        trajectory_10: false
+        trajectory_100: false
+        trajectory_110: false
+        trajectory_120: false
+        trajectory_130: false
+        trajectory_140: false
+        trajectory_150: false
+        trajectory_160: false
+        trajectory_170: false
+        trajectory_180: false
+        trajectory_190: false
+        trajectory_20: false
+        trajectory_200: false
+        trajectory_210: false
+        trajectory_220: false
+        trajectory_230: false
+        trajectory_240: false
+        trajectory_250: false
+        trajectory_260: false
+        trajectory_270: false
+        trajectory_280: false
+        trajectory_290: false
+        trajectory_30: false
+        trajectory_40: false
+        trajectory_50: false
+        trajectory_60: false
+        trajectory_70: false
+        trajectory_80: false
+        trajectory_90: false
       Queue Size: 101
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /itomp_ur5/planning_scene
       Name: itomp planning scene
       Namespaces:
-        planning_scene_dynamic: true
-        planning_scene_dynamic_future: true
-        planning_scene_static: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /itomp_ur5/goal_constraint
       Name: itomp goal constraints
       Namespaces:
-        goal_positions: true
+        {}
+      Queue Size: 100
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /demo
+      Name: human
+      Namespaces:
+        human: true
+        prediction_frame_0.000: true
+        prediction_frame_0.050: false
+        prediction_frame_0.100: true
+        prediction_frame_0.150: false
+        prediction_frame_0.200: true
+        prediction_frame_0.250: false
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -511,13 +555,13 @@ Visualization Manager:
       Use rainbow: true
       Value: false
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /future_obstacle_publisher/skeleton_realtime
       Name: joints
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: false
       Marker Topic: /future_obstacle_distributions_marker_array
@@ -587,13 +631,13 @@ Visualization Manager:
       Use rainbow: true
       Value: false
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /skeleton_visualizer/skeleton
       Name: kinect2 skeleton
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: moveit_rviz_plugin/MotionPlanning
       Enabled: true
       Move Group Namespace: ""
@@ -733,7 +777,7 @@ Visualization Manager:
         Goal State Color: 250; 128; 0
         Interactive Marker Size: 0
         Joint Violation Color: 255; 0; 255
-        Planning Group: endeffector
+        Planning Group: manipulator
         Query Goal State: false
         Query Start State: false
         Show Workspace: false
@@ -876,32 +920,66 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 5.83065
+      Distance: 3.35178
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.433119
-        Y: 0.563476
-        Z: 0.303441
+        X: 0.115666
+        Y: 1.433
+        Z: 0.259743
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.124796
+      Pitch: 0.074798
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.33578
-    Saved: ~
+      Yaw: 3.13081
+    Saved:
+      - Class: rviz/Orbit
+        Distance: 2.67202
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.06
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Focal Point:
+          X: 0.114322
+          Y: 0.904276
+          Z: 0.317889
+        Name: Orbit
+        Near Clip Distance: 0.01
+        Pitch: 0.074798
+        Target Frame: <Fixed Frame>
+        Value: Orbit (rviz)
+        Yaw: 3.13081
+      - Class: rviz/Orbit
+        Distance: 3.35178
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.06
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Focal Point:
+          X: 0.115666
+          Y: 1.433
+          Z: 0.259743
+        Name: Orbit
+        Near Clip Distance: 0.01
+        Pitch: 0.074798
+        Target Frame: <Fixed Frame>
+        Value: Orbit (rviz)
+        Yaw: 3.13081
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 846
+  Height: 1182
   Hide Left Dock: false
   Hide Right Dock: true
   Motion Planning:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000400000000000001ea000002b1fc0200000009fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006400fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003e000002b1000000dd00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670200000029000002b100000257000001c4000000010000010f000002c4fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a005600690065007700730000000028000002c4000000b000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004b00000003efc0100000002fb0000000800540069006d00650100000000000004b00000026100fffffffb0000000800540069006d00650100000000000004500000000000000000000002c0000002b100000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000016a00000401fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006400fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afc0000003e00000401000000dd00fffffffa000000010100000002fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e006702000002ed000001750000026f000001c4fb000000100044006900730070006c0061007900730100000000000002670000016a00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f00000401fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003e00000401000000b000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000074f0000003efc0100000002fb0000000800540069006d006501000000000000074f0000026100fffffffb0000000800540069006d00650100000000000004500000000000000000000005df0000040100000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -910,6 +988,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: true
-  Width: 1200
-  X: 639
-  Y: 106
+  Width: 1871
+  X: 49
+  Y: 18

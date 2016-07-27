@@ -93,6 +93,14 @@ void BoundingSphereRobotModel::initFromMoveitRobotModel(robot_model::RobotModelC
     }
 
     attached_spheres_.resize(num_joints_);
+
+    // count the number of collision spheres
+    int cnt = 0;
+    for (int i=0; i<link_collision_spheres_.size(); i++)
+        cnt += link_collision_spheres_[i].size();
+
+    ROS_INFO("%d bounding spheres", cnt);
+    num_bounding_spheres_ = cnt;
 }
 
 void BoundingSphereRobotModel::addCollisionSpheresFromAABBAlongXAxis(const AABB& aabb, const Eigen::Affine3d& transform, Spheres& spheres)

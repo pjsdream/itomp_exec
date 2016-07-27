@@ -263,14 +263,17 @@ public:
     Eigen::VectorXd getOptimizationVariableLowerLimits();
     Eigen::VectorXd getOptimizationVariableUpperLimits();
 
+    CollisionCost* getCollisionCostFunction();
+
     // visualize
     void setVisualizationTopic(ros::NodeHandle node_handle, const std::string& topic);
     void visualizeMilestones();
     void visualizeInterpolationSamples();
     void visualizeInterpolationSamplesCollisionSpheres();
-    
+
     // robot trajectory conversion
     void getRobotTrajectoryIntervalMsg(moveit_msgs::RobotTrajectory& msg, double t0, double t1, int num_states);
+    double getEndeffectorLengthFromMsg(moveit_msgs::RobotTrajectory& msg, const std::string& link_name);
 
     // DEBUG: test gradients numerically
     void testGradients();

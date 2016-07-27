@@ -178,7 +178,8 @@ add_library(itomp_exec
   src/cost/goal_pose_cost.cpp
   src/cost/smoothness_cost.cpp
   src/cost/collision_cost.cpp
-  #src/cost/future_obstacle_cost.cpp
+  src/cost/future_obstacle_cost.cpp  # WAFR 2016 benchmark 3
+  src/cost/collision_cost.cpp        # WAFR 2016 benchmark 3
   #src/cost/cost_factory.cpp
   #src/trajectory/trajectory.cpp
 )
@@ -193,6 +194,7 @@ add_library(itomp_exec
 add_executable(itomp_fetch src/itomp_fetch.cpp)
 add_executable(itomp_ur5 src/itomp_ur5.cpp)
 add_executable(itomp_lbr_iiwa src/itomp_lbr_iiwa.cpp)
+add_executable(visualize_kuka_env src/visualize_kuka_env.cpp)
 add_executable(test_fcl src/test_fcl.cpp)
 
 ## Add cmake target dependencies of the executable
@@ -213,6 +215,10 @@ target_link_libraries(itomp_ur5
   itomp_exec
 )
 target_link_libraries(itomp_lbr_iiwa
+  itomp_exec
+  ${Boost_LIBRARIES}
+)
+target_link_libraries(visualize_kuka_env
   itomp_exec
   ${Boost_LIBRARIES}
 )
