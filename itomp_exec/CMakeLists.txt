@@ -137,7 +137,7 @@ endif()
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES itomp_exec
-  CATKIN_DEPENDS roscpp moveit_core
+  CATKIN_DEPENDS roscpp moveit_core pcml
   DEPENDS system_lib
 )
 
@@ -149,9 +149,9 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(include lib)
 include_directories(
+  ${catkin_INCLUDE_DIRS}
   ${Eigen_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
-  ${catkin_INCLUDE_DIRS}
 )
 
 link_directories(
@@ -190,9 +190,9 @@ add_library(itomp_exec
 
 ## Declare a C++ executable
 # add_executable(itomp_exec_node src/itomp_exec_node.cpp)
-add_executable(itomp_fetch src/itomp_fetch.cpp)
-add_executable(itomp_ur5 src/itomp_ur5.cpp)
-add_executable(itomp_lbr_iiwa src/itomp_lbr_iiwa.cpp)
+add_executable(fetch src/itomp_fetch.cpp)
+add_executable(ur5 src/itomp_ur5.cpp)
+add_executable(lbr_iiwa src/itomp_lbr_iiwa.cpp)
 add_executable(test_fcl src/test_fcl.cpp)
 
 ## Add cmake target dependencies of the executable
@@ -206,13 +206,13 @@ add_executable(test_fcl src/test_fcl.cpp)
 target_link_libraries(itomp_exec
   ${catkin_LIBRARIES}
 )
-target_link_libraries(itomp_fetch
+target_link_libraries(fetch
   itomp_exec
 )
-target_link_libraries(itomp_ur5
+target_link_libraries(ur5
   itomp_exec
 )
-target_link_libraries(itomp_lbr_iiwa
+target_link_libraries(lbr_iiwa
   itomp_exec
   ${Boost_LIBRARIES}
 )
@@ -242,11 +242,11 @@ target_link_libraries(test_fcl
 # )
 
 ## Mark cpp header files for installation
-# install(DIRECTORY include/${PROJECT_NAME}/
-#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#   FILES_MATCHING PATTERN "*.h"
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.h"
 #   PATTERN ".svn" EXCLUDE
-# )
+)
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES

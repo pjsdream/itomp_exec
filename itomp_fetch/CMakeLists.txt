@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(itomp_fetch)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
 ## show all files (http://wiki.ros.org/IDEs#QtCreator)
 #Add all files in subdirectories of the project in
 # a dummy_target so qtcreator have access to all files
@@ -16,11 +18,19 @@ add_custom_target(dummy_${PROJECT_NAME} SOURCES ${extra_files})
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED COMPONENTS
+  itomp_exec
+  pcml
+)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
+# cmake_modules
+find_package(cmake_modules REQUIRED)
+
+# eigen
+find_package(Eigen REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -108,10 +118,10 @@ find_package(catkin REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES itomp_fetch
-#  CATKIN_DEPENDS other_catkin_pkg
-#  DEPENDS system_lib
+  INCLUDE_DIRS include
+  LIBRARIES itomp_fetch
+  CATKIN_DEPENDS itomp_exec
+  DEPENDS system_lib
 )
 
 ###########
@@ -120,12 +130,17 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-# include_directories(include)
+include_directories(include lib)
+include_directories(
+  ${Eigen_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS}
+)
 
 ## Declare a C++ library
-# add_library(itomp_fetch
-#   src/${PROJECT_NAME}/itomp_fetch.cpp
-# )
+add_library(itomp_fetch
+  src/fetch/fetch.cpp
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -133,16 +148,19 @@ catkin_package(
 # add_dependencies(itomp_fetch ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-# add_executable(itomp_fetch_node src/itomp_fetch_node.cpp)
+add_executable(moving_cans src/moving_cans.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(itomp_fetch_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(itomp_fetch_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(itomp_fetch
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(moving_cans
+  itomp_fetch
+)
 
 #############
 ## Install ##

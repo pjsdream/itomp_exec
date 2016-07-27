@@ -41,6 +41,9 @@
   <!--   <test_depend>gtest</test_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
 
+  <build_depend>itomp_exec</build_depend>
+  <run_depend>itomp_exec</run_depend>
+
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
