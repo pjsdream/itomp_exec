@@ -274,6 +274,7 @@ public:
 
     // DEBUG: test gradients numerically
     void testGradients();
+    void printCosts();
     
 private:
 

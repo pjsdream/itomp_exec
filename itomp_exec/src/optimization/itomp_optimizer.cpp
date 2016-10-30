@@ -498,6 +498,28 @@ const ITOMPOptimizer::column_vector ITOMPOptimizer::optimizationCostNumericalDer
     return derivative;
 }
 
+void ITOMPOptimizer::printCosts()
+{
+    const double eps = 1e-6;
+
+    for (int i=0; i<cost_functions_.size(); i++)
+    {
+        // cost
+        milestoneInitializeWithDlibVector( convertEigenToDlibVector(milestones_) );
+        precomputeOptimizationResources();
+
+        cost_ = 0.;
+        milestone_derivative_.setZero();
+
+        cost_functions_[i]->addCost();
+        cost_functions_[i]->addDerivative();
+
+        const double cost = cost_;
+
+        ROS_INFO(" cost (%s): %lf", cost_functions_[i]->getString().c_str(), cost);
+    }
+}
+
 void ITOMPOptimizer::testGradients()
 {
     const double eps = 1e-6;

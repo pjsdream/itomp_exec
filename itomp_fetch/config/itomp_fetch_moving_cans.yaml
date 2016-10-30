@@ -2,6 +2,7 @@ trajectory_duration: 5.0
 planning_timestep: 0.50
 num_milestones: 3
 num_interpolation_samples: 3
+goal_tolerance: 0.0001
 
 #itomp_algorithm: "fixed_trajectory_duration"
 itomp_algorithm: "flexible_trajectory_duration"
@@ -51,5 +52,5 @@ collision_sphere_links:
 cost_weights:
   goal_pose: 1.0
   smoothness: 0.003
-  collision: 1.0
-  future_obstacle: 1.0
+  collision: 0.0
+  future_obstacle: 0.0

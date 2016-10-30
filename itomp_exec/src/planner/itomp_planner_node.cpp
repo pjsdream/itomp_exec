@@ -749,6 +749,9 @@ bool ITOMPPlannerNode::planAndExecuteFlexibleTrajectoryDuration()
 
         if (best_trajectory_cost < options_.goal_tolerance)
             break;
+
+        ROS_INFO("best_trajectory_cost: %lf  tolerance: %lf", best_trajectory_cost, options_.goal_tolerance);
+        optimizers_[best_trajectory_index].printCosts();
     }
 
     ROS_INFO("Waiting %lf sec for the last execution step", options_.planning_timestep);

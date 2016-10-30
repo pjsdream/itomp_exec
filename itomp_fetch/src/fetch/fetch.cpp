@@ -549,6 +549,19 @@ void Fetch::runMovingArmScenario()
         {
             goal_index = 0;
         }
+
+        //planner_.useAABB();
+        //planner_.useOBB();
+        //planner_.use13KDOPs();
+        //planner_.useConvex();
+        /*
+        for (int i=0; i<display_trajectory_msg.trajectory.size(); i++)
+        {
+            double p = planner_.measureCollisionProbability(display_trajectory_msg.trajectory[i]);
+
+            printf("%d %lf\n", i, p);
+        }
+        */
     }
 }
 

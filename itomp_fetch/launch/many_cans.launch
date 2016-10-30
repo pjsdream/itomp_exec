@@ -73,7 +73,7 @@
   </group>
 
   <!-- Run Rviz and load the default config to see the state of the move_group node -->
-  <node if="$(arg use_rviz)" name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" args="-d $(find itomp_fetch)/launch/moving_cans.rviz">
+  <node if="$(arg use_rviz)" name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" args="-d $(find itomp_fetch)/launch/many_cans.rviz">
     <rosparam command="load" file="$(find fetch_moveit_config)/config/kinematics.yaml"/>
   </node>
 
