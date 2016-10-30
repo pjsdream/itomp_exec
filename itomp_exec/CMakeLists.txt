@@ -190,10 +190,11 @@ add_library(itomp_exec
 
 ## Declare a C++ executable
 # add_executable(itomp_exec_node src/itomp_exec_node.cpp)
-add_executable(fetch src/itomp_fetch.cpp)
-add_executable(ur5 src/itomp_ur5.cpp)
-add_executable(lbr_iiwa src/itomp_lbr_iiwa.cpp)
-add_executable(test_fcl src/test_fcl.cpp)
+# Test modules are obsolete
+# add_executable(fetch src/itomp_fetch.cpp)
+# add_executable(ur5 src/itomp_ur5.cpp)
+# add_executable(lbr_iiwa src/itomp_lbr_iiwa.cpp)
+# add_executable(test_fcl src/test_fcl.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -206,19 +207,20 @@ add_executable(test_fcl src/test_fcl.cpp)
 target_link_libraries(itomp_exec
   ${catkin_LIBRARIES}
 )
-target_link_libraries(fetch
-  itomp_exec
-)
-target_link_libraries(ur5
-  itomp_exec
-)
-target_link_libraries(lbr_iiwa
-  itomp_exec
-  ${Boost_LIBRARIES}
-)
-target_link_libraries(test_fcl
-  ${catkin_LIBRARIES}
-)
+# Test modules are obsolete
+# target_link_libraries(fetch
+#   itomp_exec
+# )
+# target_link_libraries(ur5
+#   itomp_exec
+# )
+# target_link_libraries(lbr_iiwa
+#   itomp_exec
+#   ${Boost_LIBRARIES}
+# )
+# target_link_libraries(test_fcl
+#   ${catkin_LIBRARIES}
+# )
 
 #############
 ## Install ##
