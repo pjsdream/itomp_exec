@@ -163,9 +163,10 @@ link_directories(
 #   src/${PROJECT_NAME}/itomp_exec.cpp
 # )
 add_library(itomp_exec
-  src/planner/itomp_planner_node.cpp
+  src/planner/itomp_planner.cpp
   src/scene/planning_scene.cpp
   src/optimization/itomp_optimizer.cpp
+  src/trajectory/itomp_trajectory.cpp
   src/robot/robot_model.cpp
   src/robot/robot_state.cpp
   src/robot/bounding_sphere_robot_model.cpp

@@ -11,22 +11,7 @@ namespace itomp_exec
 
 class GoalPoseCost : public Cost
 {
-private:
-
-    static const double ratio_cosine_to_meter_;
-    static const double ratio_radian_per_sec_to_meter_;
-    
 public:
-        
-    GoalPoseCost(ITOMPOptimizer& optimizer, double weight = 1.0);
-
-    inline virtual std::string getString()
-    {
-        return "GoalPoseCost";
-    }
-
-    virtual void addCost();
-    virtual void addDerivative();
 
 private:
 };

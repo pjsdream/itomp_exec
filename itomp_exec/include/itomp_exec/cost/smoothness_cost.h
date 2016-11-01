@@ -12,20 +12,9 @@ namespace itomp_exec
 class SmoothnessCost : public Cost
 {
 public:
-        
-    SmoothnessCost(ITOMPOptimizer& optimizer, double weight = 1.0);
-
-    inline virtual std::string getString()
-    {
-        return "SmoothnessCost";
-    }
-
-    virtual void addCost();
-    virtual void addDerivative();
 
 private:
 
-    Eigen::Matrix4d H2_;
 };
 
 }

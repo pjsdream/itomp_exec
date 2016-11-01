@@ -1,5 +1,5 @@
-#ifndef ITOMP_EXEC_ITOMP_PLANNER_NODE_H
-#define ITOMP_EXEC_ITOMP_PLANNER_NODE_H
+#ifndef ITOMP_EXEC_ITOMP_PLANNER_H
+#define ITOMP_EXEC_ITOMP_PLANNER_H
 
 
 #include <moveit/planning_interface/planning_interface.h>
@@ -10,6 +10,7 @@
 #include <itomp_exec/optimization/itomp_optimizer.h>
 #include <itomp_exec/robot/bounding_sphere_robot_model.h>
 #include <itomp_exec/robot/robot_state.h>
+#include <itomp_exec/trajectory/itomp_trajectory.h>
 
 #include <pcml/FutureObstacleDistributions.h>
 
@@ -41,15 +42,20 @@ public:
 
 private:
 
+    void initializeTrajectory();
+
     ros::NodeHandle node_handle_;
 
     RobotModel robot_model_;
 
     double timestep_;
     double trajectory_duration_;
+
+    ItompTrajectory* trajectory_;
+    ItompOptimizer* optimizer_;
 };
 
 }
 
 
-#endif // ITOMP_EXEC_ITOMP_PLANNER_NODE_H
+#endif // ITOMP_EXEC_ITOMP_PLANNER_H
