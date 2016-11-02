@@ -14,14 +14,9 @@ int main(int argc, char** argv)
 
     // initialize with highest torso position
     fetch.moveTorso(0.35);
+    fetch.moveTorso(0.1);
+    fetch.moveTorso(0.35);
+    fetch.moveTorso(0.1);
 
-    // open/close gripper at start
-    /*
-    test_fetch.moveGripper(0.01);
-    test_fetch.openGripper();
-    */
-
-    fetch.runMovingArmScenario();
-    
     return 0;
 }
