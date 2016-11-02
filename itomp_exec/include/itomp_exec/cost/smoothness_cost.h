@@ -13,6 +13,10 @@ class SmoothnessCost : public Cost
 {
 public:
 
+    SmoothnessCost(double weight = 1.);
+
+    virtual void printInfo();
+
 private:
 
 };

@@ -12,6 +12,10 @@ class CollisionCost : public Cost
 {
 public:
 
+    CollisionCost(double weight = 1.);
+
+    virtual void printInfo();
+
 private:
 };
 

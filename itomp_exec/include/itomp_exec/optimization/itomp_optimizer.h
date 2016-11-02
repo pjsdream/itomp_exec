@@ -23,19 +23,28 @@ class ItompOptimizer
 private:
 
     typedef dlib::matrix<double,0,1> column_vector;
-    
-    // dlib/Eigen conversion utilities
-    static const Eigen::VectorXd convertDlibToEigenVector(const column_vector& v);
-    static const column_vector convertEigenToDlibVector(const Eigen::MatrixXd& v);
 
 public:
     
     ItompOptimizer(ItompTrajectory* trajectory);
     ~ItompOptimizer();
 
+    void enableVisualizeTrajectoryEachStep(ros::Publisher* publisher);
+    void disableVisualizeTrajectoryEachStep();
+
+    void setCostFunction(int id, Cost* cost);
+
+    void printCostFunctions();
+
+    void optimize(double time_limit);
+
 private:
 
     ItompTrajectory* trajectory_;
+
+    ros::Publisher* trajectory_publisher_;
+
+    std::map<int, Cost*> cost_functions_;
 };
 
 }

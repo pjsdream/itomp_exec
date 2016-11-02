@@ -2,20 +2,25 @@
 #define ITOMP_EXEC_COST_H
 
 
-#include <string>
+#include <ros/ros.h>
 
 
 namespace itomp_exec
 {
 
+class ItompOptimizer;
+
 class Cost
 {
 public:
     
-    Cost();
+    Cost(double weight);
 
-private:
+    virtual void printInfo();
 
+protected:
+
+    double weight_;
 };
 
 }

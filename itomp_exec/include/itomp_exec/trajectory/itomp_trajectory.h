@@ -41,6 +41,7 @@ private:
     int num_waypoints_;
     double timestep_;
     double trajectory_duration_;
+    int num_joints_;
 
     Eigen::VectorXd full_joint_initial_values_; // joint values, including non-planning joints
     Eigen::MatrixXd Q_; // waypoints, including the start configuration in the first column

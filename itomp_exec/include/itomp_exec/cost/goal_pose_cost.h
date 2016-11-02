@@ -3,7 +3,6 @@
 
 
 #include <itomp_exec/cost/cost.h>
-#include <moveit/robot_state/robot_state.h>
 
 
 namespace itomp_exec
@@ -12,6 +11,10 @@ namespace itomp_exec
 class GoalPoseCost : public Cost
 {
 public:
+
+    GoalPoseCost(double weight = 1.);
+
+    virtual void printInfo();
 
 private:
 };

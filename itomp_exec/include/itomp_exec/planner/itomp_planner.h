@@ -11,6 +11,7 @@
 #include <itomp_exec/robot/bounding_sphere_robot_model.h>
 #include <itomp_exec/robot/robot_state.h>
 #include <itomp_exec/trajectory/itomp_trajectory.h>
+#include <itomp_exec/cost/cost_functions.h>
 
 #include <pcml/FutureObstacleDistributions.h>
 
@@ -33,6 +34,7 @@ public:
 
     ItompPlanner(robot_model::RobotModelConstPtr robot_model, const ros::NodeHandle& node_handle = ros::NodeHandle("~"));
     ItompPlanner(const ros::NodeHandle& node_handle = ros::NodeHandle("~"));
+    ~ItompPlanner();
 
     void setTimestep(double timestep);
     void setTrajectoryDuration(double duration);
@@ -43,6 +45,7 @@ public:
 private:
 
     void initializeTrajectory();
+    void initializeOptimizer();
 
     ros::NodeHandle node_handle_;
 
@@ -53,6 +56,8 @@ private:
 
     ItompTrajectory* trajectory_;
     ItompOptimizer* optimizer_;
+
+    std::map<int, Cost*> cost_functions_;
 };
 
 }
