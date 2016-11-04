@@ -10,6 +10,7 @@
 namespace itomp_exec
 {
 
+#if 0
 class BoundingSphereRobotModel : public RobotModel
 {
 private:
@@ -50,9 +51,7 @@ private:
     // attached bodies
     std::vector<std::vector<Sphere> > attached_spheres_;
 };
-
-typedef std::shared_ptr<BoundingSphereRobotModel> BoundingSphereRobotModelPtr;
-typedef std::shared_ptr<const BoundingSphereRobotModel> BoundingSphereRobotModelConstPtr;
+#endif
 
 }
 

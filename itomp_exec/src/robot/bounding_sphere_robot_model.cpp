@@ -7,6 +7,7 @@
 namespace itomp_exec
 {
 
+#if 0
 BoundingSphereRobotModel::AABB BoundingSphereRobotModel::getAABB(const shapes::Mesh* mesh)
 {
     AABB aabb;
@@ -330,5 +331,6 @@ void BoundingSphereRobotModel::pushAttachedSpheresVisualizationMarkers(const std
         }
     }
 }
+#endif
 
 }

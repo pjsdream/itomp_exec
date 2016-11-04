@@ -4,8 +4,7 @@
 namespace itomp_exec
 {
 
-ItompTrajectory::ItompTrajectory(const RobotModel* robot_model)
-    : robot_model_(robot_model)
+ItompTrajectory::ItompTrajectory()
 {
 }
 
@@ -13,7 +12,12 @@ ItompTrajectory::~ItompTrajectory()
 {
 }
 
-void ItompTrajectory::setRobotStartState(const RobotState& robot_start_state)
+void ItompTrajectory::setRobotModel(const PlanningRobotModel* robot_model)
+{
+    robot_model_ = robot_model;
+}
+
+void ItompTrajectory::setRobotStartState(const PlanningRobotState& robot_start_state)
 {
 }
 
@@ -39,11 +43,11 @@ void ItompTrajectory::initializeTrajectory()
 {
 }
 
-std::vector<RobotState> ItompTrajectory::getInterpolatedFirstTimestepTrajectory(int num_interpolation_midpoints)
+std::vector<PlanningRobotState> ItompTrajectory::getInterpolatedFirstTimestepTrajectory(int num_interpolation_midpoints)
 {
 }
 
-std::vector<RobotState> ItompTrajectory::getInterpolatedWholeTrajectory(int num_interpolation_midpoints)
+std::vector<PlanningRobotState> ItompTrajectory::getInterpolatedWholeTrajectory(int num_interpolation_midpoints)
 {
 }
 
@@ -51,7 +55,7 @@ void ItompTrajectory::extendByOneTimestep()
 {
 }
 
-RobotState ItompTrajectory::planningJointValuesToRobotState()
+PlanningRobotState ItompTrajectory::planningJointValuesToRobotState()
 {
 }
 

@@ -8,8 +8,7 @@
 
 #include <itomp_exec/scene/planning_scene.h>
 #include <itomp_exec/optimization/itomp_optimizer.h>
-#include <itomp_exec/robot/bounding_sphere_robot_model.h>
-#include <itomp_exec/robot/robot_state.h>
+#include <itomp_exec/robot/planning_robot_model.h>
 #include <itomp_exec/trajectory/itomp_trajectory.h>
 #include <itomp_exec/cost/cost_functions.h>
 
@@ -32,24 +31,25 @@ class ItompPlanner
 {
 public:
 
-    ItompPlanner(robot_model::RobotModelConstPtr robot_model, const ros::NodeHandle& node_handle = ros::NodeHandle("~"));
     ItompPlanner(const ros::NodeHandle& node_handle = ros::NodeHandle("~"));
     ~ItompPlanner();
 
+    void setRobotModel(const RobotModel* robot_model, const std::string& planning_group);
+    void setRobotModel(const PlanningRobotModel* robot_model);
     void setTimestep(double timestep);
     void setTrajectoryDuration(double duration);
+
+    void enableVisualizeTrajectoryEachStep();
+    void disableVisualizeTrajectoryEachStep();
 
     void planForOneTimestep();
 
 
 private:
 
-    void initializeTrajectory();
-    void initializeOptimizer();
-
     ros::NodeHandle node_handle_;
 
-    RobotModel robot_model_;
+    PlanningRobotModel* robot_model_;
 
     double timestep_;
     double trajectory_duration_;
@@ -58,6 +58,9 @@ private:
     ItompOptimizer* optimizer_;
 
     std::map<int, Cost*> cost_functions_;
+
+    // visualization
+    ros::Publisher optimizer_visualize_trajectory_publisher_;
 };
 
 }
