@@ -40,25 +40,23 @@ ItompPlanner::~ItompPlanner()
     for (std::map<int, Cost*>::iterator it = cost_functions_.begin(); it != cost_functions_.end(); it++)
         delete it->second;
 
-    if (robot_model_ != 0)
-        delete robot_model_;
-
-    delete trajectory_;
     delete optimizer_;
 }
 
 void ItompPlanner::setRobotModel(const PlanningRobotModel *robot_model)
 {
-    if (robot_model_ != 0)
-        delete robot_model_;
-
-    robot_model_ = new PlanningRobotModel(*robot_model);
-
+    robot_model_ = robot_model;
     trajectory_->setRobotModel(robot_model_);
+}
+
+void ItompPlanner::setPlanningScene(const PlanningScene* planning_scene)
+{
+    planning_scene_ = planning_scene;
 }
 
 void ItompPlanner::setTimestep(double timestep)
 {
+    timestep_ = timestep;
     trajectory_->setTimestep(timestep);
 }
 
@@ -67,10 +65,43 @@ void ItompPlanner::setTrajectoryDuration(double duration)
     trajectory_->setTrajectoryDuration(duration);
 }
 
-void ItompPlanner::planForOneTimestep()
+void ItompPlanner::setNumWaypoints(int num_waypoints)
+{
+    trajectory_->setNumWaypoints(num_waypoints);
+}
+
+void ItompPlanner::printCostFunctions()
 {
     optimizer_->printCostFunctions();
-    optimizer_->optimize(0.8 * timestep_);
+}
+
+static void optimizeSingleTrajectoryCleanup(void* optimizer)
+{
+    ItompOptimizer* casted_optimizer = (ItompOptimizer*)optimizer;
+    casted_optimizer->optimizeThreadCleanup();
+}
+
+static void* optimizeSingleTrajectory(void* optimizer)
+{
+    Thread::self()->cleanupPush(optimizeSingleTrajectoryCleanup, optimizer);
+
+    ItompOptimizer* casted_optimizer = (ItompOptimizer*)optimizer;
+    casted_optimizer->optimize();
+
+    return NULL;
+}
+
+void ItompPlanner::planForOneTimestep()
+{
+    const double optimization_time_limit = 0.8 * timestep_;
+    optimizer_thread_ = new Thread(&optimizeSingleTrajectory, optimizer_);
+
+    // cancel optimizer thread after optimization
+    // the created threads are canceled
+    ros::Duration(optimization_time_limit).sleep();
+    optimizer_thread_->cancel();
+    optimizer_thread_->join();
+    delete optimizer_thread_;
 }
 
 void ItompPlanner::enableVisualizeTrajectoryEachStep()

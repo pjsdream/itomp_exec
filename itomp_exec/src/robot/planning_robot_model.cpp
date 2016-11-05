@@ -34,6 +34,11 @@ PlanningRobotJoint::PlanningRobotJoint(const moveit::core::JointModel *joint, co
 {
 }
 
+const robot_model::JointModel* PlanningRobotJoint::getJoint() const
+{
+    return joint_;
+}
+
 
 PlanningRobotModel::PlanningRobotModel(const robot_model::RobotState& robot_state, const std::string& planning_group)
     : PlanningRobotModel( robot_state, robot_state.getRobotModel()->getJointModelGroup(planning_group)->getJointModelNames() )
@@ -58,6 +63,21 @@ void PlanningRobotModel::initialize()
     link_groups_.push_back(PlanningRobotLinkGroup());
     link_groups_.back().setJointOriginTransform( robot_model_->getRootLink()->getJointOriginTransform() );
     initializeTraverse(robot_model_->getRootLink(), &link_groups_[0], Eigen::Affine3d::Identity());
+
+    // joint limits
+    for (int i=0; i<joints_.size(); i++)
+    {
+        const robot_model::VariableBounds& bound = joints_[i].getJoint()->getVariableBounds( joints_[i].getJoint()->getVariableNames()[0] );
+
+        JointLimit joint_limit;
+
+        joint_limit.min_position = bound.min_position_;
+        joint_limit.max_position = bound.max_position_;
+        joint_limit.min_velocity = bound.min_velocity_;
+        joint_limit.max_velocity = bound.max_velocity_;
+
+        joint_limits_.push_back(joint_limit);
+    }
 }
 
 void PlanningRobotModel::initializeTraverse(const moveit::core::LinkModel *link, PlanningRobotLinkGroup* link_group, Eigen::Affine3d transform)
@@ -90,9 +110,13 @@ void PlanningRobotModel::initializeTraverse(const moveit::core::LinkModel *link,
     }
 }
 
-int PlanningRobotModel::numJoints()
+int PlanningRobotModel::numJoints() const
 {
     return joints_.size();
+}
+
+const std::vector<PlanningRobotModel::JointLimit>& PlanningRobotModel::getJointLimits() const{
+    return joint_limits_;
 }
 
 }

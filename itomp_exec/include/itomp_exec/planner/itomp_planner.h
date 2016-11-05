@@ -11,6 +11,7 @@
 #include <itomp_exec/robot/planning_robot_model.h>
 #include <itomp_exec/trajectory/itomp_trajectory.h>
 #include <itomp_exec/cost/cost_functions.h>
+#include <itomp_exec/scene/planning_scene.h>
 
 #include <pcml/FutureObstacleDistributions.h>
 
@@ -36,26 +37,32 @@ public:
 
     void setRobotModel(const RobotModel* robot_model, const std::string& planning_group);
     void setRobotModel(const PlanningRobotModel* robot_model);
+    void setPlanningScene(const PlanningScene* planning_scene);
     void setTimestep(double timestep);
     void setTrajectoryDuration(double duration);
+    void setNumWaypoints(int num_waypoints);
 
     void enableVisualizeTrajectoryEachStep();
     void disableVisualizeTrajectoryEachStep();
 
     void planForOneTimestep();
 
+    void printCostFunctions();
+
 
 private:
 
     ros::NodeHandle node_handle_;
 
-    PlanningRobotModel* robot_model_;
+    const PlanningRobotModel* robot_model_;
+    const PlanningScene* planning_scene_;
 
     double timestep_;
     double trajectory_duration_;
 
-    ItompTrajectory* trajectory_;
     ItompOptimizer* optimizer_;
+    ItompTrajectory* trajectory_;
+    Thread* optimizer_thread_;
 
     std::map<int, Cost*> cost_functions_;
 

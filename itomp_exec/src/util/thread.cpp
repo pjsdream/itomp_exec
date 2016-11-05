@@ -140,9 +140,11 @@ void Thread::testCancel()
 
     if (cancel_request)
     {
+        /*
         for (int i=(int)cleanup_routines_.size() - 1; i>=0; i--)
             cleanup_routines_[i].first(cleanup_routines_[i].second);
         cleanup_routines_.clear();
+        */
 
         pthread_exit(NULL);
     }

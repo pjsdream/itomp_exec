@@ -30,13 +30,23 @@ int main(int argc, char** argv)
     moveit_robot_state.setToDefaultValues();
     itomp_exec::PlanningRobotModel planning_robot_model( moveit_robot_state, "arm" );
 
+    ROS_INFO("loading planning scene");
+    itomp_exec::PlanningScene planning_scene;
+    planning_scene.addStaticObstacle("package://itomp_exec/env/table.dae", Eigen::Affine3d::Identity());
+
     ROS_INFO("setting up planner");
     itomp_exec::ItompPlanner planner;
     planner.setRobotModel(&planning_robot_model);
+    planner.setPlanningScene(&planning_scene);
     planner.setTimestep(0.5);
     planner.setTrajectoryDuration(3.0);
+    planner.setNumWaypoints(6);
 
     planner.enableVisualizeTrajectoryEachStep();
+
+    planner.printCostFunctions();
+
+    planner.planForOneTimestep();
 
     ros::shutdown();
     return 0;

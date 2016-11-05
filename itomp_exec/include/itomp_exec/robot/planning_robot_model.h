@@ -37,6 +37,8 @@ public:
 
     PlanningRobotJoint(const robot_model::JointModel* joint, const PlanningRobotLinkGroup* parent_link_group, const PlanningRobotLinkGroup* child_link_group);
 
+    const robot_model::JointModel* getJoint() const;
+
 private:
 
     const robot_model::JointModel* joint_;
@@ -52,10 +54,10 @@ public:
 
     struct JointLimit
     {
-        double position_min;
-        double position_max;
-        double velocity_min;
-        double velocity_max;
+        double min_position;
+        double max_position;
+        double min_velocity;
+        double max_velocity;
     };
 
 public:
@@ -64,7 +66,9 @@ public:
     PlanningRobotModel(const robot_model::RobotState& robot_state, const std::vector<std::string>& joint_names);
     ~PlanningRobotModel();
 
-    int numJoints();
+    int numJoints() const;
+
+    const std::vector<JointLimit>& getJointLimits() const;
 
 protected:
 
@@ -77,6 +81,7 @@ protected:
 
     std::vector<PlanningRobotLinkGroup> link_groups_;
     std::vector<PlanningRobotJoint> joints_;
+    std::vector<JointLimit> joint_limits_;
 };
 
 }

@@ -21,13 +21,17 @@ public:
 
     void setRobotModel(const PlanningRobotModel* robot_model);
     void setRobotStartState(const PlanningRobotState& robot_start_state);
-    void setPlanningGroup(const std::string& planning_group);
 
     void setNumWaypoints(int num_waypoints);
     void setTimestep(double timestep);
     void setTrajectoryDuration(double trajectory_duration);
+    void setWaypointVariables(const Eigen::MatrixXd& waypoints);
 
-    void initializeTrajectory();
+    const PlanningRobotModel* getRobotModel() const;
+    int numWaypoints() const;
+    double getTrajectoryDuration() const;
+    Eigen::MatrixXd& getWaypointVariables();
+    const Eigen::MatrixXd& getWaypointVariables() const;
 
     std::vector<PlanningRobotState> getInterpolatedFirstTimestepTrajectory(int num_interpolation_midpoints);
     std::vector<PlanningRobotState> getInterpolatedWholeTrajectory(int num_interpolation_midpoints);
@@ -45,8 +49,6 @@ private:
     int num_joints_;
 
     Eigen::MatrixXd Q_; // waypoints, including the start configuration in the first column
-    Eigen::VectorXd joint_lower_limits_; // joint value limits followed, by velocity limits
-    Eigen::VectorXd joint_upper_limits_;
 };
 
 }

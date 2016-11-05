@@ -24,6 +24,10 @@ private:
 
     typedef dlib::matrix<double,0,1> column_vector;
 
+    // dlib/Eigen conversion utilities
+    static const Eigen::VectorXd convertDlibToEigenVector(const column_vector& v);
+    static const column_vector convertEigenToDlibVector(const Eigen::MatrixXd& v);
+
 public:
     
     ItompOptimizer(ItompTrajectory* trajectory);
@@ -36,7 +40,8 @@ public:
 
     void printCostFunctions();
 
-    void optimize(double time_limit);
+    void optimize();
+    void optimizeThreadCleanup();
 
 private:
 
@@ -45,6 +50,23 @@ private:
     ros::Publisher* trajectory_publisher_;
 
     std::map<int, Cost*> cost_functions_;
+
+    // optimization
+    void initializeOptimization(); /// initialize lower/upper
+    double optimizationCost(const column_vector& variables);
+    column_vector optimizationCostDerivative(const column_vector& variables);
+
+    void encodeOptimizationVariables();
+    void decodeOptimizationVariables();
+
+    column_vector optimization_variables_;
+    Eigen::VectorXd optimization_variables_lower_;
+    Eigen::VectorXd optimization_variables_upper_;
+    ros::Time optimization_start_time_;
+
+    // optimization intermediate variables
+    double goal_time_;
+    std::vector<PlanningRobotState> interpolated_robot_states_;
 };
 
 }
