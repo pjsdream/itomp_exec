@@ -16,6 +16,8 @@ public:
 
     PlanningRobotState(const PlanningRobotModel* robot_model);
 
+    void setZero();
+
 private:
     
     const PlanningRobotModel* robot_model_;

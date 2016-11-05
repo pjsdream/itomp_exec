@@ -4,6 +4,8 @@
 
 #include <itomp_exec/cost/cost.h>
 
+#include <Eigen/Dense>
+
 
 namespace itomp_exec
 {
@@ -16,7 +18,13 @@ public:
 
     virtual void printInfo();
 
+    void setGoalPose(const std::string& link_name, const Eigen::Affine3d& offset, const Eigen::Affine3d& goal_pose);
+
 private:
+
+    std::string link_name_;
+    Eigen::Affine3d offset_;
+    Eigen::Affine3d goal_pose_;
 };
 
 }

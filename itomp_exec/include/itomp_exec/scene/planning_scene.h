@@ -8,7 +8,7 @@
 #include <Eigen/Dense>
 
 #include <ros/ros.h>
-#include <tf/transform_listener.h>
+#include <visualization_msgs/MarkerArray.h>
 
 
 namespace itomp_exec
@@ -16,20 +16,31 @@ namespace itomp_exec
 
 class PlanningScene
 {
+private:
+
+    enum Type
+    {
+        Obstacle = 0,
+        Object,
+    };
+
 public:
 
     PlanningScene();
     ~PlanningScene();
 
-    void addStaticObstacle(const std::string& mesh_filename, const Eigen::Affine3d& transformation);
-    void addStaticObstacles(const std::vector<std::string>& mesh_filenames, const std::vector<Eigen::Affine3d>& transformations);
+    void addStaticObstacle(const std::string& mesh_filename, const Eigen::Affine3d& transform);
+    void addObject(const std::string& mesh_filename, const Eigen::Affine3d& transform);
+
+    void visualize(ros::Publisher* publisher) const;
 
 private:
 
-    // static obstacles
+    // shapes
     std::vector<shapes::Shape*> shapes_;
     std::vector<std::string> mesh_filenames_;
-    std::vector<Eigen::Affine3d> transformations_;
+    std::vector<Eigen::Affine3d> transforms_;
+    std::vector<Type> types_;
 };
 
 }

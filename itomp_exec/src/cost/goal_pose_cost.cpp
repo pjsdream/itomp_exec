@@ -15,4 +15,11 @@ void GoalPoseCost::printInfo()
     ROS_INFO("Weight: %lf", weight_);
 }
 
+void GoalPoseCost::setGoalPose(const std::string& link_name, const Eigen::Affine3d& offset, const Eigen::Affine3d& goal_pose)
+{
+    link_name_ = link_name;
+    offset_ = offset;
+    goal_pose_ = goal_pose;
+}
+
 }

@@ -33,20 +33,41 @@ ItompPlanner::ItompPlanner(const ros::NodeHandle& node_handle)
 
     optimizer_->setCostFunction(0, smoothness_cost);
     optimizer_->setCostFunction(1, collision_cost);
+
+    initializePublishers();
 }
 
 ItompPlanner::~ItompPlanner()
 {
-    for (std::map<int, Cost*>::iterator it = cost_functions_.begin(); it != cost_functions_.end(); it++)
+    for (int i=0, std::map<int, Cost*>::iterator it = cost_functions_.begin(); i<2 && it != cost_functions_.end(); it++)
         delete it->second;
 
     delete optimizer_;
+}
+
+void ItompPlanner::initializePublishers()
+{
+    optimizer_visualize_trajectory_publisher_ = node_handle_.advertise<visualization_msgs::MarkerArray>("itomp_optimizer_trajectory", 1);
+    visualize_publisher_ = node_handle_.advertise<visualization_msgs::MarkerArray>("itomp", 1);
+
+    // wait for initializing publisher
+    ros::Duration(0.5).sleep();
 }
 
 void ItompPlanner::setRobotModel(const PlanningRobotModel *robot_model)
 {
     robot_model_ = robot_model;
     trajectory_->setRobotModel(robot_model_);
+}
+
+void ItompPlanner::setRobotStartState(const PlanningRobotState& robot_start_state)
+{
+    trajectory_->setRobotStartState(robot_start_state);
+}
+
+void ItompPlanner::setRobotBaseTransform(const Eigen::Affine3d& robot_base_transform)
+{
+    robot_base_transform_ = robot_base_transform;
 }
 
 void ItompPlanner::setPlanningScene(const PlanningScene* planning_scene)
@@ -68,6 +89,12 @@ void ItompPlanner::setTrajectoryDuration(double duration)
 void ItompPlanner::setNumWaypoints(int num_waypoints)
 {
     trajectory_->setNumWaypoints(num_waypoints);
+}
+
+void ItompPlanner::setCostFunction(int id, Cost* cost)
+{
+    cost_functions_[id] = cost;
+    optimizer_->setCostFunction(id, cost);
 }
 
 void ItompPlanner::printCostFunctions()
@@ -106,16 +133,17 @@ void ItompPlanner::planForOneTimestep()
 
 void ItompPlanner::enableVisualizeTrajectoryEachStep()
 {
-    optimizer_visualize_trajectory_publisher_ = node_handle_.advertise<visualization_msgs::MarkerArray>("optimizer/trajectory", 1);
     optimizer_->enableVisualizeTrajectoryEachStep(&optimizer_visualize_trajectory_publisher_);
-
-    // wait for initializing publisher
-    ros::Duration(0.5).sleep();
 }
 
 void ItompPlanner::disableVisualizeTrajectoryEachStep()
 {
     optimizer_->disableVisualizeTrajectoryEachStep();
+}
+
+void ItompPlanner::visualizePlanningScene()
+{
+    planning_scene_->visualize(&visualize_publisher_);
 }
 
 }

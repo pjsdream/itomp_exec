@@ -27,6 +27,7 @@ find_package(catkin REQUIRED COMPONENTS
   fcl
   actionlib
   pcml
+  tf_conversions
 )
 
 ## System dependencies are found with CMake's conventions
@@ -137,7 +138,7 @@ endif()
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES itomp_exec
-  CATKIN_DEPENDS roscpp moveit_core pcml
+  CATKIN_DEPENDS roscpp moveit_core pcml tf_conversions
   DEPENDS system_lib
 )
 
@@ -206,6 +207,7 @@ target_link_libraries(itomp_exec
 
 target_link_libraries(test_fetch
   itomp_exec
+  ${catkin_LIBRARIES}
 )
 
 target_link_libraries(test_fcl

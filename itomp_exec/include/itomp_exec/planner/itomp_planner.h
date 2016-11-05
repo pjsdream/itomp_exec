@@ -37,10 +37,13 @@ public:
 
     void setRobotModel(const RobotModel* robot_model, const std::string& planning_group);
     void setRobotModel(const PlanningRobotModel* robot_model);
+    void setRobotStartState(const PlanningRobotState& robot_start_state);
+    void setRobotBaseTransform(const Eigen::Affine3d& robot_base_transform);
     void setPlanningScene(const PlanningScene* planning_scene);
     void setTimestep(double timestep);
     void setTrajectoryDuration(double duration);
     void setNumWaypoints(int num_waypoints);
+    void setCostFunction(int id, Cost* cost);
 
     void enableVisualizeTrajectoryEachStep();
     void disableVisualizeTrajectoryEachStep();
@@ -49,6 +52,8 @@ public:
 
     void printCostFunctions();
 
+    void visualizePlanningScene();
+
 
 private:
 
@@ -56,6 +61,7 @@ private:
 
     const PlanningRobotModel* robot_model_;
     const PlanningScene* planning_scene_;
+    Eigen::Affine3d robot_base_transform_;
 
     double timestep_;
     double trajectory_duration_;
@@ -67,7 +73,9 @@ private:
     std::map<int, Cost*> cost_functions_;
 
     // visualization
-    ros::Publisher optimizer_visualize_trajectory_publisher_;
+    void initializePublishers();
+    ros::Publisher visualize_publisher_;
+    ros::Publisher optimizer_visualize_trajectory_publisher_; // thread-safe publisher
 };
 
 }

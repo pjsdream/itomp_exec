@@ -63,8 +63,6 @@ void ItompOptimizer::printCostFunctions()
         ROS_INFO("Cost function id %d", it->first);
         it->second->printInfo();
     }
-
-    ROS_INFO("");
 }
 
 double ItompOptimizer::optimizationCost(const column_vector& variables)
