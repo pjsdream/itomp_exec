@@ -37,13 +37,15 @@ int main(int argc, char** argv)
     Eigen::Affine3d robot_base_transform = Eigen::Affine3d::Identity();
 
     ROS_INFO("loading planning scene");
+    shapes::Box table_shape(1, 2, 0.6);
+    shapes::Box box_shape(0.05, 0.05, 0.05);
     Eigen::Affine3d table_pose = Eigen::Affine3d::Identity();
     Eigen::Affine3d box_pose = Eigen::Affine3d::Identity();
-    table_pose.translate(Eigen::Vector3d(1, 0, 0.25)).scale(Eigen::Vector3d(0.5, 1, 0.25));
-    box_pose.translate(Eigen::Vector3d(0.8, 0.5, 0.525)).scale(0.025);
+    table_pose.translate(Eigen::Vector3d(0.8, 0, 0.3));
+    box_pose.translate(Eigen::Vector3d(0.7, 0.3, 0.625));
     itomp_exec::PlanningScene planning_scene;
-    planning_scene.addStaticObstacle("package://itomp_fetch/env/cube.dae", table_pose);
-    planning_scene.addObject("package://itomp_fetch/env/cube.dae", box_pose);
+    planning_scene.addStaticObstacle(&table_shape, table_pose);
+    planning_scene.addObject(&box_shape, box_pose);
 
     ROS_INFO("setting up planner");
     itomp_exec::ItompPlanner planner;
@@ -69,6 +71,7 @@ int main(int argc, char** argv)
     ROS_INFO("");
 
     planner.visualizePlanningScene();
+    planner.visualizeRobotBoundingSpheres(planning_robot_state, "start_state");
     planner.planForOneTimestep();
 
     ros::shutdown();

@@ -4,7 +4,10 @@
 
 #include <itomp_exec/robot/planning_robot_model.h>
 #include <moveit_msgs/RobotState.h>
+#include <itomp_exec/shape/sphere.h>
 #include <Eigen/Dense>
+
+#include <ros/ros.h>
 
 
 namespace itomp_exec
@@ -18,12 +21,18 @@ public:
 
     void setZero();
 
+    Spheres getBoundingSpheres() const;
+
+    void visualizeBoundingSpheres(ros::Publisher* publisher, const std::string& ns) const;
+
 private:
     
     const PlanningRobotModel* robot_model_;
 
     Eigen::VectorXd joint_positions_;
     Eigen::VectorXd joint_velocities_;
+
+    void getBoundingSpheresTraverse(const PlanningRobotLinkGroup* link_group, const Eigen::Affine3d& transform, Spheres& spheres) const;
 };
 
 }

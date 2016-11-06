@@ -1,5 +1,8 @@
 #include <itomp_exec/robot/planning_robot_state.h>
 
+#include <visualization_msgs/MarkerArray.h>
+#include <tf_conversions/tf_eigen.h>
+
 
 namespace itomp_exec
 {
@@ -16,6 +19,75 @@ void PlanningRobotState::setZero()
 {
     joint_positions_.setZero();
     joint_velocities_.setZero();
+}
+
+Spheres PlanningRobotState::getBoundingSpheres() const
+{
+    Spheres spheres;
+    getBoundingSpheresTraverse( robot_model_->getRootLinkGroup(), Eigen::Affine3d::Identity(), spheres);
+    return spheres;
+}
+
+void PlanningRobotState::getBoundingSpheresTraverse(const PlanningRobotLinkGroup* link_group, const Eigen::Affine3d& transform, Spheres& spheres) const
+{
+    Spheres link_group_spheres = link_group->getBoundingVolumes();
+    for (int i=0; i<link_group_spheres.size(); i++)
+    {
+        Sphere sphere = link_group_spheres[i];
+        sphere.position = transform * sphere.position;
+        spheres.push_back(sphere);
+    }
+
+    const std::vector<const PlanningRobotJoint*>& child_joints = link_group->getChildJoints();
+
+    for (int i=0; i<child_joints.size(); i++)
+    {
+        const PlanningRobotJoint* child_joint = child_joints[i];
+        const PlanningRobotLinkGroup* child_link_group = child_joint->getChildLinkGroup();
+
+        Eigen::Affine3d joint_transform;
+        child_joint->getJoint()->computeTransform(&joint_positions_[child_joint->getJointIndex()], joint_transform);
+        Eigen::Affine3d new_transform = transform * child_link_group->getJointOriginTransform() * joint_transform;
+
+        getBoundingSpheresTraverse(child_link_group, new_transform, spheres);
+    }
+}
+
+void PlanningRobotState::visualizeBoundingSpheres(ros::Publisher* publisher, const std::string& ns) const
+{
+    visualization_msgs::MarkerArray marker_array;
+    visualization_msgs::Marker marker;
+
+    marker.header.frame_id = "/map";
+    marker.header.stamp = ros::Time::now();
+    marker.ns = ns;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.type = visualization_msgs::Marker::SPHERE;
+
+    marker.color.r = 1.;
+    marker.color.g = 0.;
+    marker.color.b = 0.;
+    marker.color.a = 1.;
+
+    marker.pose.orientation.w = 1.;
+    marker.pose.orientation.x = 0.;
+    marker.pose.orientation.y = 0.;
+    marker.pose.orientation.z = 0.;
+
+    Spheres spheres = getBoundingSpheres();
+    for (int i=0; i<spheres.size(); i++)
+    {
+        marker.id = i;
+
+        marker.scale.x = marker.scale.y = marker.scale.z = spheres[i].radius * 2.;
+        marker.pose.position.x = spheres[i].position(0);
+        marker.pose.position.y = spheres[i].position(1);
+        marker.pose.position.z = spheres[i].position(2);
+
+        marker_array.markers.push_back(marker);
+    }
+
+    publisher->publish(marker_array);
 }
 
 }

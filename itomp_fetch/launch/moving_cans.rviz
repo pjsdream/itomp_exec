@@ -6,7 +6,11 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /Grid1
         - /PlanningScene1/Scene Geometry1
+        - /itomp1
+        - /itomp1/Status1
+        - /itomp1/Namespaces1
         - /future1/Namespaces1
         - /kinect2 skeleton1/Namespaces1
       Splitter Ratio: 0.568571
@@ -48,16 +52,16 @@ Visualization Manager:
         Y: 0
         Z: 0
       Plane: XY
-      Plane Cell Count: 200
+      Plane Cell Count: 10
       Reference Frame: <Fixed Frame>
       Value: true
     - Class: rviz/Axes
-      Enabled: false
+      Enabled: true
       Length: 1
       Name: Axes
       Radius: 0.01
       Reference Frame: <Fixed Frame>
-      Value: false
+      Value: true
     - Alpha: 1
       Class: rviz/RobotModel
       Collision Enabled: false
@@ -553,10 +557,12 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /itomp_fetch/planning_scene
-      Name: itomp planning scene
+      Marker Topic: /itomp_fetch/itomp
+      Name: itomp
       Namespaces:
-        {}
+        object_1: true
+        obstacle_0: true
+        start_state: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -564,7 +570,7 @@ Visualization Manager:
       Marker Topic: /itomp_fetch/goal_constraint
       Name: itomp goal constraints
       Namespaces:
-        goal_positions: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -713,22 +719,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 4.1401
+      Distance: 2.10522
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.68423
-        Y: 0.0239133
-        Z: 0.34972
+        X: 0.731118
+        Y: -0.0591468
+        Z: 0.800113
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.589795
+      Pitch: 0.624796
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 6.19593
+      Yaw: 5.75238
     Saved: ~
 Window Geometry:
   Displays:
@@ -746,5 +752,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1200
-  X: 576
+  X: 568
   Y: 10

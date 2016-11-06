@@ -30,14 +30,16 @@ public:
     ~PlanningScene();
 
     void addStaticObstacle(const std::string& mesh_filename, const Eigen::Affine3d& transform);
+    void addStaticObstacle(const shapes::Shape* shape, const Eigen::Affine3d& transform);
     void addObject(const std::string& mesh_filename, const Eigen::Affine3d& transform);
+    void addObject(const shapes::Shape* shape, const Eigen::Affine3d& transform);
 
     void visualize(ros::Publisher* publisher) const;
 
 private:
 
     // shapes
-    std::vector<shapes::Shape*> shapes_;
+    std::vector<const shapes::Shape*> shapes_;
     std::vector<std::string> mesh_filenames_;
     std::vector<Eigen::Affine3d> transforms_;
     std::vector<Type> types_;

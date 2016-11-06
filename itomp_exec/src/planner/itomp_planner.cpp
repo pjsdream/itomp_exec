@@ -39,8 +39,8 @@ ItompPlanner::ItompPlanner(const ros::NodeHandle& node_handle)
 
 ItompPlanner::~ItompPlanner()
 {
-    for (int i=0, std::map<int, Cost*>::iterator it = cost_functions_.begin(); i<2 && it != cost_functions_.end(); it++)
-        delete it->second;
+    delete cost_functions_[0];
+    delete cost_functions_[1];
 
     delete optimizer_;
 }
@@ -144,6 +144,11 @@ void ItompPlanner::disableVisualizeTrajectoryEachStep()
 void ItompPlanner::visualizePlanningScene()
 {
     planning_scene_->visualize(&visualize_publisher_);
+}
+
+void ItompPlanner::visualizeRobotBoundingSpheres(const PlanningRobotState& robot_state, const std::string& ns)
+{
+    robot_state.visualizeBoundingSpheres(&visualize_publisher_, ns);
 }
 
 }

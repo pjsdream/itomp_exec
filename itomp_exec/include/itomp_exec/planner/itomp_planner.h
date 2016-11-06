@@ -53,7 +53,7 @@ public:
     void printCostFunctions();
 
     void visualizePlanningScene();
-
+    void visualizeRobotBoundingSpheres(const PlanningRobotState& robot_state, const std::string& ns);
 
 private:
 
