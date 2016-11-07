@@ -31,6 +31,6 @@ itomp_algorithm: "flexible_trajectory_duration"
 cost_weights:
   goal_pose: 1.0
   time: 1.0
-  smoothness: 0.1
+  smoothness: 0.3
   collision: 3.0
-  future_obstacle: 1.0
+  future_obstacle: 10.0

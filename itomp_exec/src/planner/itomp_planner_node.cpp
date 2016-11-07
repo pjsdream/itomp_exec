@@ -519,7 +519,7 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
 
 void ITOMPPlannerNode::initializeOptimizers()
 {
-    const double optimization_time_fraction = 0.75;
+    const double optimization_time_fraction = 0.50;
     const double optimization_time = options_.planning_timestep * optimization_time_fraction;
     
     double trajectory_duration = options_.trajectory_duration;
@@ -705,6 +705,8 @@ bool ITOMPPlannerNode::planAndExecuteFlexibleTrajectoryDuration()
         // DEBUG: test gradient for best trajectory
         //optimizers_[best_trajectory_index].testGradients();
 
+        ROS_INFO("best trajectory computed");
+
         // prepare the first timestep of trajectory for execution
         moveit_msgs::RobotTrajectory robot_trajectory_msg;
         optimizers_[best_trajectory_index].getRobotTrajectoryIntervalMsg(robot_trajectory_msg, 0, options_.planning_timestep, num_states_per_planning_timestep);
@@ -721,12 +723,10 @@ bool ITOMPPlannerNode::planAndExecuteFlexibleTrajectoryDuration()
         optimizers_[best_trajectory_index].extend(options_.planning_timestep);
         elapsed_trajectory_time += options_.planning_timestep;
 
-        //ROS_INFO("Best trajectory cost: %lf", best_trajectory_cost);
+        ROS_INFO("Best trajectory cost: %lf", best_trajectory_cost);
 
-        /*
         if (optimizers_[best_trajectory_index].reachedGoalPose(options_.goal_tolerance))
             break;
-            */
 
         // copy the best trajectory to others
         for (int i=0; i<optimizers_.size(); i++)
@@ -751,10 +751,8 @@ bool ITOMPPlannerNode::planAndExecuteFlexibleTrajectoryDuration()
             break;
 
         // print best trajectory cost
-        /*
         ROS_INFO("best_trajectory_cost: %lf  tolerance: %lf", best_trajectory_cost, options_.goal_tolerance);
         optimizers_[best_trajectory_index].printCosts();
-        */
     }
 
     ROS_INFO("Waiting %lf sec for the last execution step", options_.planning_timestep);
