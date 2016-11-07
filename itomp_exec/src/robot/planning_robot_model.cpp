@@ -121,6 +121,29 @@ const Spheres& PlanningRobotLinkGroup::getBoundingVolumes() const
     return bounding_spheres_;
 }
 
+std::vector<std::pair<std::string, Eigen::Affine3d> > PlanningRobotLinkGroup::getMeshes() const
+{
+    std::vector<std::pair<std::string, Eigen::Affine3d> > meshes;
+
+    for (int i=0; i<links_.size(); i++)
+    {
+        std::pair<std::string, Eigen::Affine3d> mesh;
+        const robot_model::LinkModel* link = links_[i];
+
+        mesh.first = link->getVisualMeshFilename();
+        if (mesh.first != "")
+        {
+            Eigen::Affine3d mesh_transform = link->getVisualMeshOrigin();
+            mesh_transform.scale( link->getVisualMeshScale() );
+            mesh.second = link_transforms_[i] * mesh_transform;
+
+            meshes.push_back(mesh);
+        }
+    }
+
+    return meshes;
+}
+
 const Eigen::Affine3d& PlanningRobotLinkGroup::getJointOriginTransform() const
 {
     return joint_origin_transform_;
@@ -167,6 +190,17 @@ PlanningRobotModel::PlanningRobotModel(const robot_model::RobotState& robot_stat
 
 PlanningRobotModel::~PlanningRobotModel()
 {
+}
+
+int PlanningRobotModel::getJointIndex(const std::string& joint_name) const
+{
+    for (int i=0; i<joints_.size(); i++)
+    {
+        if (joints_[i]->getJoint()->getName() == joint_name)
+            return i;
+    }
+
+    return -1;
 }
 
 void PlanningRobotModel::initialize()

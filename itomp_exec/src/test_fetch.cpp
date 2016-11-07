@@ -29,6 +29,7 @@ int main(int argc, char** argv)
     robot_model::RobotModelPtr moveit_robot_model = moveit_robot_model_loader.getModel();
     robot_model::RobotState moveit_robot_state(moveit_robot_model);
     moveit_robot_state.setToDefaultValues();
+    moveit_robot_state.setVariablePosition("torso_lift_joint", 0.35);
     itomp_exec::PlanningRobotModel planning_robot_model( moveit_robot_state, "arm" );
 
     itomp_exec::PlanningRobotState planning_robot_state( &planning_robot_model );
@@ -71,7 +72,8 @@ int main(int argc, char** argv)
     ROS_INFO("");
 
     planner.visualizePlanningScene();
-    planner.visualizeRobotBoundingSpheres(planning_robot_state, "start_state");
+    planner.visualizeRobot(planning_robot_state, "start_state");
+    planner.visualizeRobotBoundingSpheres(planning_robot_state, "start_state_spheres");
     planner.planForOneTimestep();
 
     ros::shutdown();

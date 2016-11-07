@@ -1,7 +1,7 @@
 #include <itomp_exec/robot/planning_robot_state.h>
 
 #include <visualization_msgs/MarkerArray.h>
-#include <tf_conversions/tf_eigen.h>
+#include <eigen_conversions/eigen_msg.h>
 
 
 namespace itomp_exec
@@ -19,6 +19,11 @@ void PlanningRobotState::setZero()
 {
     joint_positions_.setZero();
     joint_velocities_.setZero();
+}
+
+void PlanningRobotState::setJointPosition(const std::string& joint_name, double position)
+{
+    joint_positions_[ robot_model_->getJointIndex(joint_name) ] = position;
 }
 
 Spheres PlanningRobotState::getBoundingSpheres() const
@@ -51,6 +56,73 @@ void PlanningRobotState::getBoundingSpheresTraverse(const PlanningRobotLinkGroup
 
         getBoundingSpheresTraverse(child_link_group, new_transform, spheres);
     }
+}
+
+PlanningRobotState::Meshes PlanningRobotState::getMeshes() const
+{
+    Meshes meshes;
+    getMeshesTraverse( robot_model_->getRootLinkGroup(), Eigen::Affine3d::Identity(), meshes);
+    return meshes;
+}
+
+void PlanningRobotState::getMeshesTraverse(const PlanningRobotLinkGroup* link_group, const Eigen::Affine3d& transform, Meshes& meshes) const
+{
+    std::vector<std::pair<std::string, Eigen::Affine3d> > link_meshes = link_group->getMeshes();
+    for (int i=0; i<link_meshes.size(); i++)
+    {
+        Mesh mesh;
+        mesh.mesh_filename = link_meshes[i].first;
+        mesh.transform = transform * link_meshes[i].second;
+        meshes.push_back(mesh);
+    }
+
+    const std::vector<const PlanningRobotJoint*>& child_joints = link_group->getChildJoints();
+
+    for (int i=0; i<child_joints.size(); i++)
+    {
+        const PlanningRobotJoint* child_joint = child_joints[i];
+        const PlanningRobotLinkGroup* child_link_group = child_joint->getChildLinkGroup();
+
+        Eigen::Affine3d joint_transform;
+        child_joint->getJoint()->computeTransform(&joint_positions_[child_joint->getJointIndex()], joint_transform);
+        Eigen::Affine3d new_transform = transform * child_link_group->getJointOriginTransform() * joint_transform;
+
+        getMeshesTraverse(child_link_group, new_transform, meshes);
+    }
+}
+
+void PlanningRobotState::visualizeRobot(ros::Publisher* publisher, const std::string& ns) const
+{
+    visualization_msgs::MarkerArray marker_array;
+    visualization_msgs::Marker marker;
+
+    marker.header.frame_id = "/map";
+    marker.header.stamp = ros::Time::now();
+    marker.ns = ns;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.type = visualization_msgs::Marker::MESH_RESOURCE;
+    marker.mesh_use_embedded_materials = true;
+    marker.scale.x = 1.;
+    marker.scale.y = 1.;
+    marker.scale.z = 1.;
+
+    marker.color.r = 0.;
+    marker.color.g = 0.;
+    marker.color.b = 0.;
+    marker.color.a = 0.;
+
+    std::vector<Mesh> meshes = getMeshes();
+    for (int i=0; i<meshes.size(); i++)
+    {
+        marker.id = i;
+
+        marker.mesh_resource = meshes[i].mesh_filename;
+        tf::poseEigenToMsg(meshes[i].transform, marker.pose);
+
+        marker_array.markers.push_back(marker);
+    }
+
+    publisher->publish(marker_array);
 }
 
 void PlanningRobotState::visualizeBoundingSpheres(ros::Publisher* publisher, const std::string& ns) const

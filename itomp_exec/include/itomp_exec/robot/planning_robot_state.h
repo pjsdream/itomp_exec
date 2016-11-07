@@ -15,14 +15,28 @@ namespace itomp_exec
 
 class PlanningRobotState
 {
+private:
+
+    struct Mesh
+    {
+        std::string mesh_filename;
+        Eigen::Affine3d transform;
+    };
+
+    typedef std::vector<Mesh> Meshes;
+
 public:
 
     PlanningRobotState(const PlanningRobotModel* robot_model);
 
     void setZero();
 
-    Spheres getBoundingSpheres() const;
+    void setJointPosition(const std::string& joint_name, double position);
 
+    Spheres getBoundingSpheres() const;
+    Meshes getMeshes() const;
+
+    void visualizeRobot(ros::Publisher* publisher, const std::string& ns) const;
     void visualizeBoundingSpheres(ros::Publisher* publisher, const std::string& ns) const;
 
 private:
@@ -33,6 +47,7 @@ private:
     Eigen::VectorXd joint_velocities_;
 
     void getBoundingSpheresTraverse(const PlanningRobotLinkGroup* link_group, const Eigen::Affine3d& transform, Spheres& spheres) const;
+    void getMeshesTraverse(const PlanningRobotLinkGroup* link_group, const Eigen::Affine3d& transform, Meshes& meshes) const;
 };
 
 }

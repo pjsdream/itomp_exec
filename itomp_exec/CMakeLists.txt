@@ -181,6 +181,11 @@ add_library(itomp_exec
   src/cost/goal_pose_cost.cpp
   src/cost/smoothness_cost.cpp
   src/cost/collision_cost.cpp
+  src/nlp/corenlp_parser.cpp
+  src/nlp/language_model.cpp
+
+  # tinyxml2
+  lib/tinyxml2/tinyxml2.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -192,6 +197,7 @@ add_library(itomp_exec
 # add_executable(itomp_exec_node src/itomp_exec_node.cpp)
 add_executable(test_fetch src/test_fetch.cpp)
 add_executable(test_fcl src/test_fcl.cpp)
+add_executable(test_nlp src/test_nlp.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -211,6 +217,11 @@ target_link_libraries(test_fetch
 )
 
 target_link_libraries(test_fcl
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(test_nlp
+  itomp_exec
   ${catkin_LIBRARIES}
 )
 

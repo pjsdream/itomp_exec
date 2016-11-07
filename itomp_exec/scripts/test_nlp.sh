@@ -1,0 +1,1 @@
+java -cp "/home/jaesungp/lib/stanford-corenlp-full-2016-10-31/*" -Xmx2g edu.stanford.nlp.pipeline.StanfordCoreNLP -annotators tokenize,ssplit,pos,lemma,ner,parse,dcoref -outputFormat xml 2>/dev/null | rosrun itomp_exec test_nlp

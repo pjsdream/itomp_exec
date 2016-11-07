@@ -146,6 +146,11 @@ void ItompPlanner::visualizePlanningScene()
     planning_scene_->visualize(&visualize_publisher_);
 }
 
+void ItompPlanner::visualizeRobot(const PlanningRobotState& robot_state, const std::string& ns)
+{
+    robot_state.visualizeRobot(&visualize_publisher_, ns);
+}
+
 void ItompPlanner::visualizeRobotBoundingSpheres(const PlanningRobotState& robot_state, const std::string& ns)
 {
     robot_state.visualizeBoundingSpheres(&visualize_publisher_, ns);

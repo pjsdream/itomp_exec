@@ -22,6 +22,7 @@ public:
     void addChildJoint(const PlanningRobotJoint* child_joint);
 
     const Spheres& getBoundingVolumes() const;
+    std::vector<std::pair<std::string, Eigen::Affine3d> > getMeshes() const;
     const Eigen::Affine3d& getJointOriginTransform() const;
 
     const std::vector<const PlanningRobotJoint*>& getChildJoints() const;
@@ -84,6 +85,7 @@ public:
     int numJoints() const;
 
     const std::vector<JointLimit>& getJointLimits() const;
+    int getJointIndex(const std::string& joint_name) const;
 
     const PlanningRobotLinkGroup* getRootLinkGroup() const;
 
