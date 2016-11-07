@@ -519,7 +519,7 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
 
 void ITOMPPlannerNode::initializeOptimizers()
 {
-    const double optimization_time_fraction = 0.80;
+    const double optimization_time_fraction = 0.75;
     const double optimization_time = options_.planning_timestep * optimization_time_fraction;
     
     double trajectory_duration = options_.trajectory_duration;
@@ -750,8 +750,11 @@ bool ITOMPPlannerNode::planAndExecuteFlexibleTrajectoryDuration()
         if (best_trajectory_cost < options_.goal_tolerance)
             break;
 
+        // print best trajectory cost
+        /*
         ROS_INFO("best_trajectory_cost: %lf  tolerance: %lf", best_trajectory_cost, options_.goal_tolerance);
         optimizers_[best_trajectory_index].printCosts();
+        */
     }
 
     ROS_INFO("Waiting %lf sec for the last execution step", options_.planning_timestep);

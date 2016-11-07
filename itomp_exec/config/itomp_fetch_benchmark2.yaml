@@ -1,6 +1,6 @@
 num_trajectories: 8
 trajectory_duration: 3.0
-planning_timestep: 0.1
+planning_timestep: 0.5
 num_milestones: 3
 num_interpolation_samples: 6
 dynamic_obstacle_max_speed: 0.00 # m/s
@@ -29,8 +29,8 @@ itomp_algorithm: "flexible_trajectory_duration"
 #  - shoulder_pan_link
 
 cost_weights:
-  #goal_pose: 1.0
+  goal_pose: 1.0
   time: 1.0
-  smoothness: 1.0
+  smoothness: 0.1
   collision: 3.0
   future_obstacle: 1.0
