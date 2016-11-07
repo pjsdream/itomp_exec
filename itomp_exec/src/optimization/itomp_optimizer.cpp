@@ -796,7 +796,7 @@ void ITOMPOptimizer::getRobotTrajectoryIntervalMsg(moveit_msgs::RobotTrajectory&
             if (milestone_t0 <= t && t<= milestone_t1)
             {
                 trajectory_msgs::JointTrajectoryPoint point;
-                point.time_from_start = ros::Duration(t);
+                point.time_from_start = ros::Duration(t * 1.05); // 5% extension
                 for (int j=0; j<num_joints_; j++)
                 {
                     const ecl::CubicPolynomial& poly = cubic_polynomials_[j][i];
