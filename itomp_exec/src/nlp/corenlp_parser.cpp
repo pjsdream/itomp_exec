@@ -15,10 +15,14 @@ CoreNLPParser::CoreNLPParser(const std::string& xml_string)
     {
         tinyxml2::XMLElement* document_node = xml_parser.RootElement()->FirstChildElement();
         tinyxml2::XMLElement* sentences_node = document_node->FirstChildElement("sentences");
-        tinyxml2::XMLElement* coreference_node = document_node->FirstChildElement("coreference")->FirstChildElement("coreference");
 
         parseSentences(sentences_node);
-        parseCoreference(coreference_node);
+
+        if (document_node->FirstChildElement("coreference") != 0)
+        {
+            tinyxml2::XMLElement* coreference_node = document_node->FirstChildElement("coreference")->FirstChildElement("coreference");
+            parseCoreference(coreference_node);
+        }
     }
 
     else

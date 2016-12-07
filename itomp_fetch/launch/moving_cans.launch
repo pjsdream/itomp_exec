@@ -65,7 +65,7 @@
 
   <group if="$(arg use_real_robot)">
     <!-- Given the published joint states, publish tf for the robot links -->
-    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true"/>
+    <node name="robot_state_publisher_rviz" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true"/>
 
     <!-- move group -->
     <arg name="pipeline" default="$(optenv PLANNING_PIPELINE ompl)" />

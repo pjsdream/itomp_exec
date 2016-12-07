@@ -5,6 +5,14 @@
 #include <ros/ros.h>
 
 
+void trimCR(char* string)
+{
+    int n = strlen(string);
+
+    while (n>=0 && string[n] == 13)
+        string[n] = 0;
+}
+
 int main(int argc, char** argv)
 {
     setbuf(stdout, NULL);
@@ -21,20 +29,31 @@ int main(int argc, char** argv)
 
     while (ros::ok())
     {
+        bool string_found = false;
         std::string xml_string;
         char buffer[1024];
         while (gets(buffer))
         {
+            string_found = true;
+
+            trimCR(buffer);
+
             // append to a string, ignoring xml header tags
             if (strncmp(buffer, "<?xml", 5) != 0)
                 xml_string += std::string(buffer) + '\n';
 
-            if (strcmp(buffer, "</root>") == 0)
+            if (strncmp(buffer, "</root>", 7) == 0)
+            {
+                ROS_INFO("end");
                 break;
+            }
         }
 
+        if (!string_found)
+            break;
+
         itomp_exec::CoreNLPParser parser(xml_string);
-        itomp_exec::LanguageModel* language_model = parser->getLanguageModel();
+        itomp_exec::LanguageModel* language_model = parser.getLanguageModel();
 
         ROS_INFO("Time: %lfs", (ros::Time::now() - start_time).toSec());
     }
