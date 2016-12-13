@@ -83,12 +83,15 @@ private:
     void initializeCurrentState(moveit_msgs::RobotState& start_state);
     static void initializeTuckState(moveit_msgs::RobotState& start_state);
     static void initializeDefaultState(moveit_msgs::RobotState& start_state);
+
+    void publishObjects();
     
     ros::NodeHandle nh_;
     ros::Publisher start_state_publisher_;
     ros::Publisher goal_state_publisher_;
     ros::Publisher display_trajectory_publisher_;
     ros::Publisher target_positions_publisher_;
+    ros::Publisher objects_publisher_;
     itomp_exec::ITOMPPlannerNode planner_;
     
     // gripper actionlib client
@@ -145,9 +148,73 @@ ITOMPFetch::ITOMPFetch(const ros::NodeHandle& nh)
     goal_state_publisher_ = nh_.advertise<moveit_msgs::DisplayRobotState>("goal_state", 1);
     display_trajectory_publisher_ = nh_.advertise<moveit_msgs::DisplayTrajectory>("display_planned_path", 1);
     target_positions_publisher_ = nh_.advertise<visualization_msgs::MarkerArray>("target_positions", 1);
+    objects_publisher_ = nh_.advertise<visualization_msgs::MarkerArray>("objects", 1);
     ros::Duration(0.5).sleep();
     
     loadTablePoses();
+
+    publishObjects();
+}
+
+void ITOMPFetch::publishObjects()
+{
+    visualization_msgs::Marker marker;
+    visualization_msgs::MarkerArray marker_array;
+
+    marker.header.frame_id = "map";
+    marker.header.stamp = ros::Time::now();
+
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.type = visualization_msgs::Marker::CUBE;
+    marker.ns = "objects";
+
+    marker.id = 0;
+    marker.pose.position.x = 0.6;
+    marker.pose.position.y = 0.0;
+    marker.pose.position.z = 0.45;
+    marker.pose.orientation.w = 1.;
+    marker.pose.orientation.x = 0.;
+    marker.pose.orientation.y = 0.;
+    marker.pose.orientation.z = 0.;
+    marker.scale.x = 1.0;
+    marker.scale.y = 2.0;
+    marker.scale.z = 0.9;
+    marker.color.r = 139. / 255.;
+    marker.color.g = 69. / 255.;
+    marker.color.b = 19. / 255.;
+    marker.color.a = 1.;
+    marker_array.markers.push_back(marker);
+
+    marker.id = 1;
+    /*
+    marker.pose.position.x = 0.6;
+    marker.pose.position.y = 0.2;
+    marker.pose.position.z = 0.9;
+    const double theta = 0.2;
+    marker.pose.orientation.w = cos(theta / 2.);
+    marker.pose.orientation.x = 0.;
+    marker.pose.orientation.y = 0.;
+    marker.pose.orientation.z = sin(theta / 2.);
+    */
+    marker.pose.position.x = 0.8;
+    marker.pose.position.y = 0.5;
+    marker.pose.position.z = 0.9;
+    const double theta = 0.6;
+    marker.pose.orientation.w = cos(theta / 2.);
+    marker.pose.orientation.x = 0.;
+    marker.pose.orientation.y = 0.;
+    marker.pose.orientation.z = sin(theta / 2.);
+
+    marker.scale.x = 0.3;
+    marker.scale.y = 0.45;
+    marker.scale.z = 0.02;
+    marker.color.r = 1.;
+    marker.color.g = 1.;
+    marker.color.b = 1.;
+    marker.color.a = 1.;
+    marker_array.markers.push_back(marker);
+
+    objects_publisher_.publish(marker_array);
 }
 
 void ITOMPFetch::moveGripper(double gap, bool wait_for_execution)
@@ -236,6 +303,51 @@ void ITOMPFetch::initializeDefaultState(moveit_msgs::RobotState& start_state)
 
 void ITOMPFetch::loadTablePoses()
 {
+    Pose pose;
+
+    if (0)
+    {
+        pose.position = Eigen::Vector3d(0.36,  0.73, 1.1);
+        pose.orientation = Eigen::Quaterniond(0.707106781, 0.0, 0.707106781, 0.0);
+        target_poses_.push_back(pose);
+
+        pose.position = Eigen::Vector3d(0.75,  0.20, 0.96);
+        pose.orientation = Eigen::Quaterniond(0.707106781, 0.0, 0.707106781, 0.0);
+        target_poses_.push_back(pose);
+
+        pose.position = Eigen::Vector3d(0.50,  0.50, 1.20);
+        pose.orientation = Eigen::Quaterniond(0.707106781, 0.0, 0.707106781, 0.0);
+        target_poses_.push_back(pose);
+
+        pose.position = Eigen::Vector3d(0.75,  0.20, 0.96);
+        pose.orientation = Eigen::Quaterniond(0.707106781, 0.0, 0.707106781, 0.0);
+        target_poses_.push_back(pose);
+
+        pose.position = Eigen::Vector3d(0.75,  -0.20, 0.96);
+        pose.orientation = Eigen::Quaterniond(0.707106781, 0.0, 0.707106781, 0.0);
+        target_poses_.push_back(pose);
+
+        pose.position = Eigen::Vector3d(0.36,  0.73, 1.3);
+        pose.orientation = Eigen::Quaterniond(0.707106781, 0.0, 0.707106781, 0.0);
+        target_poses_.push_back(pose);
+    }
+
+    else
+    {
+        pose.position = Eigen::Vector3d(0.36,  0.73, 1.1);
+        pose.orientation = Eigen::Quaterniond(0.707106781, 0.0, 0.707106781, 0.0);
+        target_poses_.push_back(pose);
+
+        pose.position = Eigen::Vector3d(0.75,  0.20, 0.96);
+        pose.orientation = Eigen::Quaterniond(0.707106781, 0.0, 0.707106781, 0.0);
+        target_poses_.push_back(pose);
+
+        pose.position = Eigen::Vector3d(0.36,  0.73, 1.20);
+        pose.orientation = Eigen::Quaterniond(0.707106781, 0.0, 0.707106781, 0.0);
+        target_poses_.push_back(pose);
+    }
+
+    /*
     XmlRpc::XmlRpcValue poses;
     
     if (nh_.getParam("poses", poses))
@@ -386,6 +498,7 @@ void ITOMPFetch::loadTablePoses()
     }
     
     target_positions_publisher_.publish(marker_array);
+    */
 }
 
 void ITOMPFetch::initializeCurrentState(robot_state::RobotState& state)
@@ -480,17 +593,22 @@ void ITOMPFetch::runScenario()
         */
         moveit_msgs::PositionConstraint goal_position_constraint;
         goal_position_constraint.link_name = endeffector_name_;
-        if (goal_type == 0)
-            tf::vectorEigenToMsg(start_poses_[goal_index].position, goal_position_constraint.target_point_offset);
+        tf::vectorEigenToMsg(target_poses_[goal_index].position, goal_position_constraint.target_point_offset);
+        if (goal_index % 2 == 1)
+            goal_position_constraint.weight = 10.0;
         else
-            tf::vectorEigenToMsg(target_poses_[goal_index].position, goal_position_constraint.target_point_offset);
+            goal_position_constraint.weight = 10.0;
         
         moveit_msgs::OrientationConstraint goal_orientation_constraint;
         goal_orientation_constraint.link_name = endeffector_name_;
-        if (goal_type == 0)
-            tf::quaternionEigenToMsg(start_poses_[goal_index].orientation, goal_orientation_constraint.orientation);
+        tf::quaternionEigenToMsg(target_poses_[goal_index].orientation, goal_orientation_constraint.orientation);
+        if (    goal_index == 0 ||
+                goal_index == 1 ||
+                goal_index == 3 ||
+                goal_index == 4)
+            goal_orientation_constraint.weight = 1.0;
         else
-            tf::quaternionEigenToMsg(target_poses_[goal_index].orientation, goal_orientation_constraint.orientation);
+            goal_orientation_constraint.weight = 0.0;
         
         moveit_msgs::Constraints goal_constraints;
         goal_constraints.position_constraints.push_back(goal_position_constraint);
@@ -512,55 +630,17 @@ void ITOMPFetch::runScenario()
         planner_.planAndExecute(res);
 
         // move endeffector vertically using IK to pick or place
-        if (goal_type == 0)
-        {
-            //moveEndeffectorVertically(-endeffector_vertical_moving_distance_);
-            moveEndeffectorVerticallyTarget(-endeffector_vertical_moving_distance_, start_poses_[goal_index].position, start_poses_[goal_index].orientation);
-            moveGripper(gripper_picking_distance_, false);
-            attachSphere(goal_index);
-            //moveEndeffectorVertically(endeffector_vertical_moving_distance_);
-            moveEndeffectorVerticallyTarget(-endeffector_vertical_moving_distance_ + 0.04, start_poses_[goal_index].position, start_poses_[goal_index].orientation);
-        }
-        else
-        {
-            //moveEndeffectorVertically(-endeffector_vertical_moving_distance_);
-            openGripper(false);
-            detachSphere(goal_index);
-            //moveEndeffectorVertically(endeffector_vertical_moving_distance_);
-            moveEndeffectorVerticallyTarget(endeffector_vertical_moving_distance_, target_poses_[goal_index].position, target_poses_[goal_index].orientation);
-        }
-        
-        // setup the next goal
-        if (goal_type == 0)
-        {
-            goal_type = 1;
-        }
-        else
-        {
-            goal_type = 0;
-            
-            // goal index random assignment
-            /*
-            goal_achieved[goal_index] = true;
-            
-            std::vector<int> indices;
-            for (int i=0; i<start_poses_.size(); i++)
-            {
-                if (!goal_achieved[i])
-                    indices.push_back(i);
-            }
-            
-            if (indices.empty())
-                break;
-            
-            goal_index = indices[ rand() % indices.size() ];
+        openGripper(false);
+        //detachSphere(goal_index);
+        //moveEndeffectorVerticallyTarget(endeffector_vertical_moving_distance_, target_poses_[goal_index].position, target_poses_[goal_index].orientation);
+
+        // goal index assignment in order
+        /*
+        if (goal_index == target_poses_.size() - 1)
+            break;
             */
-            
-            // goal index assignment in order
-            if (goal_index == start_poses_.size() - 1)
-                break;
-            goal_index++;
-        }
+        goal_index++;
+        goal_index %= target_poses_.size();
         
         // once
         // break;

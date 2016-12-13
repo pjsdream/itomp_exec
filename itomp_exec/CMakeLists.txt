@@ -196,6 +196,7 @@ add_executable(itomp_ur5 src/itomp_ur5.cpp)
 add_executable(itomp_lbr_iiwa src/itomp_lbr_iiwa.cpp)
 add_executable(visualize_kuka_env src/visualize_kuka_env.cpp)
 add_executable(test_fcl src/test_fcl.cpp)
+add_executable(nlp src/nlp.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -223,6 +224,9 @@ target_link_libraries(visualize_kuka_env
   ${Boost_LIBRARIES}
 )
 target_link_libraries(test_fcl
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(nlp
   ${catkin_LIBRARIES}
 )
 

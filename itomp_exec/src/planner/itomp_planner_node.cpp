@@ -132,7 +132,7 @@ void ITOMPPlannerNode::loadParams()
     node_handle_.param("planning_timestep", options_.planning_timestep, 0.5);
     node_handle_.param("dynamic_obstacle_max_speed", options_.conservative_algorithm.dynamic_obstacle_max_speed, 0.1);
     node_handle_.param("dynamic_obstacle_duration", options_.conservative_algorithm.dynamic_obstacle_duration, 1.0);
-    node_handle_.param("goal_tolerance", options_.goal_tolerance, 1e-6);
+    node_handle_.param("goal_tolerance", options_.goal_tolerance, 0.03);
 
     // load ITOMP algorithm
     std::string itomp_algorithm;
@@ -747,6 +747,13 @@ bool ITOMPPlannerNode::planAndExecuteFlexibleTrajectoryDuration()
 
         if (best_trajectory_cost < options_.goal_tolerance)
             break;
+<<<<<<< Updated upstream
+=======
+
+        // print best trajectory cost
+        ROS_INFO("best_trajectory_cost: %lf  tolerance: %lf", best_trajectory_cost, options_.goal_tolerance);
+        //optimizers_[best_trajectory_index].printCosts();
+>>>>>>> Stashed changes
     }
 
     ROS_INFO("Waiting %lf sec for the last execution step", options_.planning_timestep);

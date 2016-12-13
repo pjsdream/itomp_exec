@@ -200,7 +200,7 @@ void ITOMPOptimizer::clearGoalLinkPoses()
 void ITOMPOptimizer::addGoalLinkPosition(const std::string& link_name, const Eigen::Vector3d& goal_position, double weight)
 {
     const int joint_index = robot_model_->getJointIndexByLinkName(link_name);
-    goal_link_poses_[joint_index].position_weight = 1.0;
+    goal_link_poses_[joint_index].position_weight = weight;
     goal_link_poses_[joint_index].position = root_link_transform_ * goal_position;
 }
 
