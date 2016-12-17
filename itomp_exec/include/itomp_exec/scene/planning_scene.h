@@ -4,7 +4,6 @@
 
 #include <geometric_shapes/shapes.h>
 #include <itomp_exec/shape/sphere.h>
-#include <pcml/util/future_obstacle_listener.h>
 #include <Eigen/Dense>
 
 #include <ros/ros.h>

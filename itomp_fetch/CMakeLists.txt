@@ -20,7 +20,6 @@ add_custom_target(dummy_${PROJECT_NAME} SOURCES ${extra_files})
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   itomp_exec
-  pcml
 )
 
 ## System dependencies are found with CMake's conventions

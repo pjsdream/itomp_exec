@@ -22,11 +22,10 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   moveit_core
   moveit_ros_planning
+  cmake_modules
   resource_retriever
   ecl_geometry
-  fcl
   actionlib
-  pcml
   tf_conversions
 )
 
@@ -40,7 +39,7 @@ find_package(Boost REQUIRED COMPONENTS
 find_package(cmake_modules REQUIRED)
 
 # eigen
-find_package(Eigen REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 # openmp
 FIND_PACKAGE( OpenMP REQUIRED)
@@ -138,7 +137,7 @@ endif()
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES itomp_exec
-  CATKIN_DEPENDS roscpp moveit_core pcml tf_conversions
+  CATKIN_DEPENDS roscpp moveit_core tf_conversions moveit_ros_planning cmake_modules
   DEPENDS system_lib
 )
 
@@ -184,8 +183,30 @@ add_library(itomp_exec
   src/nlp/corenlp_parser.cpp
   src/nlp/language_model.cpp
 
+  include/itomp_exec/planner/itomp_planner.h
+  include/itomp_exec/scene/planning_scene.h
+  include/itomp_exec/optimization/itomp_optimizer.h
+  include/itomp_exec/trajectory/itomp_trajectory.h
+  include/itomp_exec/robot/robot_model.h
+  include/itomp_exec/robot/robot_state.h
+  include/itomp_exec/robot/planning_robot_model.h
+  include/itomp_exec/robot/planning_robot_state.h
+  include/itomp_exec/robot/bounding_sphere_robot_model.h
+  include/itomp_exec/util/conversions.h
+  include/itomp_exec/util/gaussian_quadrature.h
+  include/itomp_exec/util/joint_state_listener.h
+  include/itomp_exec/util/thread.h
+  include/itomp_exec/cost/cost.h
+  include/itomp_exec/cost/goal_pose_cost.h
+  include/itomp_exec/cost/smoothness_cost.h
+  include/itomp_exec/cost/collision_cost.h
+  include/itomp_exec/nlp/corenlp_parser.h
+  include/itomp_exec/nlp/language_model.h
+
   # tinyxml2
   lib/tinyxml2/tinyxml2.cpp
+
+  lib/dlib/optimization.h
 )
 
 ## Add cmake target dependencies of the library
@@ -196,7 +217,6 @@ add_library(itomp_exec
 ## Declare a C++ executable
 # add_executable(itomp_exec_node src/itomp_exec_node.cpp)
 add_executable(test_fetch src/test_fetch.cpp)
-add_executable(test_fcl src/test_fcl.cpp)
 add_executable(test_nlp src/test_nlp.cpp)
 
 ## Add cmake target dependencies of the executable
@@ -213,10 +233,6 @@ target_link_libraries(itomp_exec
 
 target_link_libraries(test_fetch
   itomp_exec
-  ${catkin_LIBRARIES}
-)
-
-target_link_libraries(test_fcl
   ${catkin_LIBRARIES}
 )
 
