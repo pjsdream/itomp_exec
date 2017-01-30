@@ -502,6 +502,9 @@ bool ITOMPPlannerNode::planAndExecute(moveit_msgs::RobotTrajectory& robot_trajec
 
     initializeOptimizers();
 
+    planAndExecuteFlexibleTrajectoryDuration();
+
+    /*
     switch (options_.itomp_algorithm)
     {
     case ITOMPFixedTrajectoryDuration:
@@ -514,6 +517,7 @@ bool ITOMPPlannerNode::planAndExecute(moveit_msgs::RobotTrajectory& robot_trajec
         ROS_ERROR("Unknown ITOMP algorithm enum [%d]", options_.itomp_algorithm);
         return false;
     }
+    */
 }
 
 void ITOMPPlannerNode::initializeOptimizers()
@@ -747,13 +751,6 @@ bool ITOMPPlannerNode::planAndExecuteFlexibleTrajectoryDuration()
 
         if (best_trajectory_cost < options_.goal_tolerance)
             break;
-<<<<<<< Updated upstream
-=======
-
-        // print best trajectory cost
-        ROS_INFO("best_trajectory_cost: %lf  tolerance: %lf", best_trajectory_cost, options_.goal_tolerance);
-        //optimizers_[best_trajectory_index].printCosts();
->>>>>>> Stashed changes
     }
 
     ROS_INFO("Waiting %lf sec for the last execution step", options_.planning_timestep);

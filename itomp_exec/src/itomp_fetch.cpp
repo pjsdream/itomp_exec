@@ -551,13 +551,24 @@ void ITOMPFetch::initializeCurrentState(moveit_msgs::RobotState& start_state)
 
 void ITOMPFetch::runScenario()
 {
-    int goal_type = 0;
     int goal_index = 0;
-    std::vector<char> goal_achieved(start_poses_.size(), false);
-    
+
+    std::vector<Eigen::Vector3d> goal_positions = {
+        Eigen::Vector3d(0.5, -0.7, 1.25),
+        Eigen::Vector3d(0.5, 0.7, 1.25),
+        Eigen::Vector3d(0.5, -0.7, 1.25),
+        Eigen::Vector3d(0.5, 0.7, 1.25),
+    };
+
+    std::vector<Eigen::Quaterniond> goal_orientations = {
+        Eigen::Quaterniond::Identity(),
+        Eigen::Quaterniond::Identity(),
+        Eigen::Quaterniond::Identity(),
+        Eigen::Quaterniond::Identity(),
+    };
+
     while (true)
     {
-        ROS_INFO("Goal index: [%d, %d]", goal_type, goal_index);
         planning_interface::MotionPlanRequest req;
         req.group_name = planning_group_;
         
@@ -571,44 +582,17 @@ void ITOMPFetch::runScenario()
         moveit_msgs::DisplayRobotState start_state_display_msg;
         start_state_display_msg.state = req.start_state;
         start_state_publisher_.publish(start_state_display_msg);
-        
+
         // goal pose setting
-        /*
-        moveit_msgs::PositionConstraint goal_position_constraint;
-        goal_position_constraint.link_name = endeffector_name_;
-        Eigen::Vector3d goal_ee_position(0.5, -0.5, 1.0);
-        tf::vectorEigenToMsg(goal_ee_position, goal_position_constraint.target_point_offset);
-        
-        moveit_msgs::OrientationConstraint goal_orientation_constraint;
-        goal_orientation_constraint.link_name = endeffector_name_;
-        Eigen::Quaterniond goal_ee_orientation(0.707106781, 0.0, 0.707106781, 0.0);
-        tf::quaternionEigenToMsg(goal_ee_orientation, goal_orientation_constraint.orientation);
-        
-        moveit_msgs::Constraints goal_constraints;
-        goal_constraints.position_constraints.push_back(goal_position_constraint);
-        goal_constraints.orientation_constraints.push_back(goal_orientation_constraint);
-        req.goal_constraints.push_back(goal_constraints);
-        
-        planner_.setMotionPlanRequest(req);
-        */
         moveit_msgs::PositionConstraint goal_position_constraint;
         goal_position_constraint.link_name = endeffector_name_;
         tf::vectorEigenToMsg(target_poses_[goal_index].position, goal_position_constraint.target_point_offset);
-        if (goal_index % 2 == 1)
-            goal_position_constraint.weight = 10.0;
-        else
-            goal_position_constraint.weight = 10.0;
+        goal_position_constraint.weight = 10.0;
         
         moveit_msgs::OrientationConstraint goal_orientation_constraint;
         goal_orientation_constraint.link_name = endeffector_name_;
         tf::quaternionEigenToMsg(target_poses_[goal_index].orientation, goal_orientation_constraint.orientation);
-        if (    goal_index == 0 ||
-                goal_index == 1 ||
-                goal_index == 3 ||
-                goal_index == 4)
-            goal_orientation_constraint.weight = 1.0;
-        else
-            goal_orientation_constraint.weight = 0.0;
+        goal_orientation_constraint.weight = 1.0;
         
         moveit_msgs::Constraints goal_constraints;
         goal_constraints.position_constraints.push_back(goal_position_constraint);
@@ -616,34 +600,19 @@ void ITOMPFetch::runScenario()
         req.goal_constraints.push_back(goal_constraints);
         
         planner_.setMotionPlanRequest(req);
-        
-        // trajectory duration
-        double trajectory_duration;
-        if (goal_type == 0 && goal_index == 0)
-            trajectory_duration = 5.0;
-        else
-            trajectory_duration = 2.0 + goal_index;
 
         // plan and execute
         moveit_msgs::RobotTrajectory res;
-        planner_.setTrajectoryDuration(trajectory_duration);
+        planner_.setTrajectoryDuration(5.0);
         planner_.planAndExecute(res);
 
         // move endeffector vertically using IK to pick or place
         openGripper(false);
-        //detachSphere(goal_index);
-        //moveEndeffectorVerticallyTarget(endeffector_vertical_moving_distance_, target_poses_[goal_index].position, target_poses_[goal_index].orientation);
 
         // goal index assignment in order
-        /*
-        if (goal_index == target_poses_.size() - 1)
-            break;
-            */
         goal_index++;
-        goal_index %= target_poses_.size();
-        
-        // once
-        // break;
+        if (goal_index == goal_positions.size())
+            break;
     }
 }
 
@@ -1152,6 +1121,9 @@ int main(int argc, char** argv)
     */
 
 
+    test_fetch.runScenario();
+
+    /*
     if (argc == 1 || argv[1][0] == '1')
         test_fetch.runScenario();
     
@@ -1162,6 +1134,7 @@ int main(int argc, char** argv)
         else
             test_fetch.runMovingArmScenario();
     }
+    */
     
     return 0;
 }
