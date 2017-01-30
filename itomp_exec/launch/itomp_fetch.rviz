@@ -29,7 +29,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: robot laser scan
+    SyncSource: ""
 Visualization Manager:
   Class: ""
   Displays:
@@ -280,8 +280,6 @@ Visualization Manager:
           Value: true
         head_tilt_link:
           Value: true
-        kinect_depth_frame:
-          Value: true
         l_gripper_finger_link:
           Value: true
         l_wheel_link:
@@ -321,8 +319,6 @@ Visualization Manager:
         map:
           camera_link:
             camera_depth_frame:
-              kinect_depth_frame:
-                {}
               openni_depth_frame:
                 {}
           odom:
@@ -664,7 +660,7 @@ Visualization Manager:
       Marker Topic: /itomp_fetch/planning_scene
       Name: itomp planning scene
       Namespaces:
-        {}
+        planning_scene_static: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -821,22 +817,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 4.1401
+      Distance: 4.33802
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.68423
-        Y: 0.0239133
-        Z: 0.34972
+        X: 0.562383
+        Y: 0.838871
+        Z: 1.45962
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 1.33979
+      Pitch: -0.19021
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 6.24912
+      Yaw: 4.81411
     Saved: ~
 Window Geometry:
   Displays:
@@ -854,5 +850,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1200
-  X: 568
+  X: 560
   Y: 10

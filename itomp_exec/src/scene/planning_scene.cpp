@@ -122,7 +122,7 @@ Spheres PlanningScene::getDynamicSphereObstacles() const
         //const double average_covariance = (obstacle.obstacle_covariance[0] + obstacle.obstacle_covariance[4] + obstacle.obstacle_covariance[8]) / 3.;
         //const double radius = obstacle.radius + 7.82 * std::sqrt(average_covariance);
 
-        const double radius = 0.2;
+        const double radius = 0.3;
 
         spheres.push_back(Sphere(radius, transform * position));
     }

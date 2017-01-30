@@ -1,3 +1,8 @@
+/*
+ * $ roslaunch itomp_exec itomp_fetch.launch use_gazebo:=true benchmark1:=true
+ * $ rosparam load itomp_fetch_benchmark1.yaml itomp_fetch
+ */
+
 #include <itomp_exec/planner/itomp_planner_node.h>
 #include <itomp_exec/robot/bounding_sphere_robot_model.h>
 #include <moveit/robot_model_loader/robot_model_loader.h>
