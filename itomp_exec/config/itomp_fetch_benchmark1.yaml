@@ -2,7 +2,7 @@ trajectory_duration: 5.0
 planning_timestep: 0.50
 num_milestones: 3
 num_interpolation_samples: 3
-goal_tolerance: 0.03  # cost function tolerance
+goal_tolerance: 0.01  # cost function tolerance
 
 #itomp_algorithm: "fixed_trajectory_duration"
 itomp_algorithm: "flexible_trajectory_duration"

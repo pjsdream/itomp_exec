@@ -503,6 +503,9 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
 
     initializeOptimizers();
 
+    planAndExecuteFlexibleTrajectoryDuration();
+
+    /*
     switch (options_.itomp_algorithm)
     {
     case ITOMPFixedTrajectoryDuration:
@@ -515,6 +518,7 @@ bool ITOMPPlannerNode::planAndExecute(planning_interface::MotionPlanResponse& re
         ROS_ERROR("Unknown ITOMP algorithm enum [%d]", options_.itomp_algorithm);
         return false;
     }
+    */
 }
 
 void ITOMPPlannerNode::initializeOptimizers()

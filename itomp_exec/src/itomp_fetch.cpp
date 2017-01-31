@@ -1097,7 +1097,9 @@ int main(int argc, char** argv)
     test_fetch.moveGripper(0.01);
     test_fetch.openGripper();
 
+    test_fetch.runScenario();
 
+    /*
     if (argc == 1 || argv[1][0] == '1')
         test_fetch.runScenario();
     
@@ -1108,6 +1110,7 @@ int main(int argc, char** argv)
         else
             test_fetch.runMovingArmScenario();
     }
+    */
     
     return 0;
 }
